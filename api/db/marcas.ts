@@ -23,6 +23,7 @@ async function filaAMarca(fila: Record<string, unknown>) {
     nombre: String(fila.nombre),
     descripcion: fila.descripcion ? String(fila.descripcion) : undefined,
     colores: parseJsonArray(fila.colores),
+    tipografia: fila.tipografia ? String(fila.tipografia) : undefined,
     manualUrl: fila.manual_url ? String(fila.manual_url) : undefined,
     assets: assets.rows.map((a) => ({
       id: String(a.id),
@@ -68,14 +69,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         nombre: string;
         descripcion?: string;
         colores: string[];
+        tipografia?: string;
         manualUrl?: string;
         assets?: AssetMarcaEntrada[];
       }>(req);
       const id = nuevoId();
       const ahora = new Date().toISOString();
       await db().execute({
-        sql: "INSERT INTO marcas (id, nombre, descripcion, colores, manual_url, creado_en, actualizado_en) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        args: [id, body.nombre, body.descripcion ?? null, JSON.stringify(body.colores ?? []), body.manualUrl ?? null, ahora, ahora],
+        sql: "INSERT INTO marcas (id, nombre, descripcion, colores, tipografia, manual_url, creado_en, actualizado_en) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        args: [id, body.nombre, body.descripcion ?? null, JSON.stringify(body.colores ?? []), body.tipografia ?? null, body.manualUrl ?? null, ahora, ahora],
       });
       await reemplazarAssets(id, body.assets);
       const fila = await db().execute({ sql: "SELECT * FROM marcas WHERE id = ?", args: [id] });
@@ -90,6 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         nombre?: string;
         descripcion?: string;
         colores?: string[];
+        tipografia?: string;
         manualUrl?: string;
         assets?: AssetMarcaEntrada[];
       }>(req);
@@ -99,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (body.nombre !== undefined) { campos.push("nombre = ?"); args.push(body.nombre); }
       if (body.descripcion !== undefined) { campos.push("descripcion = ?"); args.push(body.descripcion); }
       if (body.colores !== undefined) { campos.push("colores = ?"); args.push(JSON.stringify(body.colores)); }
+      if (body.tipografia !== undefined) { campos.push("tipografia = ?"); args.push(body.tipografia); }
       if (body.manualUrl !== undefined) { campos.push("manual_url = ?"); args.push(body.manualUrl); }
       campos.push("actualizado_en = ?");
       args.push(new Date().toISOString());

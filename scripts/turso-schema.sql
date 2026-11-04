@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS marcas (
   nombre TEXT NOT NULL,
   descripcion TEXT,
   colores TEXT NOT NULL,
+  tipografia TEXT,
   manual_url TEXT,
   creado_en TEXT NOT NULL,
   actualizado_en TEXT NOT NULL

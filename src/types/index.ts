@@ -387,6 +387,9 @@ export interface Marca {
   descripcion?: string;
   /** Paleta en hex, ej "#C1EB1F" — en el orden que se quiere mostrar (principal primero). */
   colores: string[];
+  /** Nombre libre de la tipografia principal (ej. "Montserrat", "Helvetica Neue Bold") — solo
+   * texto, no se sube ningun archivo de fuente. */
+  tipografia?: string;
   assets: AssetMarca[];
   /** Link al manual de identidad completo en PDF (Drive), si existe. */
   manualUrl?: string;

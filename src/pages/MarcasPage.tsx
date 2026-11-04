@@ -70,29 +70,54 @@ export function MarcasPage() {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {marcas.map((m) => {
             const logo = logoDe(m);
+            const paleta = m.colores.length > 0 ? m.colores : ["#E5E7EB"];
             return (
-              <Card key={m.id} className="cursor-pointer hover:shadow-md" onClick={() => setSeleccionada(m)}>
-                <CardHeader className="flex-row items-center gap-3 pb-2">
-                  {logo ? (
-                    <img
-                      src={`/api/drive-thumbnail?id=${encodeURIComponent(logo.fileId ?? "")}&size=100`}
-                      alt={m.nombre}
-                      className="h-10 w-10 rounded-md border border-border object-contain"
-                    />
-                  ) : (
-                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-bg-secondary text-xs font-semibold">
-                      {m.nombre.slice(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <CardTitle className="truncate">{m.nombre}</CardTitle>
-                    {m.descripcion && <p className="truncate text-xs text-muted-foreground">{m.descripcion}</p>}
+              <Card
+                key={m.id}
+                className="cursor-pointer overflow-hidden p-0 hover:shadow-md"
+                onClick={() => setSeleccionada(m)}
+              >
+                <div
+                  className="relative flex h-28 items-end p-4"
+                  style={{
+                    background:
+                      paleta.length > 1
+                        ? `linear-gradient(135deg, ${paleta.slice(0, 3).join(", ")})`
+                        : paleta[0],
+                  }}
+                >
+                  <div className="absolute left-4 top-4 flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md">
+                    {logo ? (
+                      <img
+                        src={`/api/drive-thumbnail?id=${encodeURIComponent(logo.fileId ?? "")}&size=120`}
+                        alt={m.nombre}
+                        className="h-full w-full object-contain p-1"
+                      />
+                    ) : (
+                      <span className="text-sm font-semibold text-text-primary">
+                        {m.nombre.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex flex-wrap gap-1.5">
-                    {m.colores.slice(0, 5).map((c) => (
-                      <span key={c} className="h-5 w-5 rounded-full border border-border" style={{ backgroundColor: c }} title={c} />
+                </div>
+                <CardContent className="space-y-3 pt-3">
+                  <div className="min-w-0">
+                    <CardTitle
+                      className="truncate text-lg"
+                      style={m.tipografia ? { fontFamily: m.tipografia } : undefined}
+                    >
+                      {m.nombre}
+                    </CardTitle>
+                    {m.descripcion && <p className="truncate text-xs text-muted-foreground">{m.descripcion}</p>}
+                    {m.tipografia && (
+                      <p className="mt-0.5 truncate text-[11px] text-muted-foreground" style={{ fontFamily: m.tipografia }}>
+                        Aa — {m.tipografia}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex overflow-hidden rounded-md border border-border">
+                    {m.colores.slice(0, 6).map((c) => (
+                      <span key={c} className="h-6 flex-1" style={{ backgroundColor: c }} title={c} />
                     ))}
                   </div>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -115,12 +140,52 @@ export function MarcasPage() {
         <DialogContent className="max-w-xl">
           {seleccionada && (
             <>
+              {(() => {
+                const paleta = seleccionada.colores.length > 0 ? seleccionada.colores : ["#E5E7EB"];
+                const logoSeleccionada = logoDe(seleccionada);
+                return (
+                  <div
+                    className="relative mb-4 flex h-24 items-end overflow-hidden rounded-lg p-4"
+                    style={{
+                      background:
+                        paleta.length > 1
+                          ? `linear-gradient(135deg, ${paleta.slice(0, 3).join(", ")})`
+                          : paleta[0],
+                    }}
+                  >
+                    <div className="absolute left-4 top-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md">
+                      {logoSeleccionada ? (
+                        <img
+                          src={`/api/drive-thumbnail?id=${encodeURIComponent(logoSeleccionada.fileId ?? "")}&size=150`}
+                          alt={seleccionada.nombre}
+                          className="h-full w-full object-contain p-1.5"
+                        />
+                      ) : (
+                        <span className="text-base font-semibold text-text-primary">
+                          {seleccionada.nombre.slice(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <DialogHeader>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
-                    <DialogTitle>{seleccionada.nombre}</DialogTitle>
+                    <DialogTitle
+                      className="text-xl"
+                      style={seleccionada.tipografia ? { fontFamily: seleccionada.tipografia } : undefined}
+                    >
+                      {seleccionada.nombre}
+                    </DialogTitle>
                     {seleccionada.descripcion && (
                       <p className="text-sm text-muted-foreground">{seleccionada.descripcion}</p>
+                    )}
+                    {seleccionada.tipografia && (
+                      <p className="mt-1 text-xs text-muted-foreground" style={{ fontFamily: seleccionada.tipografia }}>
+                        Aa Bb Cc — {seleccionada.tipografia}
+                      </p>
                     )}
                   </div>
                   {puedeGestionar && (

@@ -23,6 +23,7 @@ import type { AssetMarca } from "@/types";
 const schema = z.object({
   nombre: z.string().min(2, "Minimo 2 caracteres"),
   descripcion: z.string().optional(),
+  tipografia: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -117,6 +118,7 @@ export function NuevaMarcaDialog() {
       await crear.mutateAsync({
         nombre: values.nombre,
         ...(values.descripcion ? { descripcion: values.descripcion } : {}),
+        ...(values.tipografia ? { tipografia: values.tipografia } : {}),
         colores: colores.filter(Boolean),
         assets,
         ...(manualUrl ? { manualUrl } : {}),
@@ -159,6 +161,11 @@ export function NuevaMarcaDialog() {
           <div className="space-y-1.5">
             <Label htmlFor="descripcion">Descripcion (opcional)</Label>
             <Input id="descripcion" {...register("descripcion")} placeholder="Ej. Linea institucional" />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="tipografia">Tipografia principal (opcional)</Label>
+            <Input id="tipografia" {...register("tipografia")} placeholder="Ej. Montserrat, Helvetica Neue Bold" />
           </div>
 
           <div className="space-y-1.5">
