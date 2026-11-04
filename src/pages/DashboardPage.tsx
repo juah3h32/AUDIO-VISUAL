@@ -57,6 +57,7 @@ import {
   produccionSemanal as calcularProduccionSemanal,
   yaEntregoMaterial,
 } from "@/lib/metricas";
+import { cargaDeTrabajo, entregablesPorResponsable } from "@/lib/rendimiento";
 import { COLORES_TIPO, useTemaGrafica } from "@/lib/chartTheme";
 import type { Entregable } from "@/types";
 
@@ -383,12 +384,23 @@ export function DashboardPage() {
     const fecha = aFecha(e.fechaEntregado ?? e.fechaAprobado ?? e.creadoEn);
     return fecha.getFullYear() === ahora.getFullYear() && fecha.getMonth() === ahora.getMonth();
   }).length;
-  const entregasAtrasadas = entregables.filter(
-    (e) => aFecha(e.fechaCompromiso) < ahora && !yaEntregoMaterial(e)
-  ).length;
+  // Lista completa (no solo el conteo) para el widget "Tareas atrasadas" del lider — ordenada
+  // por la mas vieja primero (la que lleva mas tiempo atrasada es la mas urgente).
+  const tareasAtrasadas = entregables
+    .filter((e) => aFecha(e.fechaCompromiso) < ahora && !yaEntregoMaterial(e))
+    .sort((a, b) => aFecha(a.fechaCompromiso).getTime() - aFecha(b.fechaCompromiso).getTime());
+  const entregasAtrasadas = tareasAtrasadas.length;
   // "Colaboradores" se cuenta de las cuentas reales (usuarios) por rol — la coleccion aparte
   // "colaboradores" (carga de trabajo/disponibilidad en Equipo) casi nunca esta poblada todavía.
   const colaboradoresDelEquipo = usuarios.filter((u) => u.rol === "colaborador_audiovisual");
+  // Carga REAL por persona, calculada en vivo de los entregables activos — antes esta tarjeta
+  // leia `colaboradores.cargaReal`, un campo manual de la coleccion legacy "colaboradores" que
+  // casi nunca se actualiza (por eso se veia siempre en 0%). `cargaDeTrabajo()` es el mismo
+  // calculo que ya usa EquipoPage.tsx: activas/atrasadas/% segun el trabajo de verdad asignado.
+  const porResponsable = entregablesPorResponsable(entregables);
+  const cargaPorColaborador = colaboradoresDelEquipo
+    .map((u) => ({ id: u.id, nombre: u.nombre, carga: cargaDeTrabajo(porResponsable.get(u.id) ?? [], ahora) }))
+    .sort((a, b) => b.carga.porcentaje - a.carga.porcentaje);
   const proyectosAtencion = proyectos.filter(
     (p) => (p.prioridad === "critica" || p.prioridad === "alta") && !["entregado", "cerrado"].includes(p.etapaActual)
   ).length;
@@ -803,31 +815,69 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>{puedeVerMetricasGlobales(usuario) ? "Carga de trabajo del equipo" : "Mi carga de trabajo"}</CardTitle>
+                <CardTitle>Carga de trabajo del equipo</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {/* La carga de los demas es dato de uso exclusivo del lider (ver puedeVerMetricasGlobales) —
-                 * un colaborador_audiovisual solo ve su propia fila, nunca la de sus compañeros. */}
-                {(puedeVerMetricasGlobales(usuario) ? colaboradores : colaboradores.filter((c) => c.id === usuario?.id))
-                  .length === 0 && (
+                {cargaPorColaborador.length === 0 && (
                   <p className="py-6 text-center text-sm text-muted-foreground">
-                    Sin colaboradores registrados en Equipo todavía.
+                    Sin colaboradores registrados todavía.
                   </p>
                 )}
-                {(puedeVerMetricasGlobales(usuario) ? colaboradores : colaboradores.filter((c) => c.id === usuario?.id)).map(
-                  (c) => (
-                    <div key={c.id} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium">{c.nombre}</span>
-                        <span className="text-muted-foreground">{c.cargaReal}%</span>
-                      </div>
-                      <Progress value={c.cargaReal} />
+                {cargaPorColaborador.map((c) => (
+                  <div key={c.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium">{c.nombre}</span>
+                      <span className="text-muted-foreground">
+                        {c.carga.activas} {c.carga.activas === 1 ? "tarea" : "tareas"}
+                        {c.carga.atrasadas > 0 && (
+                          <span className="ml-1 font-medium text-destructive">· {c.carga.atrasadas} atrasada{c.carga.atrasadas === 1 ? "" : "s"}</span>
+                        )}
+                        {" · "}
+                        {c.carga.porcentaje}%
+                      </span>
                     </div>
-                  )
-                )}
+                    <Progress
+                      value={Math.min(c.carga.porcentaje, 100)}
+                      indicadorClassName={
+                        c.carga.nivel === "saturado" ? "bg-red-500" : c.carga.nivel === "ocupado" ? "bg-amber-500" : "bg-green-500"
+                      }
+                    />
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>
+
+          {tareasAtrasadas.length > 0 && (
+            <Card className="border-red-300 bg-red-50 dark:border-red-400/30 dark:bg-red-400/10">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-900 dark:text-red-200">
+                  <AlertTriangle className="h-4.5 w-4.5" /> Tareas atrasadas ({tareasAtrasadas.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {tareasAtrasadas.slice(0, 8).map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-2 rounded-md bg-card/70 px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{e.nombre}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {nombreDe(e.responsableId)}
+                        {proyectoDe(e.proyectoId) ? ` · ${proyectoDe(e.proyectoId)}` : ""}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-xs font-medium text-red-700 dark:text-red-300">
+                      Vencio {formatFecha(e.fechaCompromiso)}
+                    </span>
+                  </div>
+                ))}
+                {tareasAtrasadas.length > 8 && (
+                  <p className="pt-1 text-center text-xs text-muted-foreground">
+                    +{tareasAtrasadas.length - 8} más
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>
