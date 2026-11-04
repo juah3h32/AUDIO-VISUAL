@@ -19,7 +19,7 @@ import {
   ETIQUETA_AUTORIZACION_SALIDA,
   TIPO_ACTIVIDAD_SALIDA_LABELS,
 } from "@/lib/labels";
-import { cn, formatFecha } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { linkAgregarEventoCalendar } from "@/services/calendarService";
 import { crearNotificacion } from "@/services/notificacionesService";
 import type { DecisionSalida } from "@/services/catalogosService";
@@ -32,6 +32,18 @@ import { ErrorState } from "@/components/ui/error-state";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DemoBadge } from "@/components/DemoBadge";
 import type { SalidaGrabacion } from "@/types";
+
+/** Dia/mes en español para la franja de fecha de cada tarjeta — mismo parseo "fecha local" que
+ * formatFecha() en lib/utils.ts (evita el corrimiento de un dia por interpretar la fecha como UTC). */
+function partesFecha(iso: string) {
+  const [anio, mes, dia] = iso.split("T")[0].split("-").map(Number);
+  const d = new Date(anio, mes - 1, dia);
+  return {
+    dia: String(dia).padStart(2, "0"),
+    diaSemana: d.toLocaleDateString("es-MX", { weekday: "long" }),
+    mes: d.toLocaleDateString("es-MX", { month: "long" }),
+  };
+}
 
 /** Abre Google Calendar con el evento de ESTA salida ya pre-llenado, en pestaña nueva — cada
  * quien decide si lo guarda en su propia agenda (ver `calendarService.ts`). Sin OAuth: es un link
@@ -104,18 +116,30 @@ export function SalidasPage() {
         // Tarjetas compactas: 3 columnas en pantallas anchas (antes 2 columnas con texto grande
         // dejaban cada tarjeta de media pantalla).
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {salidas.map((s) => (
-            <Card key={s.id} className="flex flex-col">
-              <CardHeader className="flex-row items-start justify-between gap-2 p-4 pb-0">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-muted-foreground">{s.folio}</p>
-                  <CardTitle className="truncate" title={s.nombreJornada}>
-                    {s.nombreJornada}
-                  </CardTitle>
+          {salidas.map((s) => {
+            const { dia, diaSemana, mes } = partesFecha(s.fecha);
+            return (
+            <Card key={s.id} className="flex flex-col overflow-hidden p-0">
+              <div className="bg-[#111827] px-4 pb-3 pt-4 text-white dark:bg-[#0B0D11]">
+                <div className="flex items-end justify-between gap-2">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-bold leading-none">{dia}</span>
+                    <div className="pb-0.5 text-[10px] font-semibold uppercase leading-tight text-white/60">
+                      <p>{diaSemana}</p>
+                      <p>{mes}</p>
+                    </div>
+                  </div>
+                  <Badge variant={BADGE_AUTORIZACION_SALIDA[s.estadoAutorizacion]} className="shrink-0">
+                    {ETIQUETA_AUTORIZACION_SALIDA[s.estadoAutorizacion]}
+                  </Badge>
                 </div>
-                <Badge variant={BADGE_AUTORIZACION_SALIDA[s.estadoAutorizacion]} className="shrink-0">
-                  {ETIQUETA_AUTORIZACION_SALIDA[s.estadoAutorizacion]}
-                </Badge>
+                <div className="mt-3 h-0.5 w-full bg-accent-dato" />
+              </div>
+              <CardHeader className="gap-0 p-4 pb-0">
+                <p className="text-[11px] font-semibold text-muted-foreground">{s.folio}</p>
+                <CardTitle className="truncate text-base" title={s.nombreJornada}>
+                  {s.nombreJornada}
+                </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-1.5 p-4 pt-2 text-xs">
                 <p className="truncate text-muted-foreground">
@@ -126,7 +150,7 @@ export function SalidasPage() {
                 <div className="flex min-w-0 items-center gap-1.5">
                   <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   <span className="truncate font-medium">
-                    {formatFecha(s.fecha)} · Salida {s.horaSalida} · Llegada {s.horaEstimadaLlegada}
+                    Salida {s.horaSalida} · Llegada {s.horaEstimadaLlegada}
                   </span>
                 </div>
 
@@ -199,7 +223,8 @@ export function SalidasPage() {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
           {salidas.length === 0 && (
             <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
               Sin salidas programadas.
