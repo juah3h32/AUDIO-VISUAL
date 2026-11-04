@@ -153,6 +153,9 @@ export function RevisarEntregableDialog({
   const actualizarMateriales = useActualizarMaterialesApoyo();
   const [subiendoApoyo, setSubiendoApoyo] = useState(false);
   const inputApoyoRef = useRef<HTMLInputElement>(null);
+  const [pegandoLinkApoyo, setPegandoLinkApoyo] = useState(false);
+  const [linkApoyoBorrador, setLinkApoyoBorrador] = useState("");
+  const [errorLinkApoyo, setErrorLinkApoyo] = useState<string | null>(null);
   const [comentario, setComentario] = useState("");
   const [momento, setMomento] = useState("");
   const [subiendo, setSubiendo] = useState(false);
@@ -767,6 +770,26 @@ export function RevisarEntregableDialog({
   const onEliminarMaterialApoyo = (materialId: string) => {
     const nuevaLista = (entregable.materialesApoyo ?? []).filter((m) => m.id !== materialId);
     actualizarMateriales.mutate({ id: entregable.id, materialesApoyo: nuevaLista });
+  };
+
+  // Pegar un link de Drive que ya existe (no se sube ni se mueve nada — el archivo se queda
+  // donde ya estaba, solo se guarda la referencia para que el responsable lo abra/descargue).
+  const onAgregarLinkApoyo = async () => {
+    const link = linkApoyoBorrador.trim();
+    if (!link) return;
+    const fileId = extraerFileIdDrive(link);
+    if (!fileId) {
+      setErrorLinkApoyo("No se reconoce ese link como un archivo de Drive.");
+      return;
+    }
+    setErrorLinkApoyo(null);
+    const nuevaLista = [
+      ...(entregable.materialesApoyo ?? []),
+      { id: fileId, nombre: `Link de Drive (${fileId.slice(0, 8)}...)`, url: link, fileId },
+    ];
+    await actualizarMateriales.mutateAsync({ id: entregable.id, materialesApoyo: nuevaLista });
+    setLinkApoyoBorrador("");
+    setPegandoLinkApoyo(false);
   };
 
   const onEmpezarRenombrar = () => {
@@ -1556,17 +1579,64 @@ export function RevisarEntregableDialog({
           {puedeAsignarEntregables(usuario) && (
             <>
               <input ref={inputApoyoRef} type="file" className="hidden" onChange={onSubirMaterialApoyo} />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => inputApoyoRef.current?.click()}
-                disabled={subiendoApoyo}
-              >
-                <Upload className="h-3.5 w-3.5" />
-                {subiendoApoyo ? "Subiendo..." : "Subir material de apoyo a Drive"}
-              </Button>
+              <div className="flex gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => inputApoyoRef.current?.click()}
+                  disabled={subiendoApoyo}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  {subiendoApoyo ? "Subiendo..." : "Subir archivo"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setPegandoLinkApoyo((v) => !v)}
+                >
+                  <Link2 className="h-3.5 w-3.5" /> Pegar link de Drive
+                </Button>
+              </div>
+              {pegandoLinkApoyo && (
+                <div className="space-y-1.5">
+                  <Input
+                    value={linkApoyoBorrador}
+                    onChange={(e) => {
+                      setLinkApoyoBorrador(e.target.value);
+                      setErrorLinkApoyo(null);
+                    }}
+                    placeholder="https://drive.google.com/file/d/..."
+                    autoFocus
+                  />
+                  {errorLinkApoyo && <p className="text-xs text-destructive">{errorLinkApoyo}</p>}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        setPegandoLinkApoyo(false);
+                        setLinkApoyoBorrador("");
+                        setErrorLinkApoyo(null);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      className="flex-1"
+                      onClick={onAgregarLinkApoyo}
+                      disabled={actualizarMateriales.isPending || !linkApoyoBorrador.trim()}
+                    >
+                      Agregar
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
