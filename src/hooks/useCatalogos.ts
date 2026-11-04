@@ -9,6 +9,7 @@ import {
   crearColaborador,
   crearPlanta,
   crearSalida,
+  eliminarSalida,
   eliminarUsuario,
   listarColaboradores,
   listarEntregables,
@@ -90,6 +91,14 @@ export function useAutorizarSalida() {
   return useMutation({
     mutationFn: ({ id, estadoAutorizacion }: { id: string; estadoAutorizacion: DecisionSalida }) =>
       autorizarSalida(id, estadoAutorizacion),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["salidas"] }),
+  });
+}
+
+export function useEliminarSalida() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => eliminarSalida(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["salidas"] }),
   });
 }

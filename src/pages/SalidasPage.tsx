@@ -8,8 +8,9 @@ import {
   CalendarPlus,
   CheckCircle2,
   XCircle,
+  Trash2,
 } from "lucide-react";
-import { useAutorizarSalida, useSalidas } from "@/hooks/useCatalogos";
+import { useAutorizarSalida, useEliminarSalida, useSalidas } from "@/hooks/useCatalogos";
 import { useUsuarios } from "@/hooks/useCatalogos";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useAuth } from "@/context/AuthContext";
@@ -19,7 +20,7 @@ import {
   ETIQUETA_AUTORIZACION_SALIDA,
   TIPO_ACTIVIDAD_SALIDA_LABELS,
 } from "@/lib/labels";
-import { cn } from "@/lib/utils";
+import { cn, partesFecha } from "@/lib/utils";
 import { linkAgregarEventoCalendar } from "@/services/calendarService";
 import { crearNotificacion } from "@/services/notificacionesService";
 import type { DecisionSalida } from "@/services/catalogosService";
@@ -29,21 +30,10 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { NuevaSalidaDialog } from "@/components/salidas/NuevaSalidaDialog";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DemoBadge } from "@/components/DemoBadge";
 import type { SalidaGrabacion } from "@/types";
-
-/** Dia/mes en español para la franja de fecha de cada tarjeta — mismo parseo "fecha local" que
- * formatFecha() en lib/utils.ts (evita el corrimiento de un dia por interpretar la fecha como UTC). */
-function partesFecha(iso: string) {
-  const [anio, mes, dia] = iso.split("T")[0].split("-").map(Number);
-  const d = new Date(anio, mes - 1, dia);
-  return {
-    dia: String(dia).padStart(2, "0"),
-    diaSemana: d.toLocaleDateString("es-MX", { weekday: "long" }),
-    mes: d.toLocaleDateString("es-MX", { month: "long" }),
-  };
-}
 
 /** Abre Google Calendar con el evento de ESTA salida ya pre-llenado, en pestaña nueva — cada
  * quien decide si lo guarda en su propia agenda (ver `calendarService.ts`). Sin OAuth: es un link
@@ -70,8 +60,10 @@ export function SalidasPage() {
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
   const autorizar = useAutorizarSalida();
+  const eliminar = useEliminarSalida();
   const nombreProyectoDe = (id: string) => proyectos.find((p) => p.id === id)?.nombre ?? "Proyecto eliminado";
   const [decidiendo, setDecidiendo] = useState<string | null>(null);
+  const [aEliminar, setAEliminar] = useState<SalidaGrabacion | null>(null);
   const nombreDe = (id: string) => usuarios.find((u) => u.id === id)?.nombre ?? "Usuario eliminado";
   // Mismo criterio que crear la salida (lider/superadmin): quien la programa es quien la
   // autoriza. El responsable de produccion nunca se autoriza su propia jornada.
@@ -207,30 +199,44 @@ export function SalidasPage() {
 
                 <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5">
                   <BotonAgregarCalendar salida={s} />
-                  {puedeAutorizar && s.estadoAutorizacion === "pendiente" && (
-                    <div className="flex gap-1.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {puedeAutorizar && s.estadoAutorizacion === "pendiente" && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-xs"
+                          onClick={() => decidir(s, "rechazada")}
+                          disabled={decidiendo === s.id}
+                        >
+                          <XCircle className="h-3.5 w-3.5" /> Rechazar
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-xs"
+                          onClick={() => decidir(s, "autorizada")}
+                          disabled={decidiendo === s.id}
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {decidiendo === s.id ? "Guardando..." : "Autorizar"}
+                        </Button>
+                      </>
+                    )}
+                    {puedeAutorizar && (
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-7 gap-1 px-2 text-xs"
-                        onClick={() => decidir(s, "rechazada")}
-                        disabled={decidiendo === s.id}
+                        className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                        title="Eliminar esta salida"
+                        onClick={() => setAEliminar(s)}
                       >
-                        <XCircle className="h-3.5 w-3.5" /> Rechazar
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="h-7 gap-1 px-2 text-xs"
-                        onClick={() => decidir(s, "autorizada")}
-                        disabled={decidiendo === s.id}
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        {decidiendo === s.id ? "Guardando..." : "Autorizar"}
-                      </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -243,6 +249,22 @@ export function SalidasPage() {
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={Boolean(aEliminar)}
+        onOpenChange={(v) => {
+          if (!v) setAEliminar(null);
+        }}
+        title={`¿Eliminar "${aEliminar?.nombreJornada}"?`}
+        description="Se borra esta salida o grabacion para siempre. No se puede deshacer."
+        confirmLabel={eliminar.isPending ? "Eliminando..." : "Eliminar"}
+        destructive
+        onConfirm={async () => {
+          if (!aEliminar) return;
+          await eliminar.mutateAsync(aEliminar.id);
+          setAEliminar(null);
+        }}
+      />
     </div>
   );
 }

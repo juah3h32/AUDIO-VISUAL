@@ -60,15 +60,19 @@ export function MarcaDetalle({
   const paleta = marca.colores.length > 0 ? marca.colores : ["#E5E7EB"];
   const logo = marca.assets.find((a) => a.tipo === "logo");
   const manualPdf = marca.assets.find((a) => a.tipo === "pdf");
-  const tipografiaAsset = marca.assets.find((a) => a.tipo === "tipografia");
+  // Varias tipografias por marca (ej. una para titulos, otra para cuerpo de texto) — igual que
+  // logos, se acumulan en vez de reemplazarse. Cada archivo necesita su propio nombre de familia
+  // unico (no se puede reusar el mismo `font-family` para dos `src` distintos).
+  const tipografiaAssets = marca.assets.filter((a) => a.tipo === "tipografia");
+  const familiaDe = (i: number) => `marca-fuente-${marca.id}-${i}`;
   // Con archivo real: se ve exactamente como es, no una adivinanza de fuente de sistema por nombre.
-  const familiaTipografia = tipografiaAsset ? `marca-fuente-${marca.id}` : marca.tipografia;
+  const familiaPrincipal = tipografiaAssets.length > 0 ? familiaDe(0) : marca.tipografia;
 
   return (
     <div>
-      {tipografiaAsset && (
-        <style>{`@font-face { font-family: '${familiaTipografia}'; src: url(/api/drive-video?id=${encodeURIComponent(tipografiaAsset.fileId ?? "")}) format('${formatoFuente(tipografiaAsset.nombre)}'); }`}</style>
-      )}
+      {tipografiaAssets.map((a, i) => (
+        <style key={a.id}>{`@font-face { font-family: '${familiaDe(i)}'; src: url(/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}) format('${formatoFuente(a.nombre)}'); }`}</style>
+      ))}
       <div
         className="relative flex h-28 items-end overflow-hidden rounded-t-lg p-4 sm:h-32"
         style={{
@@ -93,7 +97,7 @@ export function MarcaDetalle({
       <div className="space-y-5 border border-t-0 border-border rounded-b-lg p-4 text-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-bold text-text-primary" style={familiaTipografia ? { fontFamily: familiaTipografia } : undefined}>
+            <h2 className="truncate text-xl font-bold text-text-primary" style={familiaPrincipal ? { fontFamily: familiaPrincipal } : undefined}>
               {marca.nombre}
             </h2>
             {marca.descripcion && <p className="text-sm text-muted-foreground">{marca.descripcion}</p>}
@@ -118,24 +122,35 @@ export function MarcaDetalle({
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tipografía</p>
-          {familiaTipografia ? (
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {tipografiaAssets.length > 1 ? "Tipografías" : "Tipografía"}
+          </p>
+          {tipografiaAssets.length > 0 ? (
+            <div className="space-y-2">
+              {tipografiaAssets.map((a, i) => (
+                <div key={a.id} className="rounded-md border border-border p-3">
+                  <p className="text-2xl" style={{ fontFamily: familiaDe(i) }}>
+                    Aa Bb Cc
+                  </p>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">{a.nombre}</p>
+                    <a
+                      href={`/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}&download=1&nombre=${encodeURIComponent(a.nombre)}`}
+                      className="flex shrink-0 items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium hover:bg-bg-secondary"
+                      title={`Descargar ${a.nombre}`}
+                    >
+                      <Download className="h-3 w-3" /> Descargar
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : marca.tipografia ? (
             <div className="rounded-md border border-border p-3">
-              <p className="text-2xl" style={{ fontFamily: familiaTipografia }}>
+              <p className="text-2xl" style={{ fontFamily: marca.tipografia }}>
                 Aa Bb Cc
               </p>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground">{marca.tipografia ?? tipografiaAsset?.nombre}</p>
-                {tipografiaAsset && (
-                  <a
-                    href={`/api/drive-video?id=${encodeURIComponent(tipografiaAsset.fileId ?? "")}&download=1&nombre=${encodeURIComponent(tipografiaAsset.nombre)}`}
-                    className="flex shrink-0 items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium hover:bg-bg-secondary"
-                    title={`Descargar ${tipografiaAsset.nombre}`}
-                  >
-                    <Download className="h-3 w-3" /> Descargar
-                  </a>
-                )}
-              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{marca.tipografia}</p>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">Sin tipografía registrada.</p>

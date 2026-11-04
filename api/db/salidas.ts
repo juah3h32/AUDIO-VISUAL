@@ -78,6 +78,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
+    if (req.method === "DELETE") {
+      if (!puedeAsignarEntregables(usuario)) throw new ErrorAuth(403, "No tienes permiso para eliminar salidas.");
+      const id = String(req.query.id ?? "");
+      if (!id) throw new ErrorAuth(400, "Falta el id.");
+      await db().execute({ sql: "DELETE FROM salidas WHERE id = ?", args: [id] });
+      res.status(204).end();
+      return;
+    }
+
     res.status(405).json({ error: "Metodo no soportado." });
   });
 }

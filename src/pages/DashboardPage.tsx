@@ -389,23 +389,28 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Carga de trabajo del equipo</CardTitle>
+            <CardTitle>{puedeVerMetricasGlobales(usuario) ? "Carga de trabajo del equipo" : "Mi carga de trabajo"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {colaboradores.length === 0 && (
+            {/* La carga de los demas es dato de uso exclusivo del lider (ver puedeVerMetricasGlobales) —
+             * un colaborador_audiovisual solo ve su propia fila, nunca la de sus compañeros. */}
+            {(puedeVerMetricasGlobales(usuario) ? colaboradores : colaboradores.filter((c) => c.id === usuario?.id))
+              .length === 0 && (
               <p className="py-6 text-center text-sm text-muted-foreground">
                 Sin colaboradores registrados en Equipo todavía.
               </p>
             )}
-            {colaboradores.map((c) => (
-              <div key={c.id} className="space-y-1">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium">{c.nombre}</span>
-                  <span className="text-muted-foreground">{c.cargaReal}%</span>
+            {(puedeVerMetricasGlobales(usuario) ? colaboradores : colaboradores.filter((c) => c.id === usuario?.id)).map(
+              (c) => (
+                <div key={c.id} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium">{c.nombre}</span>
+                    <span className="text-muted-foreground">{c.cargaReal}%</span>
+                  </div>
+                  <Progress value={c.cargaReal} />
                 </div>
-                <Progress value={c.cargaReal} />
-              </div>
-            ))}
+              )
+            )}
           </CardContent>
         </Card>
       </div>

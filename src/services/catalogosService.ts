@@ -79,6 +79,14 @@ export async function autorizarSalida(id: string, estadoAutorizacion: DecisionSa
   });
 }
 
+export async function eliminarSalida(id: string): Promise<void> {
+  if (esModoDemo) {
+    demoSalidas = demoSalidas.filter((s) => s.id !== id);
+    return;
+  }
+  await apiFetch(`/api/db/salidas?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+}
+
 export const listarEquipoAV = async (): Promise<EquipoAV[]> => {
   if (esModoDemo) return [...DEMO_EQUIPO_AV];
   return apiFetch<EquipoAV[]>("/api/db/equipo?tipo=equipo_av");

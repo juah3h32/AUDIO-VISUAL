@@ -63,9 +63,16 @@ export function formatoTiempo(segundos: number): string {
  *   contenedor recorta un pedazo de esa barra ("se ve cortado debajo"). Con el origen del escalado
  *   anclado abajo, el borde inferior NO se mueve — los controles quedan completos — y el 3% de
  *   overscan se va todo hacia arriba/lados, donde no hay nada que se note cortado.
+ * - `pb-9`: la barra de controles nativa se dibuja SIEMPRE encima del propio video (el navegador
+ *   no le reserva espacio aparte), asi que se le queda encima de subtitulos quemados cerca del
+ *   borde inferior y, en vertical, se ve amontonada contra el pie "El minuto se sigue...". Este
+ *   padding reduce el area del `<video>` (el aspect-ratio fija el alto TOTAL de la caja, asi que
+ *   el padding no agranda la tarjeta) y deja su propia franja de `bg-black` debajo, donde el
+ *   navegador dibuja los controles sin encimarse con la imagen. El contenido absoluto (overlays,
+ *   spinner) va en un wrapper interno SIN ese padding para no desplazarse con el.
  */
 const ESCENARIO_BASE =
-  "relative flex items-center justify-center overflow-hidden bg-black " +
+  "flex items-center justify-center overflow-hidden bg-black pb-9 " +
   "w-full max-h-[60vh] min-h-[180px] " +
   "lg:h-full lg:w-auto lg:max-w-full lg:max-h-none lg:min-h-[160px]";
 export const DriveVideoPlayer = forwardRef<
@@ -161,58 +168,62 @@ export const DriveVideoPlayer = forwardRef<
         className={cn(ESCENARIO_BASE, "mx-auto rounded-lg shadow-card ring-1 ring-black/10")}
         style={{ aspectRatio: String(ratioCaja) }}
       >
-        {(cargando || bufereando) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-white/50" />
-            <span className="text-[11px] text-white/40">
-              {cargando ? "Cargando video..." : "Recuperando buffer..."}
+        {/* Sin el `pb-9` del contenedor: sus overlays absolutos (spinner, degradados) se anclan a
+         * ESTE wrapper, no a la franja reservada para los controles nativos de abajo. */}
+        <div className="relative h-full w-full">
+          {(cargando || bufereando) && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-white/50" />
+              <span className="text-[11px] text-white/40">
+                {cargando ? "Cargando video..." : "Recuperando buffer..."}
+              </span>
+            </div>
+          )}
+          {src && (
+            <video
+              ref={videoRef}
+              key={`${fileId}-${intento}`}
+              src={src}
+              controls
+              playsInline
+              preload="metadata"
+              className={cn(
+                "h-full w-full scale-[1.03] origin-bottom object-cover [accent-color:#FB670B]",
+                "[&:fullscreen]:scale-100 [&:fullscreen]:object-contain [&:fullscreen]:bg-black",
+                "[&:-webkit-full-screen]:scale-100 [&:-webkit-full-screen]:object-contain [&:-webkit-full-screen]:bg-black",
+                cargando && "invisible"
+              )}
+              onError={manejarError}
+              onCanPlay={() => setCargando(false)}
+              onWaiting={() => setBufereando(true)}
+              onPlaying={() => setBufereando(false)}
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                setCargando(false);
+                const r = v.videoWidth / v.videoHeight;
+                if (!Number.isFinite(r) || r <= 0) return;
+                setRatio(r);
+                onOrientacion?.(r < 1 ? "vertical" : "horizontal");
+                onRatio?.(r);
+              }}
+              onTimeUpdate={alActualizarTiempo}
+              onPause={(e) => {
+                const v = e.currentTarget;
+                if (onMomentoPausa && !v.ended) onMomentoPausa(formatoTiempo(v.currentTime));
+              }}
+            />
+          )}
+
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 bg-gradient-to-b from-black/70 to-transparent px-2.5 pb-5 pt-2">
+            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-dato" />
+          </div>
+
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/70 to-transparent px-2.5 pb-2 pt-5">
+            <Clock className="h-3 w-3 shrink-0 text-white/50" />
+            <span className="truncate text-[10.5px] leading-tight text-white/60">
+              El minuto se sigue solo mientras reproduces.
             </span>
           </div>
-        )}
-        {src && (
-          <video
-            ref={videoRef}
-            key={`${fileId}-${intento}`}
-            src={src}
-            controls
-            playsInline
-            preload="metadata"
-            className={cn(
-              "h-full w-full scale-[1.03] origin-bottom object-cover [accent-color:#FB670B]",
-              "[&:fullscreen]:scale-100 [&:fullscreen]:object-contain [&:fullscreen]:bg-black",
-              "[&:-webkit-full-screen]:scale-100 [&:-webkit-full-screen]:object-contain [&:-webkit-full-screen]:bg-black",
-              cargando && "invisible"
-            )}
-            onError={manejarError}
-            onCanPlay={() => setCargando(false)}
-            onWaiting={() => setBufereando(true)}
-            onPlaying={() => setBufereando(false)}
-            onLoadedMetadata={(e) => {
-              const v = e.currentTarget;
-              setCargando(false);
-              const r = v.videoWidth / v.videoHeight;
-              if (!Number.isFinite(r) || r <= 0) return;
-              setRatio(r);
-              onOrientacion?.(r < 1 ? "vertical" : "horizontal");
-              onRatio?.(r);
-            }}
-            onTimeUpdate={alActualizarTiempo}
-            onPause={(e) => {
-              const v = e.currentTarget;
-              if (onMomentoPausa && !v.ended) onMomentoPausa(formatoTiempo(v.currentTime));
-            }}
-          />
-        )}
-
-        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 bg-gradient-to-b from-black/70 to-transparent px-2.5 pb-5 pt-2">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-dato" />
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/70 to-transparent px-2.5 pb-2 pt-5">
-          <Clock className="h-3 w-3 shrink-0 text-white/50" />
-          <span className="truncate text-[10.5px] leading-tight text-white/60">
-            El minuto se sigue solo mientras reproduces.
-          </span>
         </div>
       </div>
     );
@@ -237,53 +248,57 @@ export const DriveVideoPlayer = forwardRef<
           con el flexbox de la columna. Tope mas generoso que antes (el dialogo ya tiene sobra de
           ancho via `max-w-[95vw]`/`lg:w-fit`, nunca fue el dialogo el que limitaba el tamaño). */}
       <div
-        className="relative flex w-full min-h-[180px] max-h-[65vh] items-center justify-center overflow-hidden bg-black lg:max-h-[70vh] lg:max-w-4xl"
+        className="flex w-full min-h-[180px] max-h-[65vh] items-center justify-center overflow-hidden bg-black pb-9 lg:max-h-[70vh] lg:max-w-4xl"
         style={{ aspectRatio: String(ratioCaja) }}
       >
-        {(cargando || bufereando) && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-white/50" />
-            <span className="text-[11px] text-white/40">
-              {cargando ? "Cargando video..." : "Recuperando buffer..."}
-            </span>
-          </div>
-        )}
-        {src && (
-          <video
-            ref={videoRef}
-            key={`${fileId}-${intento}`}
-            src={src}
-            controls
-            playsInline
-            preload="metadata"
-            className={cn(
-              "h-full w-full scale-[1.03] origin-bottom object-cover [accent-color:#FB670B]",
-              "[&:fullscreen]:scale-100 [&:fullscreen]:object-contain [&:fullscreen]:bg-black",
-              "[&:-webkit-full-screen]:scale-100 [&:-webkit-full-screen]:object-contain [&:-webkit-full-screen]:bg-black",
-              cargando && "invisible"
-            )}
-            onError={manejarError}
-            // Red de seguridad: si por lo que sea no llego `loadedmetadata`, el video no se queda invisible.
-            onCanPlay={() => setCargando(false)}
-            onWaiting={() => setBufereando(true)}
-            onPlaying={() => setBufereando(false)}
-            onLoadedMetadata={(e) => {
-              const v = e.currentTarget;
-              setCargando(false);
-              const r = v.videoWidth / v.videoHeight;
-              // Un ratio no finito (metadata incompleta) romperia `aspect-ratio` y dejaria la caja sin forma.
-              if (!Number.isFinite(r) || r <= 0) return;
-              setRatio(r);
-              onOrientacion?.(r < 1 ? "vertical" : "horizontal");
-              onRatio?.(r);
-            }}
-            onTimeUpdate={alActualizarTiempo}
-            onPause={(e) => {
-              const v = e.currentTarget;
-              if (onMomentoPausa && !v.ended) onMomentoPausa(formatoTiempo(v.currentTime));
-            }}
-          />
-        )}
+        {/* Mismo motivo que en la rama vertical: `pb-9` del contenedor reserva una franja para
+         * los controles nativos sin que el spinner (unico overlay absoluto aqui) se desplace con ella. */}
+        <div className="relative h-full w-full">
+          {(cargando || bufereando) && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin text-white/50" />
+              <span className="text-[11px] text-white/40">
+                {cargando ? "Cargando video..." : "Recuperando buffer..."}
+              </span>
+            </div>
+          )}
+          {src && (
+            <video
+              ref={videoRef}
+              key={`${fileId}-${intento}`}
+              src={src}
+              controls
+              playsInline
+              preload="metadata"
+              className={cn(
+                "h-full w-full scale-[1.03] origin-bottom object-cover [accent-color:#FB670B]",
+                "[&:fullscreen]:scale-100 [&:fullscreen]:object-contain [&:fullscreen]:bg-black",
+                "[&:-webkit-full-screen]:scale-100 [&:-webkit-full-screen]:object-contain [&:-webkit-full-screen]:bg-black",
+                cargando && "invisible"
+              )}
+              onError={manejarError}
+              // Red de seguridad: si por lo que sea no llego `loadedmetadata`, el video no se queda invisible.
+              onCanPlay={() => setCargando(false)}
+              onWaiting={() => setBufereando(true)}
+              onPlaying={() => setBufereando(false)}
+              onLoadedMetadata={(e) => {
+                const v = e.currentTarget;
+                setCargando(false);
+                const r = v.videoWidth / v.videoHeight;
+                // Un ratio no finito (metadata incompleta) romperia `aspect-ratio` y dejaria la caja sin forma.
+                if (!Number.isFinite(r) || r <= 0) return;
+                setRatio(r);
+                onOrientacion?.(r < 1 ? "vertical" : "horizontal");
+                onRatio?.(r);
+              }}
+              onTimeUpdate={alActualizarTiempo}
+              onPause={(e) => {
+                const v = e.currentTarget;
+                if (onMomentoPausa && !v.ended) onMomentoPausa(formatoTiempo(v.currentTime));
+              }}
+            />
+          )}
+        </div>
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5 border-t border-white/10 bg-[#141416] px-2.5 py-1.5">

@@ -119,7 +119,7 @@ export function EditarMarcaDialog({
         subcarpeta: "Tipografia",
       });
       setAssets((prev) => [
-        ...prev.filter((a) => a.tipo !== "tipografia"),
+        ...prev,
         { id: subido.id, tipo: "tipografia", nombre: file.name, url: subido.viewUrl, fileId: subido.id },
       ]);
     } catch (err) {
@@ -188,17 +188,22 @@ export function EditarMarcaDialog({
               disabled={subiendo !== null}
             >
               <Upload className="h-3.5 w-3.5" />
-              {subiendo === "tipografia"
-                ? "Subiendo..."
-                : assets.find((a) => a.tipo === "tipografia")
-                  ? "Reemplazar archivo de la fuente"
-                  : "Subir archivo de la fuente (.ttf/.otf/.woff)"}
+              {subiendo === "tipografia" ? "Subiendo..." : "Agregar archivo de fuente (.ttf/.otf/.woff)"}
             </Button>
-            {assets.find((a) => a.tipo === "tipografia") && (
-              <p className="truncate text-xs text-muted-foreground">
-                Cargado: {assets.find((a) => a.tipo === "tipografia")?.nombre}
-              </p>
-            )}
+            {assets
+              .filter((a) => a.tipo === "tipografia")
+              .map((a) => (
+                <div key={a.id} className="flex items-center justify-between rounded-md bg-bg-secondary px-2 py-1 text-xs">
+                  <span className="truncate">{a.nombre}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAssets((prev) => prev.filter((x) => x.id !== a.id))}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
           </div>
 
           <div className="space-y-1.5">

@@ -2,9 +2,9 @@ export type Tema = "claro" | "oscuro";
 
 export const TEMA_STORAGE_KEY = "av-control:tema";
 
-/** Lee la preferencia guardada; si no hay, cae al `prefers-color-scheme` del sistema.
- * Tiene que dar el MISMO resultado que el script inline de `index.html` (el que pinta antes de
- * que React monte) o se veria un parpadeo al hidratar. */
+/** Lee la preferencia guardada; sin nada guardado el default es claro (no se sigue la
+ * preferencia del sistema operativo). Tiene que dar el MISMO resultado que el script inline de
+ * `index.html` (el que pinta antes de que React monte) o se veria un parpadeo al hidratar. */
 export function temaInicial(): Tema {
   if (typeof window === "undefined") return "claro";
   if (document.documentElement.classList.contains("dark")) return "oscuro";
@@ -12,9 +12,9 @@ export function temaInicial(): Tema {
     const guardado = window.localStorage.getItem(TEMA_STORAGE_KEY);
     if (guardado === "claro" || guardado === "oscuro") return guardado;
   } catch {
-    /* localStorage bloqueado (modo privado / cookies off): se usa el default del sistema. */
+    /* localStorage bloqueado (modo privado / cookies off): se usa el default claro. */
   }
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro";
+  return "claro";
 }
 
 /* Store minimo compartido por todos los `useTema()`.

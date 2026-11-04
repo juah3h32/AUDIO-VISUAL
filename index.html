@@ -14,15 +14,14 @@
     />
     <title>AV Control | Grupo Ortiz</title>
     <script>
-      // Aplica el tema ANTES del primer pintado para que no se vea el flash blanco al recargar
-      // en modo oscuro. Tiene que coincidir con la logica de `src/lib/tema.ts`.
+      // Aplica el tema ANTES del primer pintado para que no se vea el flash al recargar en modo
+      // oscuro. Tiene que coincidir con la logica de `src/lib/tema.ts`. Default: claro — sin nada
+      // guardado se ignora la preferencia del sistema operativo (antes caia a oscuro si el SO
+      // asi lo tenia configurado).
       (function () {
         try {
           var guardado = localStorage.getItem("av-control:tema");
-          var oscuro =
-            guardado === "oscuro" ||
-            (guardado !== "claro" &&
-              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var oscuro = guardado === "oscuro";
           if (oscuro) document.documentElement.classList.add("dark");
           document.documentElement.style.colorScheme = oscuro ? "dark" : "light";
         } catch (e) {}
