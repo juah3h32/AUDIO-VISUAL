@@ -1,6 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Clock, Loader2 } from "lucide-react";
-import { useIdToken } from "@/hooks/useIdToken";
 import { cn } from "@/lib/utils";
 
 export type MotivoErrorDrive = "sin_acceso" | "no_encontrado" | "desconocido";
@@ -15,16 +14,12 @@ export interface DriveVideoPlayerHandle {
  * El <video> del navegador solo avisa "fallo" sin decir por que (403 sin acceso, 404 borrado,
  * credenciales invalidas...) — antes de rendirse se le pregunta al propio proxy (`/api/drive-video`,
  * ver ese archivo) el motivo real, leyendo el JSON de error que si expone el status HTTP.
- *
- * Aqui si se puede mandar el token por header (es un fetch, no un tag HTML), pero el 401 por
- * sesion vencida tambien se contempla: se trata como "sin_acceso" para que el mensaje al usuario
- * hable de permisos y no de un error generico.
  */
-async function diagnosticarProxyDrive(fileId: string, idToken: string | null): Promise<MotivoErrorDrive> {
+async function diagnosticarProxyDrive(fileId: string): Promise<MotivoErrorDrive> {
   try {
     const res = await fetch(`/api/drive-video?id=${encodeURIComponent(fileId)}`, {
       method: "HEAD",
-      headers: idToken ? { Authorization: `Bearer ${idToken}` } : undefined,
+      credentials: "include",
     });
     if (res.status === 401 || res.status === 403) return "sin_acceso";
     if (res.status === 404) return "no_encontrado";
@@ -116,14 +111,9 @@ export const DriveVideoPlayer = forwardRef<
   // El video ya no sale directo de Drive con el token OAuth del usuario (se vencia cada ~1h y
   // fallaba si el archivo no estaba compartido con esa cuenta) — sale del propio dominio,
   // vía `/api/drive-video`, que lo pide con una cuenta de servicio fija (ver ese archivo).
-  // Ese proxy exige sesion de AV Control: el ID token de Firebase viaja como query param porque
-  // un <video src> no puede mandar headers. Mientras no haya token, `src` es null y el <video>
-  // ni se monta — con `src=""` el navegador dispara `error` de inmediato y caeria al visor de
-  // respaldo sin motivo real.
-  const { token: idToken, listo: sesionLista } = useIdToken();
-  const src = idToken
-    ? `/api/drive-video?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(idToken)}`
-    : null;
+  // Ese proxy exige sesion de AV Control: la cookie httpOnly de sesion viaja sola en la peticion
+  // del <video>, sin que haga falta pegarla a la URL.
+  const src = `/api/drive-video?id=${encodeURIComponent(fileId)}`;
 
   // Sin esto, el contador de reintentos de un video anterior se arrastraba al siguiente —
   // un video nuevo con mala suerte se quedaba sin su propio reintento. Y `ratio` TAMBIEN tenia
@@ -140,15 +130,6 @@ export const DriveVideoPlayer = forwardRef<
     setCargando(true);
   }, [fileId]);
 
-  // Sin sesion de Firebase no hay forma de pedirle el video al proxy — mejor avisar al padre
-  // (que muestra el visor de respaldo de Drive) que dejar el spinner girando para siempre.
-  useEffect(() => {
-    if (sesionLista && !idToken) onError?.("sin_acceso");
-    // `onError` suele venir como funcion nueva en cada render del padre; se deja fuera a
-    // proposito para no reavisar en bucle.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sesionLista, idToken]);
-
   // Un primer error (ej. un hipo de red pidiendole el video al proxy) no tira la toalla de una:
   // se reintenta una vez solita (remontando el <video> con una key distinta) antes de avisarle
   // al padre que use el visor de respaldo. Asi un hipo pasajero no te saca del reproductor propio.
@@ -158,7 +139,7 @@ export const DriveVideoPlayer = forwardRef<
       setCargando(true);
       return;
     }
-    onError?.(await diagnosticarProxyDrive(fileId, idToken));
+    onError?.(await diagnosticarProxyDrive(fileId));
   };
 
   // Mientras no se conoce la proporcion real se usa una de referencia segun la orientacion ya

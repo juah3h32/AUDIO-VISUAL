@@ -9,7 +9,7 @@ export function useMarcas() {
 export function useCrearMarca() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: Omit<Marca, "id" | "assets" | "creadoEn" | "actualizadoEn">) => crearMarca(data),
+    mutationFn: (data: Omit<Marca, "id" | "creadoEn" | "actualizadoEn">) => crearMarca(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["marcas"] }),
   });
 }

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Clapperboard } from "lucide-react";
 
-const ACTUALIZADO = "23 de octubre de 2026";
+const ACTUALIZADO = "3 de noviembre de 2026";
 
 export function PoliticaPrivacidadPage() {
   return (
@@ -34,9 +34,9 @@ export function PoliticaPrivacidadPage() {
               <h2 className="text-base font-semibold">2. Que informacion recolectamos</h2>
               <ul className="list-disc space-y-1 pl-5">
                 <li>
-                  <span className="font-medium">Datos de tu cuenta de Google</span> (nombre, correo
-                  y foto de perfil) al iniciar sesion con Google Sign-In, para identificarte dentro
-                  de la app.
+                  <span className="font-medium">Datos de tu cuenta</span>: nombre, correo y
+                  contraseña (guardada siempre cifrada, nunca en texto plano) para identificarte y
+                  darte acceso segun tu rol.
                 </li>
                 <li>
                   <span className="font-medium">Contenido que tu mismo cargas</span>: nombre de
@@ -51,35 +51,25 @@ export function PoliticaPrivacidadPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-semibold">3. Para que usamos los permisos de Google</h2>
-              <p>Al conectar tu cuenta de Google, la app puede pedir estos permisos especificos:</p>
-              <ul className="list-disc space-y-1 pl-5">
-                <li>
-                  <span className="font-medium">Google Drive (drive.file):</span> crear y
-                  administrar, dentro de tu Drive, unicamente los archivos que la propia app sube en
-                  tu nombre (videos y disenos de tus entregables). No accedemos a otros archivos de
-                  tu Drive.
-                </li>
-                <li>
-                  <span className="font-medium">Google Drive (drive.readonly):</span> leer el video
-                  o diseno ya subido para poder reproducirlo/previsualizarlo dentro de la app durante
-                  el proceso de revision y aprobacion.
-                </li>
-                <li>
-                  <span className="font-medium">Google Calendar (calendar.events):</span> crear, a
-                  peticion tuya (boton "Agregar a mi Google Calendar"), el evento de una grabacion o
-                  salida en tu calendario personal. Solo se usa cuando tu lo solicitas.
-                </li>
-              </ul>
+              <h2 className="text-base font-semibold">3. Como accedes y como se suben los archivos</h2>
+              <p>
+                El acceso es solo por invitacion: un administrador te da de alta con tu correo
+                corporativo y tu creas tu propia contraseña la primera vez que entras. AV Control no
+                pide permisos sobre tu cuenta personal de Google — los videos y disenos que subes se
+                guardan en una cuenta de Google Drive propia del departamento (no en la tuya), y el
+                boton "Agregar a mi Google Calendar" solo abre un evento pre-llenado para que tu
+                mismo decidas si lo guardas en tu calendario; no se conecta ni se le da acceso a nada
+                de tu cuenta para eso.
+              </p>
             </section>
 
             <section className="space-y-2">
               <h2 className="text-base font-semibold">4. Donde se guarda la informacion</h2>
               <p>
                 Los datos de la operacion (requisiciones, proyectos, entregables, comentarios,
-                usuarios) se guardan en Firebase/Firestore (infraestructura de Google Cloud). Los
-                archivos de video y diseno se guardan directamente en el Google Drive de quien los
-                sube — AV Control no mantiene una copia propia del archivo.
+                usuarios) se guardan en una base de datos propia del sistema (Turso). Los archivos
+                de video y diseno se guardan en la cuenta de Google Drive central del departamento —
+                AV Control no mantiene una copia adicional del archivo.
               </p>
             </section>
 
@@ -102,23 +92,7 @@ export function PoliticaPrivacidadPage() {
             </section>
 
             <section className="space-y-2">
-              <h2 className="text-base font-semibold">7. Revocar acceso</h2>
-              <p>
-                Puedes revocar en cualquier momento el acceso de esta app a tu cuenta de Google desde{" "}
-                <a
-                  href="https://myaccount.google.com/permissions"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium text-accent underline"
-                >
-                  myaccount.google.com/permissions
-                </a>
-                .
-              </p>
-            </section>
-
-            <section className="space-y-2">
-              <h2 className="text-base font-semibold">8. Contacto</h2>
+              <h2 className="text-base font-semibold">7. Contacto</h2>
               <p>
                 Dudas sobre esta politica o sobre tus datos:{" "}
                 <a href="mailto:juan.corona@grupo-ortiz.com" className="font-medium text-accent underline">

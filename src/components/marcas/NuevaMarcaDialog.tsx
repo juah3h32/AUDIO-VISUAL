@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 import { useCrearMarca } from "@/hooks/useMarcas";
-import { useIdToken } from "@/hooks/useIdToken";
 import { subirArchivoCentralizado } from "@/services/driveService";
 import { mensajeErrorAuth } from "@/lib/authErrors";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,6 @@ export function NuevaMarcaDialog() {
   const [assets, setAssets] = useState<AssetMarca[]>([]);
   const [manualUrl, setManualUrl] = useState<string | undefined>(undefined);
   const [subiendo, setSubiendo] = useState<"logo" | "manual" | null>(null);
-  const { token: idToken } = useIdToken();
   const inputLogoRef = useRef<HTMLInputElement>(null);
   const inputManualRef = useRef<HTMLInputElement>(null);
   const crear = useCrearMarca();
@@ -62,10 +60,6 @@ export function NuevaMarcaDialog() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!idToken) {
-      setError("Tu sesion no esta lista todavia. Espera un segundo e intenta de nuevo.");
-      return;
-    }
     if (!nombreMarca) {
       setError("Escribe el nombre de la marca antes de subir archivos.");
       return;
@@ -73,7 +67,7 @@ export function NuevaMarcaDialog() {
     setError(null);
     setSubiendo("logo");
     try {
-      const subido = await subirArchivoCentralizado(file, idToken, {
+      const subido = await subirArchivoCentralizado(file, {
         nombre: `${nombreMarca} - Logo`,
         nombreCarpeta: nombreMarca,
         subcarpeta: "Logos",
@@ -93,10 +87,6 @@ export function NuevaMarcaDialog() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!idToken) {
-      setError("Tu sesion no esta lista todavia. Espera un segundo e intenta de nuevo.");
-      return;
-    }
     if (!nombreMarca) {
       setError("Escribe el nombre de la marca antes de subir archivos.");
       return;
@@ -104,7 +94,7 @@ export function NuevaMarcaDialog() {
     setError(null);
     setSubiendo("manual");
     try {
-      const subido = await subirArchivoCentralizado(file, idToken, {
+      const subido = await subirArchivoCentralizado(file, {
         nombre: `${nombreMarca} - Manual de identidad`,
         nombreCarpeta: nombreMarca,
         subcarpeta: "Manual",
@@ -128,6 +118,7 @@ export function NuevaMarcaDialog() {
         nombre: values.nombre,
         ...(values.descripcion ? { descripcion: values.descripcion } : {}),
         colores: colores.filter(Boolean),
+        assets,
         ...(manualUrl ? { manualUrl } : {}),
       });
       limpiarTodo();

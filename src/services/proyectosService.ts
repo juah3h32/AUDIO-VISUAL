@@ -1,19 +1,15 @@
-import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, serverTimestamp, updateDoc } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "@/lib/firebase";
-import { siguienteFolio } from "@/lib/folio";
+import { esModoDemo } from "@/lib/modoDemo";
+import { apiFetch } from "@/lib/apiClient";
 import { DEMO_PROYECTOS } from "@/data/demoData";
 import type { Proyecto } from "@/types";
-
-const COLECCION = "proyectos";
 
 let demoStore: Proyecto[] = [...DEMO_PROYECTOS];
 
 export async function listarProyectos(): Promise<Proyecto[]> {
-  if (!isFirebaseConfigured || !db) {
+  if (esModoDemo) {
     return [...demoStore].sort((a, b) => (a.creadoEn < b.creadoEn ? 1 : -1));
   }
-  const snap = await getDocs(query(collection(db, COLECCION), orderBy("creadoEn", "desc")));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Proyecto);
+  return apiFetch<Proyecto[]>("/api/db/proyectos");
 }
 
 function siguienteFolioDemo(): string {
@@ -25,51 +21,30 @@ function siguienteFolioDemo(): string {
 export async function crearProyecto(
   data: Omit<Proyecto, "id" | "folio" | "etapaActual" | "porcentajeAvance" | "creadoEn" | "actualizadoEn">
 ): Promise<Proyecto> {
-  const ahora = new Date().toISOString();
-
-  if (!isFirebaseConfigured || !db) {
+  if (esModoDemo) {
+    const ahora = new Date().toISOString();
     const nuevo: Proyecto = {
-      ...data,
-      id: `p-${Date.now()}`,
-      folio: siguienteFolioDemo(),
-      etapaActual: "planeacion",
-      porcentajeAvance: 0,
-      creadoEn: ahora,
-      actualizadoEn: ahora,
+      ...data, id: `p-${Date.now()}`, folio: siguienteFolioDemo(), etapaActual: "planeacion",
+      porcentajeAvance: 0, creadoEn: ahora, actualizadoEn: ahora,
     };
     demoStore = [nuevo, ...demoStore];
     return nuevo;
   }
-
-  const folio = await siguienteFolio("proyectos", "PRY", 101);
-  const nuevo = {
-    ...data,
-    folio,
-    etapaActual: "planeacion" as const,
-    porcentajeAvance: 0,
-    creadoEn: ahora,
-    actualizadoEn: ahora,
-  };
-
-  const ref = await addDoc(collection(db, COLECCION), { ...nuevo, creadoEn: serverTimestamp() });
-  return { ...nuevo, id: ref.id };
+  return apiFetch<Proyecto>("/api/db/proyectos", { method: "POST", body: JSON.stringify(data) });
 }
 
-/** Corregir etapa/avance de un proyecto directo (solo superadmin) — hace falta sobre todo para
- * un proyecto creado nada mas para agrupar videos historicos ya entregados: nace siempre en
- * "planeacion" 0% (crearProyecto no deja elegir otra cosa) y no habia forma de corregirlo despues. */
 export async function actualizarProyecto(id: string, cambios: Partial<Proyecto>): Promise<void> {
-  if (!isFirebaseConfigured || !db) {
+  if (esModoDemo) {
     demoStore = demoStore.map((p) => (p.id === id ? { ...p, ...cambios } : p));
     return;
   }
-  await updateDoc(doc(db, COLECCION, id), { ...cambios, actualizadoEn: new Date().toISOString() });
+  await apiFetch(`/api/db/proyectos?id=${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(cambios) });
 }
 
 export async function eliminarProyecto(id: string): Promise<void> {
-  if (!isFirebaseConfigured || !db) {
+  if (esModoDemo) {
     demoStore = demoStore.filter((p) => p.id !== id);
     return;
   }
-  await deleteDoc(doc(db, COLECCION, id));
+  await apiFetch(`/api/db/proyectos?id=${encodeURIComponent(id)}`, { method: "DELETE" });
 }

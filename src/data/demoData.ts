@@ -1,5 +1,5 @@
 // DATOS DE DEMOSTRACION — no son informacion real de Grupo Ortiz.
-// Se usan solo cuando no hay proyecto Firebase configurado (ver lib/firebase.ts).
+// Se usan solo en modo demo (ver lib/modoDemo.ts).
 import type {
   Colaborador,
   Entregable,

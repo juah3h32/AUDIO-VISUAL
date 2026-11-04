@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { FileVideo, Play, Smartphone, Monitor } from "lucide-react";
-import { useIdToken } from "@/hooks/useIdToken";
 import { extraerFileIdDrive } from "@/services/driveService";
 import { cn } from "@/lib/utils";
 
@@ -42,15 +41,13 @@ export function MiniaturaVideo({
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
-  // `/api/drive-thumbnail` exige sesion de AV Control (ver `api/drive-thumbnail.ts`): el ID
-  // token va como query param porque un <img src> no puede mandar headers. Mientras no llegue,
-  // no se pide la imagen — si no, el 401 contaria como fallo y gastaria los reintentos.
-  const { token: idToken } = useIdToken();
+  // `/api/drive-thumbnail` exige sesion de AV Control (ver `api/drive-thumbnail.ts`) — la cookie
+  // httpOnly viaja sola con el <img>, sin query param.
   const fileId = url ? extraerFileIdDrive(url) : null;
   const agotado = intento >= RETRASOS_REINTENTO_MS.length;
   const miniatura =
-    fileId && idToken && !agotado && visible
-      ? `/api/drive-thumbnail?id=${encodeURIComponent(fileId)}&token=${encodeURIComponent(idToken)}&r=${intento}`
+    fileId && !agotado && visible
+      ? `/api/drive-thumbnail?id=${encodeURIComponent(fileId)}&r=${intento}`
       : null;
   // Sin fileId no hay nada "procesando" — es un entregable pendiente que todavia no tiene
   // material cargado, no un video recien subido esperando su miniatura.

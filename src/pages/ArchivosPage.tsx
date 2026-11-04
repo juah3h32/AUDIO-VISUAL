@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Download, FolderOpen, Link2, Check, LayoutGrid, Table2, Trash, Trash2, Upload } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useIdToken } from "@/hooks/useIdToken";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useEntregables, useUsuarios } from "@/hooks/useCatalogos";
 import {
@@ -183,10 +182,6 @@ export function ArchivosPage() {
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
   const [carpetaCopiadaId, setCarpetaCopiadaId] = useState<string | null>(null);
   const [vista, setVista] = useState<"cuadricula" | "tabla">("tabla");
-  // Los botones "Bajar" apuntan a `/api/drive-video`, que ahora exige sesion de AV Control.
-  // Un <a href> no manda headers, asi que el ID token va en la URL — mientras no este resuelto
-  // el boton queda inerte en vez de llevar a un 401.
-  const { token: idToken } = useIdToken();
 
   /** Todos los archivos de Drive ligados a un entregable — principal, alterna y cada foto de la
    * galeria, si tenia. Para borrarlos de Drive junto con quitar la referencia (ver
@@ -339,16 +334,8 @@ export function ArchivosPage() {
                         {puedeBajarYCompartir ? (
                           <div className="flex gap-1">
                             <a
-                              href={
-                                idToken
-                                  ? `/api/drive-video?id=${encodeURIComponent(fileId!)}&download=1&nombre=${encodeURIComponent(e.nombre)}&token=${encodeURIComponent(idToken)}`
-                                  : undefined
-                              }
-                              aria-disabled={!idToken}
-                              className={cn(
-                                "flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-bg-secondary",
-                                !idToken && "pointer-events-none opacity-50"
-                              )}
+                              href={`/api/drive-video?id=${encodeURIComponent(fileId!)}&download=1&nombre=${encodeURIComponent(e.nombre)}`}
+                              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-bg-secondary"
                             >
                               <Download className="h-3 w-3" /> Bajar
                             </a>
@@ -484,17 +471,9 @@ export function ArchivosPage() {
                 {puedeBajarYCompartir && (
                   <div className="flex gap-1 pt-1">
                     <a
-                      href={
-                        idToken
-                          ? `/api/drive-video?id=${encodeURIComponent(fileId!)}&download=1&nombre=${encodeURIComponent(e.nombre)}&token=${encodeURIComponent(idToken)}`
-                          : undefined
-                      }
+                      href={`/api/drive-video?id=${encodeURIComponent(fileId!)}&download=1&nombre=${encodeURIComponent(e.nombre)}`}
                       onClick={(ev) => ev.stopPropagation()}
-                      aria-disabled={!idToken}
-                      className={cn(
-                        "flex flex-1 items-center justify-center gap-1 rounded-md border border-border py-1 text-[10px] font-medium hover:bg-bg-secondary",
-                        !idToken && "pointer-events-none opacity-50"
-                      )}
+                      className="flex flex-1 items-center justify-center gap-1 rounded-md border border-border py-1 text-[10px] font-medium hover:bg-bg-secondary"
                     >
                       <Download className="h-3 w-3" /> Bajar
                     </a>
@@ -583,13 +562,11 @@ export function ArchivosPage() {
         destructive
         onConfirm={() => {
           if (materialAEliminar) {
-            if (idToken) {
-              archivosDriveDe(materialAEliminar).forEach((fileId) => {
-                moverABasuraDrive(idToken, fileId).catch(() => {
-                  // ya se quita la referencia en Firestore igual — ver nota en el mensaje de arriba.
-                });
+            archivosDriveDe(materialAEliminar).forEach((fileId) => {
+              moverABasuraDrive(fileId).catch(() => {
+                // ya se quita la referencia igual — ver nota en el mensaje de arriba.
               });
-            }
+            });
             eliminarMaterial.mutate(materialAEliminar.id);
           }
           setMaterialAEliminar(null);

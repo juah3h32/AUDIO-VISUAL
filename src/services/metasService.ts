@@ -1,12 +1,9 @@
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { esModoDemo } from "@/lib/modoDemo";
+import { apiFetch } from "@/lib/apiClient";
 import type { MetaColaborador } from "@/types";
 
-const COLECCION = "metas";
-
-/** Metas de ejemplo del equipo demo (Luis, Mariana, Valeria + la lider). */
-// Metas sugeridas para un equipo de 3 + lider (ver la explicacion en la pestaña): ritmo exigente
-// pero alcanzable, dejando ~20% del tiempo para salidas, correcciones y urgentes.
+/** Metas sugeridas para un equipo de 3 + lider (ver la explicacion en la pestaña): ritmo exigente
+ * pero alcanzable, dejando ~20% del tiempo para salidas, correcciones y urgentes. */
 let demoStore: MetaColaborador[] = [
   {
     id: "u-ana",
@@ -36,18 +33,16 @@ let demoStore: MetaColaborador[] = [
 ];
 
 export async function listarMetas(): Promise<MetaColaborador[]> {
-  if (!isFirebaseConfigured || !db) return [...demoStore];
-  const snap = await getDocs(collection(db, COLECCION));
-  return snap.docs.map((d) => ({ ...(d.data() as Omit<MetaColaborador, "id">), id: d.id }));
+  if (esModoDemo) return [...demoStore];
+  return apiFetch<MetaColaborador[]>("/api/db/metas");
 }
 
-/** Crea o reemplaza la meta de una persona (doc id = id del usuario). */
+/** Crea o reemplaza la meta de una persona (id = id del usuario). */
 export async function guardarMeta(meta: MetaColaborador): Promise<void> {
   const conFecha = { ...meta, actualizadoEn: new Date().toISOString() };
-  if (!isFirebaseConfigured || !db) {
+  if (esModoDemo) {
     demoStore = [...demoStore.filter((m) => m.id !== meta.id), conFecha];
     return;
   }
-  const { id, ...datos } = conFecha;
-  await setDoc(doc(db, COLECCION, id), datos);
+  await apiFetch("/api/db/metas", { method: "PUT", body: JSON.stringify(conFecha) });
 }

@@ -1,46 +1,42 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  Timestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
-import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { esModoDemo } from "@/lib/modoDemo";
+import { apiFetch } from "@/lib/apiClient";
 import type { Notificacion } from "@/types";
 
-const COLECCION = "notificaciones";
+const INTERVALO_POLL_MS = 15_000;
 
 export async function crearNotificacion(data: Omit<Notificacion, "id" | "leida" | "creadoEn">): Promise<void> {
-  if (!isFirebaseConfigured || !db) return;
-  await addDoc(collection(db, COLECCION), { ...data, leida: false, creadoEn: serverTimestamp() });
+  if (esModoDemo) return;
+  await apiFetch("/api/db/notificaciones", { method: "POST", body: JSON.stringify(data) });
 }
 
 export async function marcarNotificacionLeida(id: string): Promise<void> {
-  if (!isFirebaseConfigured || !db) return;
-  await updateDoc(doc(db, COLECCION, id), { leida: true });
+  if (esModoDemo) return;
+  await apiFetch(`/api/db/notificaciones?id=${encodeURIComponent(id)}`, { method: "PATCH" });
 }
 
-/** Escucha en vivo las notificaciones de un usuario. Devuelve la funcion para cancelar. */
+/** Antes escuchaba en vivo (onSnapshot) — Turso no tiene listeners nativos, asi que esto hace
+ * polling cada 15s. Misma firma (devuelve la funcion para cancelar) para que nadie mas se entere
+ * del cambio. */
 export function escucharNotificaciones(
   usuarioId: string,
   onCambio: (notificaciones: Notificacion[]) => void
 ): () => void {
-  if (!isFirebaseConfigured || !db) return () => {};
-  const q = query(collection(db, COLECCION), where("paraUsuarioId", "==", usuarioId), orderBy("creadoEn", "desc"));
-  return onSnapshot(q, (snap) => {
-    onCambio(
-      snap.docs.slice(0, 30).map((d) => {
-        const data = d.data();
-        // serverTimestamp() llega como Timestamp de Firestore (o null un instante antes
-        // de confirmarse) — nunca como string. Normalizar aqui evita romper el formateo de fecha.
-        const creadoEn = data.creadoEn instanceof Timestamp ? data.creadoEn.toDate().toISOString() : new Date().toISOString();
-        return { id: d.id, ...data, creadoEn } as Notificacion;
-      })
-    );
-  });
+  if (esModoDemo) return () => {};
+
+  let vivo = true;
+  const consultar = async () => {
+    try {
+      const notificaciones = await apiFetch<Notificacion[]>(`/api/db/notificaciones?paraUsuarioId=${encodeURIComponent(usuarioId)}`);
+      if (vivo) onCambio(notificaciones);
+    } catch {
+      // Fallo transitorio — el siguiente tick lo reintenta solo.
+    }
+  };
+
+  consultar();
+  const intervalo = setInterval(consultar, INTERVALO_POLL_MS);
+  return () => {
+    vivo = false;
+    clearInterval(intervalo);
+  };
 }

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { collection, onSnapshot } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "@/lib/firebase";
+import { esModoDemo } from "@/lib/modoDemo";
 import {
   actualizarGestorRequisiciones,
   actualizarPerfilColaborador,
@@ -20,22 +19,24 @@ import { crearInvitacion } from "@/services/invitacionesService";
 import type { Colaborador, Entregable, Invitacion, SalidaGrabacion, Usuario } from "@/types";
 
 /**
- * Un solo onSnapshot por coleccion para TODA la app, con conteo de referencias. Antes cada
+ * Un solo polling por coleccion para TODA la app, con conteo de referencias — reemplaza el
+ * `onSnapshot` en vivo que tenia Firestore (Turso no tiene listeners nativos). Antes cada
  * componente que llamaba useEntregables()/useUsuarios() (paginas, cada dialogo abierto...) abria
- * su PROPIO listener a la coleccion completa: N lecturas de Firestore y N re-renders por cada
- * cambio. Ahora el primero que se monta abre el listener y el ultimo que se desmonta lo cierra.
+ * su PROPIO listener a la coleccion completa; ahora el primero que se monta arranca el poll y el
+ * ultimo que se desmonta lo detiene, igual que antes con el conteo de referencias.
  */
+const INTERVALO_POLL_MS = 20_000;
 const suscripcionesEnVivo = new Map<string, { usuarios: number; cerrar: () => void }>();
 
-function useColeccionEnVivo<T>(nombre: string) {
+function useColeccionEnVivo<T>(nombre: string, queryFn: () => Promise<T[]>) {
   const qc = useQueryClient();
   useEffect(() => {
-    if (!isFirebaseConfigured || !db) return;
+    if (esModoDemo) return;
     const actual = suscripcionesEnVivo.get(nombre);
     if (actual) {
       actual.usuarios++;
     } else {
-      suscripcionesEnVivo.set(nombre, { usuarios: 1, cerrar: abrirListener<T>(qc, nombre) });
+      suscripcionesEnVivo.set(nombre, { usuarios: 1, cerrar: abrirPolling<T>(qc, nombre, queryFn) });
     }
     return () => {
       const s = suscripcionesEnVivo.get(nombre);
@@ -45,13 +46,19 @@ function useColeccionEnVivo<T>(nombre: string) {
         suscripcionesEnVivo.delete(nombre);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qc, nombre]);
 }
 
-function abrirListener<T>(qc: QueryClient, nombre: string) {
-  return onSnapshot(collection(db!, nombre), (snap) => {
-    qc.setQueryData([nombre], snap.docs.map((d) => ({ id: d.id, ...d.data() }) as T));
-  });
+function abrirPolling<T>(qc: QueryClient, nombre: string, queryFn: () => Promise<T[]>): () => void {
+  const intervalo = setInterval(async () => {
+    try {
+      qc.setQueryData([nombre], await queryFn());
+    } catch {
+      // Fallo transitorio — el siguiente tick lo reintenta solo, no hace falta avisar aqui.
+    }
+  }, INTERVALO_POLL_MS);
+  return () => clearInterval(intervalo);
 }
 
 export const useSalidas = () => useQuery({ queryKey: ["salidas"], queryFn: listarSalidas });
@@ -79,7 +86,7 @@ export function useAutorizarSalida() {
  * — con un fetch normal, Inicio se quedaba con numeros viejos hasta refrescar la pagina.
  */
 export function useEntregables() {
-  useColeccionEnVivo<Entregable>("entregables");
+  useColeccionEnVivo<Entregable>("entregables", listarEntregables);
   return useQuery({ queryKey: ["entregables"], queryFn: listarEntregables });
 }
 export const useEquipoAV = () => useQuery({ queryKey: ["equipo_av"], queryFn: listarEquipoAV });
@@ -103,7 +110,7 @@ export function useCrearColaborador() {
  * al cache de react-query al instante, sin que nadie tenga que hacer nada manual.
  */
 export function useUsuarios() {
-  useColeccionEnVivo<Usuario>("usuarios");
+  useColeccionEnVivo<Usuario>("usuarios", listarUsuarios);
   return useQuery({ queryKey: ["usuarios"], queryFn: listarUsuarios });
 }
 

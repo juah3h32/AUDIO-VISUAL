@@ -6,7 +6,6 @@ import {
   ShieldCheck,
   Clock,
   CalendarPlus,
-  Check,
   CheckCircle2,
   XCircle,
 } from "lucide-react";
@@ -20,13 +19,13 @@ import {
   ETIQUETA_AUTORIZACION_SALIDA,
   TIPO_ACTIVIDAD_SALIDA_LABELS,
 } from "@/lib/labels";
-import { formatFecha } from "@/lib/utils";
-import { agregarEventoCalendar } from "@/services/calendarService";
+import { cn, formatFecha } from "@/lib/utils";
+import { linkAgregarEventoCalendar } from "@/services/calendarService";
 import { crearNotificacion } from "@/services/notificacionesService";
 import type { DecisionSalida } from "@/services/catalogosService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { NuevaSalidaDialog } from "@/components/salidas/NuevaSalidaDialog";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -34,55 +33,21 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { DemoBadge } from "@/components/DemoBadge";
 import type { SalidaGrabacion } from "@/types";
 
-/** Exporta UNA salida al Google Calendar personal de quien le da click — nunca automatico,
- * cada quien decide cual agregar a su propia agenda (ver `calendarService.ts`). */
+/** Abre Google Calendar con el evento de ESTA salida ya pre-llenado, en pestaña nueva — cada
+ * quien decide si lo guarda en su propia agenda (ver `calendarService.ts`). Sin OAuth: es un link
+ * publico, no una integracion que agregue nada por si sola. */
 function BotonAgregarCalendar({ salida }: { salida: SalidaGrabacion }) {
-  const { driveToken, conectarDrive } = useAuth();
-  const [estado, setEstado] = useState<"idle" | "cargando" | "ok" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
-
-  const onClick = async () => {
-    setEstado("cargando");
-    setError(null);
-    try {
-      const token = driveToken ?? (await conectarDrive());
-      if (!token) {
-        setEstado("error");
-        setError("No se pudo conectar con Google.");
-        return;
-      }
-      await agregarEventoCalendar(salida, token);
-      setEstado("ok");
-    } catch (e) {
-      setEstado("error");
-      setError(e instanceof Error ? e.message : "No se pudo agregar el evento.");
-    }
-  };
-
-  if (estado === "ok") {
-    return (
-      <p className="flex items-center gap-1.5 text-xs font-medium text-green-700 dark:text-green-400">
-        <Check className="h-3.5 w-3.5" /> Agregada a tu Google Calendar
-      </p>
-    );
-  }
-
   return (
-    <div className="space-y-1">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={onClick}
-        disabled={estado === "cargando"}
-        className="h-7 gap-1 px-2 text-xs"
-        title="Agregar a mi Google Calendar"
-      >
-        <CalendarPlus className="h-3.5 w-3.5" />
-        {estado === "cargando" ? "Agregando..." : "Google Calendar"}
-      </Button>
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
+    <a
+      href={linkAgregarEventoCalendar(salida)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Agregar a mi Google Calendar"
+      className={cn(buttonVariants({ variant: "outline", size: "sm" }), "h-7 gap-1 px-2 text-xs")}
+    >
+      <CalendarPlus className="h-3.5 w-3.5" />
+      Google Calendar
+    </a>
   );
 }
 

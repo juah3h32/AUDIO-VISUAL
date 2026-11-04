@@ -49,7 +49,6 @@ import {
   useVincularGuionEntregable,
 } from "@/hooks/useEntregables";
 import { useGuiones } from "@/hooks/useGuiones";
-import { useIdToken } from "@/hooks/useIdToken";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useUsuarios } from "@/hooks/useCatalogos";
 import { VistaPreviaGuion } from "@/components/guiones/VistaPreviaGuion";
@@ -59,8 +58,6 @@ import {
   subirArchivoCentralizado,
   extraerFileIdDrive,
   extraerCarpetaIdDrive,
-  compartirArchivo,
-  resolverCarpetaDeArchivo,
   moverABasuraDrive,
 } from "@/services/driveService";
 import {
@@ -131,7 +128,7 @@ export function RevisarEntregableDialog({
   nombreProyecto?: string;
   nombreAprobador?: string;
 }) {
-  const { usuario, driveToken, limpiarDriveToken } = useAuth();
+  const { usuario } = useAuth();
   const { iniciarTarea, actualizarProgreso, marcarLista, marcarError } = useUploadQueue();
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
@@ -163,10 +160,6 @@ export function RevisarEntregableDialog({
   const [errorSubidaAlt, setErrorSubidaAlt] = useState<string | null>(null);
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nombreEditado, setNombreEditado] = useState("");
-  // El boton "Descargar" apunta a `/api/drive-video`, que ahora exige sesion de AV Control.
-  // Un <a href> no manda headers, asi que el ID token va en la URL — mientras no este resuelto
-  // el boton queda inerte en vez de llevar a un 401.
-  const { token: idToken } = useIdToken();
   const inputArchivoRef = useRef<HTMLInputElement>(null);
   // Para saltar al minuto exacto de una observacion con un clic (ver bloqueObservaciones).
   const videoPlayerRef = useRef<DriveVideoPlayerHandle>(null);
@@ -343,9 +336,8 @@ export function RevisarEntregableDialog({
   // cargados como historico con un solo archivo): se muestran como galeria de una sola foto en
   // vez de quedar vacios.
   const galeriaFotos = entregable.fotos ?? (linkPrincipal ? [linkPrincipal] : []);
-  // Ya no hace falta `driveToken` para VER el video — el reproductor propio lo pide via
-  // `/api/drive-video` con una cuenta de servicio fija, no con la sesion de Drive del usuario.
-  // `driveToken` solo sigue haciendo falta para SUBIR videos nuevos (ver `onSeleccionarArchivo`).
+  // El reproductor propio pide el video a `/api/drive-video` con una cuenta de servicio fija,
+  // autenticado con la cookie de sesion — no hace falta ningun token aparte.
   const usaPlayerPropio = Boolean(fileIdActual && !errorPlayerPropio && !esDiseno && !esFoto);
   const modoVisor: "player" | "preview" | "link" | "vacio" = usaPlayerPropio
     ? "player"
@@ -387,10 +379,6 @@ export function RevisarEntregableDialog({
     // horizontal) se este viendo en ese momento — la version alterna tiene su propio boton
     // (ver onSeleccionarArchivoAlt).
     const yaHabiaVideo = Boolean(linkPrincipal);
-    if (!idToken) {
-      setErrorSubida("Tu sesion no esta lista todavia. Espera un segundo e intenta de nuevo.");
-      return;
-    }
     setErrorSubida(null);
     setSubiendo(true);
     setProgreso(0);
@@ -399,7 +387,7 @@ export function RevisarEntregableDialog({
     const tareaId = iniciarTarea(`${esDiseno ? "Diseño" : "Video"}: ${entregable.nombre}`);
     try {
       const fileIdExistente = linkPrincipal ? extraerFileIdDrive(linkPrincipal) ?? undefined : undefined;
-      const subido = await subirArchivoCentralizado(file, idToken, {
+      const subido = await subirArchivoCentralizado(file, {
         nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre}`,
         nombreCarpeta: nombreProyecto ?? "Sin proyecto",
         subcarpeta: esDiseno ? "Diseños" : "Videos",
@@ -445,7 +433,6 @@ export function RevisarEntregableDialog({
       marcarLista(tareaId);
     } catch (err) {
       const mensaje = mensajeErrorAuth(err);
-      if (/sesion de Drive expiro|403/.test(mensaje)) limpiarDriveToken();
       setErrorSubida(mensaje);
       marcarError(tareaId, mensaje);
     } finally {
@@ -465,17 +452,13 @@ export function RevisarEntregableDialog({
     e.target.value = "";
     if (!file) return;
 
-    if (!idToken) {
-      setErrorSubidaAlt("Tu sesion no esta lista todavia. Espera un segundo e intenta de nuevo.");
-      return;
-    }
     setErrorSubidaAlt(null);
     setSubiendoAlt(true);
     setProgresoAlt(0);
     const tareaId = iniciarTarea(`Video (${orientacionAltSugerida}): ${entregable.nombre}`);
     try {
       const fileIdExistente = linkAlt ? extraerFileIdDrive(linkAlt) ?? undefined : undefined;
-      const subido = await subirArchivoCentralizado(file, idToken, {
+      const subido = await subirArchivoCentralizado(file, {
         nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre} (${orientacionAltSugerida})`,
         nombreCarpeta: nombreProyecto ?? "Sin proyecto",
         subcarpeta: "Videos",
@@ -500,7 +483,6 @@ export function RevisarEntregableDialog({
       }
     } catch (err) {
       const mensaje = mensajeErrorAuth(err);
-      if (/sesion de Drive expiro|403/.test(mensaje)) limpiarDriveToken();
       setErrorSubidaAlt(mensaje);
       marcarError(tareaId, mensaje);
     } finally {
@@ -522,10 +504,6 @@ export function RevisarEntregableDialog({
     // "Proyecto eliminado"). Sin esto, "todas dentro" se rompia con el tiempo.
     const carpetaIdConocida = entregable.carpetaFotosUrl ? extraerCarpetaIdDrive(entregable.carpetaFotosUrl) : null;
 
-    if (!idToken) {
-      setErrorFotos("Tu sesion no esta lista todavia. Espera un segundo e intenta de nuevo.");
-      return;
-    }
     cancelarFotosRef.current = false;
     setErrorFotos(null);
     setSubiendoFotos(true);
@@ -538,7 +516,7 @@ export function RevisarEntregableDialog({
       for (let i = 0; i < archivos.length; i++) {
         if (cancelarFotosRef.current) break;
         setProgresoFotos({ actual: i + 1, total: archivos.length, pct: 0 });
-        const subida = await subirArchivoCentralizado(archivos[i], idToken, {
+        const subida = await subirArchivoCentralizado(archivos[i], {
           nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre} (foto ${galeriaFotos.length + nuevas.length + 1})`,
           nombreCarpeta: nombreProyecto ?? "Sin proyecto",
           subcarpeta: "Fotografias",
@@ -580,7 +558,6 @@ export function RevisarEntregableDialog({
       }
     } catch (err) {
       const mensaje = mensajeErrorAuth(err);
-      if (/sesion de Drive expiro|403/.test(mensaje)) limpiarDriveToken();
       setErrorFotos(mensaje);
       marcarError(tareaId, mensaje);
     } finally {
@@ -605,9 +582,9 @@ export function RevisarEntregableDialog({
     // centralizar, sin permiso de edicion), se avisa pero la foto de todos modos ya desaparecio
     // de la galeria.
     const fileId = extraerFileIdDrive(url);
-    if (fileId && idToken) {
+    if (fileId) {
       try {
-        await moverABasuraDrive(idToken, fileId);
+        await moverABasuraDrive(fileId);
       } catch (err) {
         setErrorFotos(
           `La foto se quito de la galeria, pero no se pudo borrar en Drive: ${
@@ -648,9 +625,9 @@ export function RevisarEntregableDialog({
     marcarFotosParaBorrar.mutate({ id: entregable.id, fotosParaBorrar: [] });
     for (const url of marcadas) {
       const fileId = extraerFileIdDrive(url);
-      if (fileId && idToken) {
+      if (fileId) {
         try {
-          await moverABasuraDrive(idToken, fileId);
+          await moverABasuraDrive(fileId);
         } catch {
           // best-effort — la foto ya se quito de la galeria de todos modos.
         }
@@ -670,46 +647,19 @@ export function RevisarEntregableDialog({
 
   // Backfill para galerias subidas ANTES de que `carpetaFotosUrl` existiera: pide la carpeta del
   // archivo via `/api/drive-folder` (cuenta de servicio, cualquiera con sesion puede leerla) y la
-  // guarda. Si quien lo hace ya tiene `driveToken` (ya conecto Drive antes para subir), de paso
-  // intenta compartir la carpeta publica — sin pedirle conectar Drive solo para esto si no lo
-  // tenia ya.
+  // guarda.
   const onObtenerCarpeta = async () => {
     const primerFileId = galeriaFotos[0] ? extraerFileIdDrive(galeriaFotos[0]) : null;
     if (!primerFileId) return;
     setErrorCarpeta(null);
     setResolviendoCarpeta(true);
     try {
-      // Primero con la sesion de Drive de quien esta aqui (si ya conecto antes) — Drive le
-      // expone `parents` a quien de verdad tiene acceso al archivo, no solo via el permiso
-      // publico "cualquiera con el link" (que es lo unico que tiene la cuenta de servicio para
-      // fotos viejas cuya CARPETA nunca se compartio, solo el archivo). Si no hay driveToken o
-      // ese intento no resuelve nada, cae al endpoint con la cuenta de servicio.
-      let resultado = driveToken ? await resolverCarpetaDeArchivo(primerFileId, driveToken) : null;
-      if (!resultado && idToken) {
-        const res = await fetch(
-          `/api/drive-folder?id=${encodeURIComponent(primerFileId)}&token=${encodeURIComponent(idToken)}`
-        );
-        const data = (await res.json()) as { carpetaId?: string; carpetaUrl?: string; error?: string };
-        if (res.ok && data.carpetaId && data.carpetaUrl) {
-          resultado = { carpetaId: data.carpetaId, carpetaUrl: data.carpetaUrl };
-        } else if (!driveToken) {
-          // Sin driveToken no hubo primer intento que reportar — este SI es el error real.
-          throw new Error(data.error || "No se pudo obtener la carpeta.");
-        }
+      const res = await fetch(`/api/drive-folder?id=${encodeURIComponent(primerFileId)}`, { credentials: "include" });
+      const data = (await res.json()) as { carpetaId?: string; carpetaUrl?: string; error?: string };
+      if (!res.ok || !data.carpetaId || !data.carpetaUrl) {
+        throw new Error(data.error || "No se pudo obtener la carpeta.");
       }
-      if (!resultado) {
-        throw new Error(
-          "No se pudo leer la carpeta de este archivo (puede que nunca se haya compartido). Conecta Drive e intenta de nuevo."
-        );
-      }
-      if (driveToken) {
-        try {
-          await compartirArchivo(resultado.carpetaId, driveToken);
-        } catch {
-          // si no se pudo compartir, el link igual se guarda — puede que ya estuviera compartida.
-        }
-      }
-      await actualizarCarpetaFotos.mutateAsync({ id: entregable.id, carpetaFotosUrl: resultado.carpetaUrl });
+      await actualizarCarpetaFotos.mutateAsync({ id: entregable.id, carpetaFotosUrl: data.carpetaUrl });
     } catch (err) {
       setErrorCarpeta(err instanceof Error ? err.message : "No se pudo obtener la carpeta.");
     } finally {
@@ -1065,7 +1015,7 @@ export function RevisarEntregableDialog({
           <button
             type="button"
             onClick={onObtenerCarpeta}
-            disabled={resolviendoCarpeta || !idToken}
+            disabled={resolviendoCarpeta}
             className="flex items-center gap-1.5 rounded-full border border-dashed border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-bg-secondary disabled:opacity-60"
           >
             <ExternalLink className="h-3.5 w-3.5" />
@@ -1688,16 +1638,8 @@ export function RevisarEntregableDialog({
                 </button>
                 {(entregable.estado === "aprobado" || entregable.estado === "entregado") && (
                   <a
-                    href={
-                      idToken
-                        ? `/api/drive-video?id=${encodeURIComponent(fileIdActual)}&download=1&nombre=${encodeURIComponent(entregable.nombre)}&token=${encodeURIComponent(idToken)}`
-                        : undefined
-                    }
-                    aria-disabled={!idToken}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-bg-secondary",
-                      !idToken && "pointer-events-none opacity-50"
-                    )}
+                    href={`/api/drive-video?id=${encodeURIComponent(fileIdActual)}&download=1&nombre=${encodeURIComponent(entregable.nombre)}`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium hover:bg-bg-secondary"
                   >
                     <Download className="h-3.5 w-3.5" /> Descargar
                   </a>
@@ -1814,7 +1756,7 @@ export function RevisarEntregableDialog({
                 queda invisible (no desmontado, para que su `onLoad` si dispare) hasta que
                 `fotoAmpliadaCargando` se apague. */}
             <div className="group/stage relative flex w-full min-h-[40vh] shrink-0 items-center justify-center bg-black">
-              {fotoAmpliadaFileId && idToken ? (
+              {fotoAmpliadaFileId ? (
                 <>
                   {fotoAmpliadaCargando && (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -1823,7 +1765,7 @@ export function RevisarEntregableDialog({
                   )}
                   <img
                     key={fotoAmpliadaFileId}
-                    src={`/api/drive-thumbnail?id=${encodeURIComponent(fotoAmpliadaFileId)}&token=${encodeURIComponent(idToken)}&size=1600`}
+                    src={`/api/drive-thumbnail?id=${encodeURIComponent(fotoAmpliadaFileId)}&size=1600`}
                     alt=""
                     onLoad={() => setFotoAmpliadaCargando(false)}
                     onError={() => setFotoAmpliadaCargando(false)}

@@ -1,33 +1,12 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
-import { Clapperboard, ShieldCheck, Film, Users2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { ArrowLeft, Clapperboard, Loader2, ShieldCheck, Film, Users2 } from "lucide-react";
+import { useAuth, type EstadoCorreo } from "@/context/AuthContext";
 import { mensajeErrorAuth } from "@/lib/authErrors";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-
-function GoogleIcon() {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24">
-      <path
-        fill="#4285F4"
-        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47a5.53 5.53 0 0 1-2.4 3.63v3h3.87c2.27-2.09 3.58-5.17 3.58-8.82Z"
-      />
-      <path
-        fill="#34A853"
-        d="M12 24c3.24 0 5.95-1.07 7.94-2.91l-3.87-3c-1.08.72-2.46 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M5.27 14.28A7.2 7.2 0 0 1 4.89 12c0-.79.14-1.56.38-2.28V6.61H1.27A12 12 0 0 0 0 12c0 1.94.46 3.77 1.27 5.39l4-3.11Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.27 6.61l4 3.11C6.22 6.88 8.87 4.77 12 4.77Z"
-      />
-    </svg>
-  );
-}
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const BENEFICIOS = [
   { icon: Film, texto: "Requisiciones, proyectos y entregables en un solo lugar" },
@@ -36,17 +15,49 @@ const BENEFICIOS = [
 ];
 
 export function LoginPage() {
-  const { usuario, loginConGoogle, esModoDemo } = useAuth();
+  const { usuario, esModoDemo, consultarEstado, login, activarCuenta } = useAuth();
+  const [correo, setCorreo] = useState("");
+  const [estado, setEstado] = useState<EstadoCorreo | null>(null);
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   if (usuario) return <Navigate to="/" replace />;
 
-  const onClick = async () => {
+  const onContinuar = async (e: FormEvent) => {
+    e.preventDefault();
     setError(null);
     setEnviando(true);
     try {
-      await loginConGoogle();
+      const resultado = await consultarEstado(correo);
+      if (resultado === "sin_invitacion") {
+        setError("Ese correo no tiene una invitacion activa. Pide a tu administrador que te invite.");
+        return;
+      }
+      setEstado(resultado);
+    } catch (e) {
+      setError(mensajeErrorAuth(e));
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const onVolver = () => {
+    setEstado(null);
+    setPassword("");
+    setError(null);
+  };
+
+  const onEnviarPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setEnviando(true);
+    try {
+      if (estado === "activa") {
+        await login(correo, password);
+      } else {
+        await activarCuenta(correo, password);
+      }
     } catch (e) {
       setError(mensajeErrorAuth(e));
     } finally {
@@ -108,26 +119,68 @@ export function LoginPage() {
             <div className="mb-6 space-y-1 text-center lg:text-left">
               <h2 className="text-xl font-bold text-text-primary">Bienvenido de vuelta</h2>
               <p className="text-sm text-muted-foreground">
-                Ingresa con tu cuenta corporativa de Grupo Ortiz
+                {estado === null
+                  ? "Ingresa con tu cuenta corporativa de Grupo Ortiz"
+                  : estado === "activa"
+                    ? "Escribe tu contraseña"
+                    : "Crea tu contraseña para activar tu cuenta"}
               </p>
             </div>
 
             {esModoDemo && (
               <p className="mb-4 rounded-md bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">
-                Modo demo: entra directo con el primer usuario demo. No hay proyecto Firebase configurado todavia.
+                Modo demo: entra directo con el primer usuario demo. No hay base de datos configurada todavia.
               </p>
             )}
 
-            <Button
-              type="button"
-              variant="outline"
-              className="h-11 w-full gap-2 border-border text-sm font-medium"
-              onClick={onClick}
-              disabled={enviando}
-            >
-              <GoogleIcon />
-              {enviando ? "Ingresando..." : "Continuar con Google"}
-            </Button>
+            {estado === null ? (
+              <form onSubmit={onContinuar} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="correo">Correo</Label>
+                  <Input
+                    id="correo"
+                    type="email"
+                    autoFocus
+                    autoComplete="email"
+                    placeholder="nombre@grupo-ortiz.com"
+                    value={correo}
+                    onChange={(e) => setCorreo(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="h-11 w-full text-sm font-medium" disabled={enviando}>
+                  {enviando && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Continuar
+                </Button>
+              </form>
+            ) : (
+              <form onSubmit={onEnviarPassword} className="space-y-4">
+                <button
+                  type="button"
+                  onClick={onVolver}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-text-primary"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> {correo}
+                </button>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password">{estado === "activa" ? "Contraseña" : "Nueva contraseña"}</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoFocus
+                    autoComplete={estado === "activa" ? "current-password" : "new-password"}
+                    minLength={estado === "activa" ? undefined : 8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" className="h-11 w-full text-sm font-medium" disabled={enviando}>
+                  {enviando && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {estado === "activa" ? "Iniciar sesion" : "Activar cuenta"}
+                </Button>
+              </form>
+            )}
 
             {error && (
               <p className="mt-3 rounded-md bg-red-50 p-2 text-center text-xs text-destructive dark:bg-red-400/15">

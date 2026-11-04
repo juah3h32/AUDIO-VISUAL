@@ -7,7 +7,6 @@ import { useProyectos } from "@/hooks/useProyectos";
 import { useUsuarios } from "@/hooks/useCatalogos";
 import { useCrearEntregableHistorico } from "@/hooks/useEntregables";
 import { useAuth } from "@/context/AuthContext";
-import { useIdToken } from "@/hooks/useIdToken";
 import { subirArchivoCentralizado } from "@/services/driveService";
 import { mensajeErrorAuth } from "@/lib/authErrors";
 import { CATEGORIA_CONTENIDO_LABELS, esCategoriaFotografia } from "@/lib/labels";
@@ -50,7 +49,6 @@ type FormValues = z.infer<typeof schema>;
  */
 export function CargarEntregableHistoricoDialog() {
   const { usuario } = useAuth();
-  const { token: idToken } = useIdToken();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subiendo, setSubiendo] = useState(false);
@@ -87,10 +85,6 @@ export function CargarEntregableHistoricoDialog() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (!idToken) {
-      setError("Tu sesion no esta lista todavia. Espera un segundo e intenta de nuevo.");
-      return;
-    }
     setError(null);
     setSubiendo(true);
     setProgreso(0);
@@ -102,7 +96,7 @@ export function CargarEntregableHistoricoDialog() {
       const proyectoSeleccionado = proyectos.find((p) => p.id === watch("proyectoId"));
       const nombreProyecto = proyectoSeleccionado?.nombre ?? "Sin proyecto";
       const nombreEntregable = watch("nombre") || `Historico-${Date.now()}`;
-      const subido = await subirArchivoCentralizado(file, idToken, {
+      const subido = await subirArchivoCentralizado(file, {
         nombre: `${nombreProyecto} - ${nombreEntregable}`,
         nombreCarpeta: nombreProyecto,
         subcarpeta: esDiseno ? "Diseños" : esFoto ? "Fotografias" : "Videos",
