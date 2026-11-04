@@ -46,6 +46,7 @@ export function MarcasPage() {
   const puedeGestionar = puedeCrearProyectos(usuario);
 
   const logoDe = (marca: Marca) => marca.assets.find((a) => a.tipo === "logo");
+  const manualPdfDe = (marca: Marca) => marca.assets.find((a) => a.tipo === "pdf");
   const proyectosDe = (marcaId: string) => proyectos.filter((p) => p.marcaId === marcaId);
   const entregablesDe = (marcaId: string) => entregables.filter((e) => e.marcaId === marcaId);
 
@@ -73,7 +74,11 @@ export function MarcasPage() {
               <Card key={m.id} className="cursor-pointer hover:shadow-md" onClick={() => setSeleccionada(m)}>
                 <CardHeader className="flex-row items-center gap-3 pb-2">
                   {logo ? (
-                    <img src={logo.url} alt={m.nombre} className="h-10 w-10 rounded-md border border-border object-contain" />
+                    <img
+                      src={`/api/drive-thumbnail?id=${encodeURIComponent(logo.fileId ?? "")}&size=100`}
+                      alt={m.nombre}
+                      className="h-10 w-10 rounded-md border border-border object-contain"
+                    />
                   ) : (
                     <div className="flex h-10 w-10 items-center justify-center rounded-md bg-bg-secondary text-xs font-semibold">
                       {m.nombre.slice(0, 2).toUpperCase()}
@@ -159,7 +164,11 @@ export function MarcasPage() {
                             rel="noreferrer"
                             className="flex flex-col items-center gap-1 rounded-md border border-border p-2 hover:bg-bg-secondary"
                           >
-                            <img src={a.url} alt={a.nombre} className="h-14 w-14 rounded border border-border object-contain" />
+                            <img
+                              src={`/api/drive-thumbnail?id=${encodeURIComponent(a.fileId ?? "")}&size=150`}
+                              alt={a.nombre}
+                              className="h-14 w-14 rounded border border-border object-contain"
+                            />
                             <span className="max-w-[6rem] truncate text-[10px] text-muted-foreground">{a.nombre}</span>
                           </a>
                         ))}
@@ -172,9 +181,16 @@ export function MarcasPage() {
                     href={seleccionada.manualUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-2 rounded-md border border-border p-2.5 text-sm hover:bg-bg-secondary"
+                    className="flex items-center gap-3 rounded-md border border-border p-2.5 text-sm hover:bg-bg-secondary"
                   >
-                    <FileText className="h-4 w-4" /> Ver manual de identidad completo (PDF)
+                    {manualPdfDe(seleccionada) && (
+                      <img
+                        src={`/api/drive-thumbnail?id=${encodeURIComponent(manualPdfDe(seleccionada)!.fileId ?? "")}&size=150`}
+                        alt="Vista previa del manual"
+                        className="h-14 w-11 shrink-0 rounded border border-border object-cover"
+                      />
+                    )}
+                    <FileText className="h-4 w-4 shrink-0" /> Ver manual de identidad completo (PDF)
                     <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-60" />
                   </a>
                 )}
