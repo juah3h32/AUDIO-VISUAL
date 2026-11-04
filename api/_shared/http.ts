@@ -17,7 +17,7 @@ export async function manejarApi(
       return;
     }
     console.error("Error en api/db:", err);
-    res.status(500).json({ error: err instanceof Error ? err.message : "Error interno." });
+    res.status(500).json({ error: "Error interno. Intenta de nuevo en unos minutos." });
   }
 }
 
