@@ -146,10 +146,10 @@ export const DriveVideoPlayer = forwardRef<
   // etiquetada — asi la caja no da un salto grande cuando el video carga.
   const esVertical = ratio != null ? ratio < 1 : orientacion === "vertical";
   const ratioDetectado = ratio ?? (esVertical ? 9 / 16 : 16 / 9);
-  // En vertical, la proporcion real (9:16) deja la caja muy angosta. Se pone un piso mas ancho
-  // a proposito — el `object-cover` del <video> ya recorta para llenar la caja, asi que esto
-  // solo significa un poco mas de recorte a los lados a cambio de una caja mas grande.
-  const ratioCaja = esVertical ? Math.max(ratioDetectado, 0.65) : ratioDetectado;
+  // Antes se ensanchaba la caja vertical mas alla de su proporcion real (9:16) para que se viera
+  // mas grande — a costa de que `object-cover` recortara los lados del video de verdad. Se usa la
+  // proporcion real tal cual: la caja sale mas angosta, pero nada del video queda fuera de cuadro.
+  const ratioCaja = ratioDetectado;
 
   // En vertical, header y pie eran barras solidas separadas del video — en una columna angosta
   // se leian como si fueran bandas negras (letterbox) encima del propio video. Aqui en cambio
@@ -224,11 +224,8 @@ export const DriveVideoPlayer = forwardRef<
     // debajo del footer, porque header+video(aspect-ratio)+footer no llenan una altura ajena a
     // su propio contenido. Sin esa altura forzada, la columna solo ocupa lo que necesita.
     <div className="flex w-full flex-col overflow-hidden rounded-lg bg-[#0B0B0C] shadow-card ring-1 ring-black/10 lg:w-auto">
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#141416] px-2.5 py-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-dato" />
-          <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-white/55">Visor</span>
-        </div>
+      <div className="flex shrink-0 items-center gap-2 border-b border-white/10 bg-[#141416] px-2.5 py-2">
+        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-dato" />
       </div>
 
       {/* A diferencia de ESCENARIO_BASE (usado en la rama vertical), esta caja NO usa
@@ -236,11 +233,11 @@ export const DriveVideoPlayer = forwardRef<
           (ver comentario del wrapper), asi que no hay una altura externa de la cual derivar el
           ancho via aspect-ratio — colgarse de flex-grow sin esa altura externa colapsaba la caja
           a su min-height (video minusculo). En vez de eso, esta caja se acota con un ANCHO maximo
-          fijo (mismo criterio que ya usa el preview de diseño grafico mas abajo en este archivo,
-          `lg:max-w-2xl`) y aspect-ratio deriva el ALTO a partir de ese ancho — tamaño predecible,
-          sin pelear con el flexbox de la columna. */}
+          fijo y aspect-ratio deriva el ALTO a partir de ese ancho — tamaño predecible, sin pelear
+          con el flexbox de la columna. Tope mas generoso que antes (el dialogo ya tiene sobra de
+          ancho via `max-w-[95vw]`/`lg:w-fit`, nunca fue el dialogo el que limitaba el tamaño). */}
       <div
-        className="relative flex w-full min-h-[180px] max-h-[60vh] items-center justify-center overflow-hidden bg-black lg:max-h-[55vh] lg:max-w-2xl"
+        className="relative flex w-full min-h-[180px] max-h-[65vh] items-center justify-center overflow-hidden bg-black lg:max-h-[70vh] lg:max-w-4xl"
         style={{ aspectRatio: String(ratioCaja) }}
       >
         {(cargando || bufereando) && (

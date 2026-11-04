@@ -943,7 +943,7 @@ export function RevisarEntregableDialog({
               "w-full overflow-hidden rounded-lg ring-1 ring-black/10 dark:ring-white/10",
               esDiseno
                 ? "h-[60vh] bg-white lg:h-full lg:w-[70vw] lg:max-w-2xl"
-                : "min-h-[180px] max-h-[60vh] bg-black lg:max-h-[55vh] lg:max-w-2xl"
+                : "min-h-[180px] max-h-[65vh] bg-black lg:max-h-[70vh] lg:max-w-4xl"
             )}
             style={esDiseno ? undefined : { aspectRatio: String(ratioVisor) }}
           >
