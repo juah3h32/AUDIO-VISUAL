@@ -207,6 +207,15 @@ CREATE TABLE IF NOT EXISTS salidas (
   creado_en TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS plantas (
+  id TEXT PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  direccion TEXT,
+  contacto_planta TEXT,
+  telefono_contacto TEXT,
+  creado_en TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS equipo_av (
   id TEXT PRIMARY KEY,
   codigo_interno TEXT NOT NULL,

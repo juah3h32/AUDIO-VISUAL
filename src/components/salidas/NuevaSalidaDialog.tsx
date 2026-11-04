@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, X } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { useCrearSalida, useUsuarios } from "@/hooks/useCatalogos";
+import { useCrearPlanta, useCrearSalida, usePlantas, useUsuarios } from "@/hooks/useCatalogos";
 import { useProyectos } from "@/hooks/useProyectos";
 import { TIPO_ACTIVIDAD_SALIDA_LABELS } from "@/lib/labels";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ import type { TipoActividadSalida } from "@/types";
 const OPCIONES_TRANSPORTE = ["Uber", "Auto de empresa", "Autobus"] as const;
 
 const SIN_PROYECTO_SALIDA = "sin-proyecto-salida";
+const NUEVA_PLANTA = "nueva-planta";
 
 const schema = z.object({
   nombreJornada: z.string().min(3, "Requerido"),
@@ -56,10 +57,16 @@ export function NuevaSalidaDialog() {
   const crear = useCrearSalida();
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
+  const { data: plantas = [] } = usePlantas();
+  const crearPlantaMut = useCrearPlanta();
   // Quien va a la planta — antes se asignaba siempre al que crea la salida, sin forma de
   // mandar a otro colaborador. Arranca con el responsable de produccion ya elegido (se agrega
   // solo cuando se selecciona ese campo, ver mas abajo), y se puede sumar a mas gente.
   const [personalAsignado, setPersonalAsignado] = useState<string[]>([]);
+  // "" = nada elegido todavia. Al elegir una planta del catalogo se autollena direccion/contacto/
+  // telefono (siguen editables). Al elegir NUEVA_PLANTA se limpian para capturar una desde cero,
+  // y esa planta se guarda en el catalogo al enviar el formulario (ver onSubmit).
+  const [plantaId, setPlantaId] = useState<string>("");
 
   const equipo = usuarios.filter(
     (u) => u.rol === "colaborador_audiovisual" || u.rol === "lider_audiovisual" || u.rol === "superadmin"
@@ -72,10 +79,28 @@ export function NuevaSalidaDialog() {
     control,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const responsableElegido = watch("responsableProduccionId");
+
+  const onElegirPlanta = (value: string) => {
+    setPlantaId(value);
+    if (value === NUEVA_PLANTA) {
+      setValue("planta", "");
+      setValue("direccion", "");
+      setValue("contactoPlanta", "");
+      setValue("telefonoContacto", "");
+      return;
+    }
+    const p = plantas.find((x) => x.id === value);
+    if (!p) return;
+    setValue("planta", p.nombre, { shouldValidate: true });
+    setValue("direccion", p.direccion ?? "");
+    setValue("contactoPlanta", p.contactoPlanta ?? "");
+    setValue("telefonoContacto", p.telefonoContacto ?? "");
+  };
 
   const onSubmit = async (values: FormValues) => {
     if (!usuario) return;
@@ -83,6 +108,19 @@ export function NuevaSalidaDialog() {
     // El responsable de produccion siempre va incluido en el personal asignado, aunque no se
     // haya agregado a mano a la lista de abajo — no tendria sentido que "vaya" sin estar en ella.
     const personal = Array.from(new Set([values.responsableProduccionId, ...personalAsignado]));
+    if (plantaId === NUEVA_PLANTA && values.planta) {
+      try {
+        await crearPlantaMut.mutateAsync({
+          nombre: values.planta,
+          direccion: values.direccion,
+          contactoPlanta: values.contactoPlanta,
+          telefonoContacto: values.telefonoContacto,
+        });
+      } catch {
+        // No bloquea la creacion de la salida — si falla, la planta nueva simplemente no queda
+        // guardada en el catalogo esta vez (se puede volver a capturar despues).
+      }
+    }
     try {
       await crear.mutateAsync({
         nombreJornada: values.nombreJornada,
@@ -104,6 +142,7 @@ export function NuevaSalidaDialog() {
       });
       reset();
       setPersonalAsignado([]);
+      setPlantaId("");
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear la salida.");
@@ -162,11 +201,30 @@ export function NuevaSalidaDialog() {
               {errors.tipoActividad && <p className="text-xs text-destructive">{errors.tipoActividad.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="planta">Planta o locacion</Label>
-              <Input id="planta" {...register("planta")} />
+              <Label>Planta o locacion</Label>
+              <Select value={plantaId} onValueChange={onElegirPlanta}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Elige la planta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plantas.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nombre}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={NUEVA_PLANTA}>+ Nueva planta</SelectItem>
+                </SelectContent>
+              </Select>
               {errors.planta && <p className="text-xs text-destructive">{errors.planta.message}</p>}
             </div>
           </div>
+
+          {plantaId === NUEVA_PLANTA && (
+            <div className="space-y-1.5">
+              <Label htmlFor="planta">Nombre de la nueva planta</Label>
+              <Input id="planta" {...register("planta")} placeholder="Ej. Sacos 2 (Sucursal)" />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
@@ -177,6 +235,11 @@ export function NuevaSalidaDialog() {
               <Label htmlFor="contactoPlanta">Contacto en planta</Label>
               <Input id="contactoPlanta" {...register("contactoPlanta")} />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="telefonoContacto">Telefono del contacto (opcional)</Label>
+            <Input id="telefonoContacto" {...register("telefonoContacto")} />
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -238,6 +238,17 @@ export type TipoActividadSalida =
 
 export type EstadoAutorizacionSalida = "pendiente" | "autorizada" | "rechazada";
 
+/** Catalogo reutilizable de plantas/locaciones — se elige en NuevaSalidaDialog.tsx en vez de
+ * escribir nombre y direccion a mano cada vez. */
+export interface Planta {
+  id: string;
+  nombre: string;
+  direccion?: string;
+  contactoPlanta?: string;
+  telefonoContacto?: string;
+  creadoEn: string;
+}
+
 export interface SalidaGrabacion {
   id: string;
   folio: string;

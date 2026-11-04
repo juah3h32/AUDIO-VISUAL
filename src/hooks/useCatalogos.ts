@@ -7,18 +7,20 @@ import {
   actualizarRolUsuario,
   autorizarSalida,
   crearColaborador,
+  crearPlanta,
   crearSalida,
   eliminarUsuario,
   listarColaboradores,
   listarEntregables,
   listarEquipoAV,
+  listarPlantas,
   listarSalidas,
   listarUsuarios,
   reiniciarPasswordUsuario,
   type DecisionSalida,
 } from "@/services/catalogosService";
 import { crearInvitacion } from "@/services/invitacionesService";
-import type { Colaborador, Entregable, Invitacion, SalidaGrabacion, Usuario } from "@/types";
+import type { Colaborador, Entregable, Invitacion, Planta, SalidaGrabacion, Usuario } from "@/types";
 
 /**
  * Un solo polling por coleccion para TODA la app, con conteo de referencias — reemplaza el
@@ -64,6 +66,15 @@ function abrirPolling<T>(qc: QueryClient, nombre: string, queryFn: () => Promise
 }
 
 export const useSalidas = () => useQuery({ queryKey: ["salidas"], queryFn: listarSalidas });
+export const usePlantas = () => useQuery({ queryKey: ["plantas"], queryFn: listarPlantas });
+
+export function useCrearPlanta() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Omit<Planta, "id" | "creadoEn">) => crearPlanta(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["plantas"] }),
+  });
+}
 
 export function useCrearSalida() {
   const qc = useQueryClient();

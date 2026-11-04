@@ -7,6 +7,7 @@ import type {
   Entregable,
   EquipoAV,
   EstadoAutorizacionSalida,
+  Planta,
   SalidaGrabacion,
   Usuario,
 } from "@/types";
@@ -49,6 +50,22 @@ export async function crearSalida(
     return nueva;
   }
   return apiFetch<SalidaGrabacion>("/api/db/salidas", { method: "POST", body: JSON.stringify(data) });
+}
+
+let demoPlantas: Planta[] = [];
+
+export async function listarPlantas(): Promise<Planta[]> {
+  if (esModoDemo) return [...demoPlantas];
+  return apiFetch<Planta[]>("/api/db/plantas");
+}
+
+export async function crearPlanta(data: Omit<Planta, "id" | "creadoEn">): Promise<Planta> {
+  if (esModoDemo) {
+    const nueva: Planta = { ...data, id: `planta-${Date.now()}`, creadoEn: new Date().toISOString() };
+    demoPlantas = [nueva, ...demoPlantas];
+    return nueva;
+  }
+  return apiFetch<Planta>("/api/db/plantas", { method: "POST", body: JSON.stringify(data) });
 }
 
 export async function autorizarSalida(id: string, estadoAutorizacion: DecisionSalida): Promise<void> {
