@@ -4,6 +4,7 @@ import { useProyectos, useActualizarProyecto, useEliminarProyecto } from "@/hook
 import { useEliminarEntregable } from "@/hooks/useEntregables";
 import { useEntregables, useUsuarios } from "@/hooks/useCatalogos";
 import { useGuiones } from "@/hooks/useGuiones";
+import { useMarcas } from "@/hooks/useMarcas";
 import { useAuth } from "@/context/AuthContext";
 import { puedeCrearProyectos } from "@/lib/roles";
 import { ETAPAS_ORDEN, ETAPA_PROYECTO_LABELS, PRIORIDAD_BADGE, PRIORIDAD_LABELS } from "@/lib/labels";
@@ -13,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -26,12 +28,16 @@ function iniciales(nombre: string) {
   return nombre.split(" ").slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
+/** Valor del Select cuando el proyecto no tiene marca asignada. */
+const SIN_MARCA = "sin-marca";
+
 export function ProyectosPage() {
   const { usuario } = useAuth();
   const { data: proyectos = [], isLoading, isError, refetch } = useProyectos();
   const { data: usuarios = [] } = useUsuarios();
   const { data: entregables = [] } = useEntregables();
   const { data: guiones = [] } = useGuiones();
+  const { data: marcas = [] } = useMarcas();
   const [seleccionado, setSeleccionado] = useState<Proyecto | null>(null);
   const [aEliminar, setAEliminar] = useState<Proyecto | null>(null);
   // Por default un entregable ligado se queda huerfano (sin proyecto) al borrar el proyecto —
@@ -162,6 +168,36 @@ export function ProyectosPage() {
                     <p className="text-xs text-muted-foreground">Fecha compromiso</p>
                     <p className="font-medium">{formatFecha(seleccionado.fechaCompromiso)}</p>
                   </div>
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-xs text-muted-foreground">Marca</p>
+                  {puedeCrearProyectos(usuario) ? (
+                    <Select
+                      value={seleccionado.marcaId ?? SIN_MARCA}
+                      onValueChange={(value) => {
+                        const marcaId = value === SIN_MARCA ? null : value;
+                        actualizarProyecto.mutate({ id: seleccionado.id, cambios: { marcaId } });
+                        setSeleccionado({ ...seleccionado, marcaId });
+                      }}
+                    >
+                      <SelectTrigger className="h-9 w-full sm:w-64">
+                        <SelectValue placeholder="Selecciona marca" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={SIN_MARCA}>Sin marca asignada</SelectItem>
+                        {marcas.map((m) => (
+                          <SelectItem key={m.id} value={m.id}>
+                            {m.nombre}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="font-medium">
+                      {seleccionado.marcaId ? marcas.find((m) => m.id === seleccionado.marcaId)?.nombre ?? "Marca eliminada" : "Sin marca asignada"}
+                    </p>
+                  )}
                 </div>
 
                 <div>

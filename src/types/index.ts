@@ -111,8 +111,10 @@ export interface Proyecto {
   folio: string;
   nombre: string;
   requisicionesVinculadas: string[];
-  /** Marca/cliente al que pertenece este proyecto — para consultar su manual de identidad. */
-  marcaId?: string;
+  /** Marca/cliente al que pertenece este proyecto — para consultar su manual de identidad.
+   * Admite `null` solo al actualizar (ver ProyectosPage.tsx), para poder quitar la marca ya
+   * asignada en vez de solo poder asignar una. */
+  marcaId?: string | null;
   /** Sin valor para proyectos recurrentes sin un dueño fijo (ej. "Videos de redes semanales"). */
   responsablePrincipalId?: string;
   colaboradoresIds: string[];
