@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Check, Copy, ExternalLink, FileText, Trash2 } from "lucide-react";
+import { Check, Copy, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
 import { useMarcas, useEliminarMarca } from "@/hooks/useMarcas";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useEntregables } from "@/hooks/useCatalogos";
 import { useAuth } from "@/context/AuthContext";
 import { puedeCrearProyectos } from "@/lib/roles";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { NuevaMarcaDialog } from "@/components/marcas/NuevaMarcaDialog";
+import { EditarMarcaDialog } from "@/components/marcas/EditarMarcaDialog";
 import type { Marca } from "@/types";
 
 function Swatch({ color }: { color: string }) {
@@ -40,7 +41,8 @@ export function MarcasPage() {
   const { data: marcas = [], isLoading } = useMarcas();
   const { data: proyectos = [] } = useProyectos();
   const { data: entregables = [] } = useEntregables();
-  const [seleccionada, setSeleccionada] = useState<Marca | null>(null);
+  const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
+  const [editando, setEditando] = useState(false);
   const [aEliminar, setAEliminar] = useState<Marca | null>(null);
   const eliminar = useEliminarMarca();
   const puedeGestionar = puedeCrearProyectos(usuario);
@@ -50,11 +52,16 @@ export function MarcasPage() {
   const proyectosDe = (marcaId: string) => proyectos.filter((p) => p.marcaId === marcaId);
   const entregablesDe = (marcaId: string) => entregables.filter((e) => e.marcaId === marcaId);
 
+  // Se busca por id en vez de guardar el objeto completo: tras editar, `marcas` se refresca con
+  // los datos nuevos (invalidateQueries de useActualizarMarca) y este dialogo ya abierto los
+  // refleja solo, sin quedarse con la foto vieja de cuando se abrio.
+  const seleccionada = marcas.find((m) => m.id === seleccionadaId) ?? null;
+
   const confirmarEliminar = () => {
     if (!aEliminar) return;
     eliminar.mutate(aEliminar.id);
     setAEliminar(null);
-    setSeleccionada(null);
+    setSeleccionadaId(null);
   };
 
   return (
@@ -75,7 +82,7 @@ export function MarcasPage() {
               <Card
                 key={m.id}
                 className="cursor-pointer overflow-hidden p-0 hover:shadow-md"
-                onClick={() => setSeleccionada(m)}
+                onClick={() => setSeleccionadaId(m.id)}
               >
                 <div
                   className="relative flex h-28 items-end p-4"
@@ -136,7 +143,7 @@ export function MarcasPage() {
         </div>
       )}
 
-      <Dialog open={!!seleccionada} onOpenChange={(v) => !v && setSeleccionada(null)}>
+      <Dialog open={!!seleccionada} onOpenChange={(v) => !v && setSeleccionadaId(null)}>
         <DialogContent className="max-w-xl">
           {seleccionada && (
             <>
@@ -184,16 +191,21 @@ export function MarcasPage() {
                     )}
                   </div>
                   {puedeGestionar && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="self-start text-destructive hover:bg-red-50 dark:hover:bg-red-400/10"
-                      onClick={() => setAEliminar(seleccionada)}
-                      disabled={eliminar.isPending}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" /> Eliminar
-                    </Button>
+                    <div className="flex shrink-0 gap-2 self-start">
+                      <Button type="button" variant="outline" size="sm" onClick={() => setEditando(true)}>
+                        <Pencil className="h-3.5 w-3.5" /> Editar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-destructive hover:bg-red-50 dark:hover:bg-red-400/10"
+                        onClick={() => setAEliminar(seleccionada)}
+                        disabled={eliminar.isPending}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Eliminar
+                      </Button>
+                    </div>
                   )}
                 </div>
               </DialogHeader>
@@ -303,6 +315,10 @@ export function MarcasPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {seleccionada && (
+        <EditarMarcaDialog key={seleccionada.id} marca={seleccionada} open={editando} onOpenChange={setEditando} />
+      )}
 
       <ConfirmDialog
         open={Boolean(aEliminar)}
