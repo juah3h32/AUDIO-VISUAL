@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle } from "lucide-react";
-import { useActualizarGestorRequisiciones, useActualizarRolUsuario, useUsuarios } from "@/hooks/useCatalogos";
+import { AlertTriangle, KeyRound } from "lucide-react";
+import {
+  useActualizarGestorRequisiciones,
+  useActualizarRolUsuario,
+  useReiniciarPasswordUsuario,
+  useUsuarios,
+} from "@/hooks/useCatalogos";
 import { useAuth } from "@/context/AuthContext";
-import { ROLE_LABELS } from "@/lib/roles";
+import { ROLE_LABELS, puedeGestionarUsuarios } from "@/lib/roles";
 import { vaciarTodaLaInfo } from "@/services/resetService";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +49,8 @@ export function ConfiguracionPage() {
   const [permisos, setPermisos] = useState<GestorRequisicionesPermisos | undefined>();
   const actualizarGestor = useActualizarGestorRequisiciones();
   const actualizarRol = useActualizarRolUsuario();
+  const reiniciarPassword = useReiniciarPasswordUsuario();
+  const [usuarioAReiniciar, setUsuarioAReiniciar] = useState<{ id: string; nombre: string } | null>(null);
   const [confirmarReset, setConfirmarReset] = useState(false);
   const [reseteando, setReseteando] = useState(false);
   const [errorReset, setErrorReset] = useState<string | null>(null);
@@ -81,8 +88,8 @@ export function ConfiguracionPage() {
 
       <Card className="border-dashed">
         <CardContent className="p-4 text-xs text-muted-foreground">
-          La autorizacion real vive en Firestore Security Rules — ver SECURITY.md. Esta vista administra
-          invitaciones y el permiso de gestor de requisiciones.
+          La autorizacion real vive en el servidor (api/_shared/authz.ts) — ver SECURITY.md. Esta vista
+          administra invitaciones y el permiso de gestor de requisiciones.
         </CardContent>
       </Card>
 
@@ -100,6 +107,7 @@ export function ConfiguracionPage() {
                 <TableHead>Rol</TableHead>
                 <TableHead>Puesto</TableHead>
                 <TableHead>Gestor de requisiciones</TableHead>
+                {puedeGestionarUsuarios(usuarioActual) && <TableHead className="text-right">Acceso</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -138,6 +146,21 @@ export function ConfiguracionPage() {
                       <span className="text-xs text-muted-foreground">No</span>
                     )}
                   </TableCell>
+                  {puedeGestionarUsuarios(usuarioActual) && (
+                    <TableCell className="text-right">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1 px-2 text-xs"
+                        title="Reiniciar contraseña — la persona crea una nueva al entrar"
+                        onClick={() => setUsuarioAReiniciar({ id: u.id, nombre: u.nombre })}
+                      >
+                        <KeyRound className="h-3.5 w-3.5" />
+                        Reiniciar contraseña
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
@@ -221,6 +244,21 @@ export function ConfiguracionPage() {
         destructive
         confirmarTexto="BORRAR TODO"
         onConfirm={onVaciarTodo}
+      />
+
+      <ConfirmDialog
+        open={Boolean(usuarioAReiniciar)}
+        onOpenChange={(v) => {
+          if (!v) setUsuarioAReiniciar(null);
+        }}
+        title={`¿Reiniciar la contraseña de ${usuarioAReiniciar?.nombre}?`}
+        description="La cuenta vuelve a quedar como una invitacion pendiente: la proxima vez que entre a login con su correo, el sistema le pedira crear una contraseña nueva. No pierde su rol ni su historial."
+        confirmLabel={reiniciarPassword.isPending ? "Reiniciando..." : "Reiniciar contraseña"}
+        onConfirm={async () => {
+          if (!usuarioAReiniciar) return;
+          await reiniciarPassword.mutateAsync(usuarioAReiniciar.id);
+          setUsuarioAReiniciar(null);
+        }}
       />
     </div>
   );

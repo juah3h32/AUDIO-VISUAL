@@ -13,6 +13,7 @@ import {
   listarEquipoAV,
   listarSalidas,
   listarUsuarios,
+  reiniciarPasswordUsuario,
   type DecisionSalida,
 } from "@/services/catalogosService";
 import { crearInvitacion } from "@/services/invitacionesService";
@@ -149,4 +150,8 @@ export function useActualizarRolUsuario() {
     mutationFn: ({ id, rol }: { id: string; rol: Usuario["rol"] }) => actualizarRolUsuario(id, rol),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
   });
+}
+
+export function useReiniciarPasswordUsuario() {
+  return useMutation({ mutationFn: (usuarioId: string) => reiniciarPasswordUsuario(usuarioId) });
 }

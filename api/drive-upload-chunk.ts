@@ -58,6 +58,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "Falta el header content-range." });
     return;
   }
+  // El total del archivo viaja en cada pedazo ("bytes 0-3145727/104857600") — se puede topar el
+  // tamaño sin esperar a que termine toda la subida ni llevar un contador aparte.
+  const TAMANO_MAXIMO_BYTES = 5 * 1024 * 1024 * 1024;
+  const totalDeclarado = /\/(\d+)$/.exec(contentRange)?.[1];
+  if (totalDeclarado && Number(totalDeclarado) > TAMANO_MAXIMO_BYTES) {
+    res.status(413).json({ error: "El archivo excede el limite de 5 GB." });
+    return;
+  }
 
   // Con Content-Type "application/octet-stream" (lo manda el cliente), @vercel/node entrega el
   // body ya como Buffer crudo — no hace falta parsear nada aqui.

@@ -64,6 +64,22 @@ async function verificarRolAutorizado(uid: string): Promise<void> {
 
 const CARPETA_RAIZ = "AV Control";
 
+/** Solo lo que la app realmente maneja (ver RevisarEntregableDialog/NuevaMarcaDialog): video,
+ * imagen o PDF del manual de marca. No es deteccion de contenido real (eso exigiria leer los
+ * primeros bytes del archivo, que aqui todavia no llegan — el navegador sube los bytes directo a
+ * Drive, no a esta funcion) — es un filtro por extension para rechazar lo obviamente ajeno
+ * (.exe, .zip, .sh...) antes de gastar una sesion de subida en Drive. */
+const EXTENSIONES_PERMITIDAS = new Set([
+  "mp4", "mov", "avi", "mkv", "webm", "m4v",
+  "jpg", "jpeg", "png", "webp", "gif", "heic",
+  "pdf", "ai", "psd", "fig", "sketch", "eps",
+]);
+
+function extensionDe(nombre: string): string {
+  const punto = nombre.lastIndexOf(".");
+  return punto >= 0 ? nombre.slice(punto + 1).toLowerCase() : "";
+}
+
 async function buscarCarpeta(nombre: string, token: string, parentId: string | null): Promise<string | null> {
   const escapado = nombre.replace(/'/g, "\\'");
   const condiciones = [
@@ -126,6 +142,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   };
   if (!body?.nombre) {
     res.status(400).json({ error: "Falta el nombre del archivo." });
+    return;
+  }
+  const extension = extensionDe(body.nombre);
+  if (!EXTENSIONES_PERMITIDAS.has(extension)) {
+    res.status(400).json({ error: `Tipo de archivo no permitido (.${extension || "sin extension"}). Solo video, imagen o PDF.` });
     return;
   }
 

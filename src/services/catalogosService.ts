@@ -131,3 +131,13 @@ export async function actualizarRolUsuario(usuarioId: string, rol: Usuario["rol"
     body: JSON.stringify({ rol }),
   });
 }
+
+/** No hay "olvide mi contraseña" con correo (no hay servicio de envio configurado) — en su lugar
+ * un admin reinicia la cuenta a "pendiente de activar", igual que una invitacion nueva: la
+ * persona entra a login con su correo y crea una contraseña de nuevo, sin perder rol ni historial. */
+export async function reiniciarPasswordUsuario(usuarioId: string): Promise<void> {
+  if (esModoDemo) return;
+  await apiFetch(`/api/db/usuarios?id=${encodeURIComponent(usuarioId)}&action=reiniciar-password`, {
+    method: "PATCH",
+  });
+}

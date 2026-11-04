@@ -37,6 +37,15 @@ CREATE TABLE IF NOT EXISTS contadores (
   siguiente INTEGER NOT NULL
 );
 
+-- Freno a fuerza bruta en /api/auth/login (ver api/_shared/rateLimit.ts). Ventana corta a
+-- proposito: un bloqueo largo convierte el candado en un arma para negarle acceso a otra
+-- persona (bastan unos intentos fallidos a su correo para dejarla fuera un buen rato).
+CREATE TABLE IF NOT EXISTS intentos_login (
+  correo TEXT PRIMARY KEY,
+  intentos INTEGER NOT NULL DEFAULT 0,
+  bloqueado_hasta TEXT
+);
+
 CREATE TABLE IF NOT EXISTS marcas (
   id TEXT PRIMARY KEY,
   nombre TEXT NOT NULL,

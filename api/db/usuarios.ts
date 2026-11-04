@@ -3,6 +3,7 @@ import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso
 import { requerirUsuario, esSuperadmin, esLiderAudiovisual, puedeGestionarUsuarios, type UsuarioFila } from "../_shared/authz.js";
 import { manejarApi, cuerpoJson } from "../_shared/http.js";
 import { ErrorAuth } from "../_shared/session.js";
+import { limpiarIntentos } from "../_shared/rateLimit.js";
 
 // El alta/activacion de cuenta (correo + password) vive en api/auth/*.ts — este archivo solo
 // administra usuarios YA existentes e invitaciones, siempre con sesion activa.
@@ -85,6 +86,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "GET") {
       const filas = await db().execute("SELECT * FROM usuarios");
       res.status(200).json(filas.rows.map((f) => filaAUsuario(f as Record<string, unknown>)));
+      return;
+    }
+
+    if (req.method === "PATCH" && req.query.action === "reiniciar-password") {
+      if (!puedeGestionarUsuarios(usuario)) throw new ErrorAuth(403, "No tienes permiso para reiniciar contraseñas.");
+      const id = String(req.query.id ?? "");
+      if (!id) throw new ErrorAuth(400, "Falta el id del usuario.");
+      const fila = await db().execute({ sql: "SELECT correo FROM usuarios WHERE id = ?", args: [id] });
+      const correo = fila.rows[0]?.correo ? String(fila.rows[0].correo) : null;
+      if (!correo) throw new ErrorAuth(404, "Usuario no encontrado.");
+      // Vuelve a quedar como una invitacion sin activar: la persona entra a login, pone su
+      // correo, el sistema le pide "crea tu contraseña" de nuevo — sin perder rol ni historial.
+      await db().execute({ sql: "UPDATE usuarios SET password_hash = NULL WHERE id = ?", args: [id] });
+      await limpiarIntentos(correo);
+      res.status(200).json({ ok: true });
       return;
     }
 

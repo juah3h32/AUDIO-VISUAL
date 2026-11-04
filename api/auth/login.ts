@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso.js";
 import { manejarApi, cuerpoJson } from "../_shared/http.js";
 import { ErrorAuth, firmarSesion, setCookieSesion } from "../_shared/session.js";
+import { verificarBloqueoLogin, registrarIntentoFallido, limpiarIntentos } from "../_shared/rateLimit.js";
 
 function filaAUsuario(f: Record<string, unknown>) {
   return {
@@ -33,15 +34,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // no hay que confirmarle a quien intenta entrar cual de las dos cosas fallo.
     const MENSAJE_GENERICO = "Correo o contraseña incorrectos.";
 
+    await verificarBloqueoLogin(correo);
+
     const res_ = await db().execute({ sql: "SELECT * FROM usuarios WHERE correo = ?", args: [correo] });
     const fila = res_.rows[0];
-    if (!fila || !fila.password_hash) throw new ErrorAuth(401, MENSAJE_GENERICO);
+    if (!fila || !fila.password_hash) {
+      await registrarIntentoFallido(correo);
+      throw new ErrorAuth(401, MENSAJE_GENERICO);
+    }
 
     const valido = await bcrypt.compare(password, String(fila.password_hash));
-    if (!valido) throw new ErrorAuth(401, MENSAJE_GENERICO);
+    if (!valido) {
+      await registrarIntentoFallido(correo);
+      throw new ErrorAuth(401, MENSAJE_GENERICO);
+    }
 
     if (!parseBool(fila.activo)) throw new ErrorAuth(403, "Tu cuenta esta desactivada. Contacta a un administrador.");
 
+    await limpiarIntentos(correo);
     setCookieSesion(res, await firmarSesion(String(fila.id)));
     res.status(200).json(filaAUsuario(fila as Record<string, unknown>));
   });
