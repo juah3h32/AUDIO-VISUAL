@@ -16,6 +16,16 @@ function horaCombinada(fecha: string, hora?: string): string | null {
   return `${fecha}T${horaNormalizada}`;
 }
 
+/** `2026-03-05T09:00:00` -> `2026-03-06T09:00:00` (misma hora, dia siguiente). */
+function sumarUnDia(fechaHoraIso: string): string {
+  const [fecha, hora] = fechaHoraIso.split("T");
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  const siguiente = new Date(anio, mes - 1, dia + 1);
+  const mesStr = String(siguiente.getMonth() + 1).padStart(2, "0");
+  const diaStr = String(siguiente.getDate()).padStart(2, "0");
+  return `${siguiente.getFullYear()}-${mesStr}-${diaStr}T${hora}`;
+}
+
 /** `2026-03-05T09:00:00` -> `20260305T090000` (formato que exige el parametro `dates`). */
 function aFormatoCalendar(fechaHoraIso: string): string {
   return fechaHoraIso.replace(/[-:]/g, "");
@@ -24,7 +34,10 @@ function aFormatoCalendar(fechaHoraIso: string): string {
 export function linkAgregarEventoCalendar(salida: SalidaGrabacion): string {
   const inicio = horaCombinada(salida.fecha, salida.horaSalida) ?? `${salida.fecha}T09:00:00`;
   const finHora = salida.horaRegreso ?? salida.horaEstimadaFinalizacion ?? salida.horaEstimadaLlegada;
-  const fin = horaCombinada(salida.fecha, finHora) ?? `${salida.fecha}T18:00:00`;
+  let fin = horaCombinada(salida.fecha, finHora) ?? `${salida.fecha}T18:00:00`;
+  // Jornada que cruza medianoche (ej. sale 22:00, llega 01:00): la hora de fin queda en el MISMO
+  // "fecha" de la salida, antes que el inicio — sin esto el evento quedaba con fin < inicio.
+  if (fin <= inicio) fin = sumarUnDia(fin);
 
   const detalles = [
     salida.folio,

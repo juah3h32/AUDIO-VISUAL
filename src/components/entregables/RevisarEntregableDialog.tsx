@@ -572,9 +572,17 @@ export function RevisarEntregableDialog({
 
   const onEliminarFoto = async (url: string) => {
     setErrorFotos(null);
+    // Mismo criterio que onMoverFoto/onEliminarFotosMarcadas: calcular contra `galeriaFotosRef`
+    // (no contra `galeriaFotos`, que viene del `entregable` de este render) y actualizar el ref
+    // de inmediato — sin esto, borrar dos fotos distintas de un jalon (antes de que la primera
+    // mutacion invalide la query y re-renderice, ~200-500ms de red) calculaba ambas contra el
+    // MISMO arreglo desactualizado, y la segunda escritura pisaba a la primera (solo una foto
+    // terminaba borrada de verdad en el servidor).
+    const nuevaGaleria = galeriaFotosRef.current.filter((f) => f !== url);
+    galeriaFotosRef.current = nuevaGaleria;
     guardarFotos.mutate({
       id: entregable.id,
-      fotos: galeriaFotos.filter((f) => f !== url),
+      fotos: nuevaGaleria,
       comoHistorico: completandoHistorico,
     });
     // La galeria ya se actualiza arriba sin esperar a Drive — "ya no la quiero" se refleja de
@@ -793,8 +801,14 @@ export function RevisarEntregableDialog({
   // quien sea el responsable ni si ya esta aprobado — lo necesita para completar historicos
   // cargados sin link real de video (el responsable registrado puede ni ser una cuenta real).
   // Para el resto, sigue igual: solo el propio responsable, y solo antes de quedar aprobado.
+  // `lider_audiovisual` queda fuera aunque sea el responsable: el backend (puedeActualizar en
+  // api/db/entregables.ts) nunca deja que un lider cambie `estado` via PATCH, ni siquiera en un
+  // entregable propio — subir aqui siempre terminaria en 403 DESPUES de ya haber subido el
+  // archivo entero a Drive. Un lider asignado como responsable (si, se puede, ver
+  // NuevoEntregableDialog) delega la subida a un colaborador en vez de subirla el mismo.
   const puedeEditarMaterial =
-    usuario.rol === "superadmin" || (esResponsable && entregable.estado !== "aprobado");
+    usuario.rol === "superadmin" ||
+    (esResponsable && usuario.rol !== "lider_audiovisual" && entregable.estado !== "aprobado");
   // Vincular el guion (dialogo) ya aprobado del que sale este video — solo aplica a video (una
   // foto o un diseño grafico no llevan dialogo). Cambiar el vinculo es mas permisivo que editar
   // el material en si (es solo una referencia, no el archivo): tanto quien sube el video como

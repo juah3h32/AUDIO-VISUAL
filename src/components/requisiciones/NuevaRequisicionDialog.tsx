@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { esGestorRequisiciones, gestorTienePermiso } from "@/lib/roles";
+import { esGestorRequisiciones, gestorTienePermiso, puedeAprobarRequisiciones } from "@/lib/roles";
 import { useCrearRequisicion } from "@/hooks/useRequisiciones";
 import { useUsuarios } from "@/hooks/useCatalogos";
 import { CATEGORIA_CONTENIDO_LABELS, PRIORIDAD_LABELS } from "@/lib/labels";
@@ -56,8 +56,13 @@ export function NuevaRequisicionDialog() {
   const { data: usuarios = [] } = useUsuarios();
   const esGestor = esGestorRequisiciones(usuario);
   // Sin este permiso la requisicion sale forzosamente a nombre de quien la crea — el
-  // `solicitanteId` tambien queda bloqueado en firestore.rules (`allow create`), no solo aqui.
-  const puedeCrearPorTerceros = esGestor && gestorTienePermiso(usuario, "crearEnNombreDeTerceros");
+  // `solicitanteId` tambien queda bloqueado en el backend (ver api/db/requisiciones.ts:
+  // `puedeCrearParaOtro` exige `esGestorDelegado`, es decir `gestorRequisiciones.activo === true`
+  // ahi, no el rol "community" por si solo — `gestorTienePermiso` es permisiva por defecto y
+  // dejaba el boton visible para "community" aunque el backend siempre lo rechazara con 403).
+  const puedeCrearPorTerceros =
+    (puedeAprobarRequisiciones(usuario) || Boolean(usuario?.gestorRequisiciones?.activo)) &&
+    gestorTienePermiso(usuario, "crearEnNombreDeTerceros");
 
   const {
     register,

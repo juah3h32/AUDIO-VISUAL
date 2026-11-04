@@ -88,7 +88,8 @@ export function InvitarUsuarioDialog() {
         <DialogHeader>
           <DialogTitle>Invitar usuario</DialogTitle>
           <DialogDescription>
-            Al iniciar sesion con Google por primera vez con este correo, el acceso y rol se asignan automaticamente.
+            Al entrar por primera vez con este correo en la pantalla de inicio de sesion y crear su
+            contraseña, el acceso y rol se asignan automaticamente.
           </DialogDescription>
         </DialogHeader>
 
