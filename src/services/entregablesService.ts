@@ -1,7 +1,7 @@
 import { esModoDemo } from "@/lib/modoDemo";
 import { apiFetch } from "@/lib/apiClient";
 import { DEMO_ENTREGABLES } from "@/data/demoData";
-import type { CategoriaContenido, Entregable, EstadoEntregable } from "@/types";
+import type { CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo } from "@/types";
 
 let demoStore: Entregable[] = [...DEMO_ENTREGABLES];
 const demoComentarios: Record<string, ComentarioEntregable[]> = {};
@@ -70,6 +70,16 @@ export async function actualizarDialogoTexto(id: string, dialogoTexto: string | 
     return;
   }
   await actualizarEntregable(id, { dialogoTexto: dialogoTexto ?? null } as Partial<Entregable>);
+}
+
+/** Lista completa de materiales de apoyo (footage crudo, brief, fotos de referencia...) — se
+ * manda la lista entera, igual que `assets` en Marcas, no un solo archivo. */
+export async function actualizarMaterialesApoyo(id: string, materialesApoyo: MaterialApoyo[]): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, materialesApoyo } : e));
+    return;
+  }
+  await actualizarEntregable(id, { materialesApoyo } as Partial<Entregable>);
 }
 
 export async function renombrarEntregable(id: string, nombre: string): Promise<void> {

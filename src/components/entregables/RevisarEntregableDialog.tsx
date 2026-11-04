@@ -27,9 +27,10 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useUploadQueue } from "@/context/UploadQueueContext";
-import { puedeAprobarEntregables, puedeSubirVideos, esGestorRequisiciones, gestorTienePermiso } from "@/lib/roles";
+import { puedeAprobarEntregables, puedeAsignarEntregables, puedeSubirVideos, esGestorRequisiciones, gestorTienePermiso } from "@/lib/roles";
 import {
   useActualizarDialogoTexto,
+  useActualizarMaterialesApoyo,
   useAdjuntarMaterialHistorico,
   useAgregarComentario,
   useAgregarVersionAlterna,
@@ -147,6 +148,11 @@ export function RevisarEntregableDialog({
   const [dialogoBorrador, setDialogoBorrador] = useState("");
   const [mostrandoDialogo, setMostrandoDialogo] = useState(false);
   const [dialogoCopiado, setDialogoCopiado] = useState(false);
+  // Material de apoyo (footage crudo, brief, fotos de referencia...) que el lider sube a Drive
+  // para que el responsable lo descargue — NO es el material final del entregable.
+  const actualizarMateriales = useActualizarMaterialesApoyo();
+  const [subiendoApoyo, setSubiendoApoyo] = useState(false);
+  const inputApoyoRef = useRef<HTMLInputElement>(null);
   const [comentario, setComentario] = useState("");
   const [momento, setMomento] = useState("");
   const [subiendo, setSubiendo] = useState(false);
@@ -733,6 +739,34 @@ export function RevisarEntregableDialog({
   const onGuardarDialogo = async () => {
     await actualizarDialogo.mutateAsync({ id: entregable.id, dialogoTexto: dialogoBorrador.trim() || null });
     setEditandoDialogo(false);
+  };
+
+  const onSubirMaterialApoyo = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setSubiendoApoyo(true);
+    try {
+      const subido = await subirArchivoCentralizado(file, {
+        nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre} - Apoyo`,
+        nombreCarpeta: nombreProyecto ?? "Sin proyecto",
+        subcarpeta: "Material de apoyo",
+      });
+      const nuevaLista = [
+        ...(entregable.materialesApoyo ?? []),
+        { id: subido.id, nombre: file.name, url: subido.viewUrl, fileId: subido.id },
+      ];
+      await actualizarMateriales.mutateAsync({ id: entregable.id, materialesApoyo: nuevaLista });
+    } catch (err) {
+      setErrorSubida(mensajeErrorAuth(err));
+    } finally {
+      setSubiendoApoyo(false);
+    }
+  };
+
+  const onEliminarMaterialApoyo = (materialId: string) => {
+    const nuevaLista = (entregable.materialesApoyo ?? []).filter((m) => m.id !== materialId);
+    actualizarMateriales.mutate({ id: entregable.id, materialesApoyo: nuevaLista });
   };
 
   const onEmpezarRenombrar = () => {
@@ -1484,6 +1518,56 @@ export function RevisarEntregableDialog({
                 </div>
               )}
             </div>
+          )}
+        </div>
+      )}
+      {/* Footage crudo, brief, fotos de referencia... insumo para PRODUCIR el entregable, no el
+          material final (eso es urlRevision/urlFinal/fotos). Solo lider/superadmin suben o
+          quitan; cualquiera con acceso al dialogo puede descargar. */}
+      {(puedeAsignarEntregables(usuario) || (entregable.materialesApoyo?.length ?? 0) > 0) && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            <Download className="h-3.5 w-3.5" /> Material de apoyo
+          </Label>
+          {(entregable.materialesApoyo ?? []).map((m) => (
+            <div key={m.id} className="flex items-center justify-between gap-2 rounded-md bg-bg-secondary px-2.5 py-1.5 text-xs">
+              <span className="truncate">{m.nombre}</span>
+              <div className="flex shrink-0 items-center gap-1">
+                <a
+                  href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}&download=1&nombre=${encodeURIComponent(m.nombre)}`}
+                  className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                  title={`Descargar ${m.nombre}`}
+                >
+                  <Download className="h-3 w-3" /> Descargar
+                </a>
+                {puedeAsignarEntregables(usuario) && (
+                  <button
+                    type="button"
+                    onClick={() => onEliminarMaterialApoyo(m.id)}
+                    className="p-1 text-muted-foreground hover:text-destructive"
+                    title="Quitar"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {puedeAsignarEntregables(usuario) && (
+            <>
+              <input ref={inputApoyoRef} type="file" className="hidden" onChange={onSubirMaterialApoyo} />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => inputApoyoRef.current?.click()}
+                disabled={subiendoApoyo}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                {subiendoApoyo ? "Subiendo..." : "Subir material de apoyo a Drive"}
+              </Button>
+            </>
           )}
         </div>
       )}

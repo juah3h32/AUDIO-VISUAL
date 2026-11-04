@@ -163,6 +163,7 @@ CREATE TABLE IF NOT EXISTS entregables (
   fotos_para_borrar TEXT,
   guion_id TEXT,
   dialogo_texto TEXT,
+  materiales_apoyo TEXT,
   aprobador_id TEXT,
   creado_en TEXT NOT NULL,
   porcentaje_avance INTEGER,

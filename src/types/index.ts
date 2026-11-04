@@ -170,6 +170,16 @@ export type EstadoEntregable =
   | "aprobado"
   | "entregado";
 
+/** Archivo de apoyo (footage crudo, brief, fotos de referencia...) que el lider sube a Drive para
+ * que el responsable del entregable lo descargue — NO es el material final (eso es
+ * urlRevision/urlFinal/fotos), es insumo para producirlo. */
+export interface MaterialApoyo {
+  id: string;
+  nombre: string;
+  url: string;
+  fileId?: string;
+}
+
 export interface Entregable {
   id: string;
   /** Sin valor cuando el lider lo crea directo, sin requisicion/proyecto previo (ej. un cambio
@@ -216,6 +226,7 @@ export interface Entregable {
    * aprobacion — para cuando a quien sube el video se lo entregan ya hecho (o lo genera con IA)
    * y no existe (ni va a existir) un Guion formal que vincular. Independiente de `guionId`. */
   dialogoTexto?: string;
+  materialesApoyo?: MaterialApoyo[];
   aprobadorId?: string;
   creadoEn: string;
   /** Cuando se subio el material POR PRIMERA VEZ (envio a revision). Es la fecha que cuenta para

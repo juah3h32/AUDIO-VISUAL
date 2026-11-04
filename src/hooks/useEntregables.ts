@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   actualizarDialogoTexto,
+  actualizarMaterialesApoyo,
   adjuntarMaterialHistorico,
   agregarComentario,
   agregarVersionAlterna,
@@ -26,7 +27,7 @@ import {
   marcarEntregado,
   solicitarCorrecciones,
 } from "@/services/entregablesService";
-import type { CategoriaContenido, Entregable, EstadoEntregable } from "@/types";
+import type { CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo } from "@/types";
 
 export function useCrearEntregable() {
   const qc = useQueryClient();
@@ -82,6 +83,15 @@ export function useActualizarDialogoTexto() {
   return useMutation({
     mutationFn: ({ id, dialogoTexto }: { id: string; dialogoTexto: string | null }) =>
       actualizarDialogoTexto(id, dialogoTexto),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
+export function useActualizarMaterialesApoyo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, materialesApoyo }: { id: string; materialesApoyo: MaterialApoyo[] }) =>
+      actualizarMaterialesApoyo(id, materialesApoyo),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
   });
 }

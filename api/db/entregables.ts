@@ -15,7 +15,23 @@ const COLUMNAS: Record<string, string> = {
   fechaEnviado: "fecha_enviado", fechaEntregado: "fecha_entregado",
   fechaAprobado: "fecha_aprobado",
 };
-const COLUMNAS_JSON: Record<string, string> = { fotos: "fotos", fotosParaBorrar: "fotos_para_borrar" };
+const COLUMNAS_JSON: Record<string, string> = {
+  fotos: "fotos",
+  fotosParaBorrar: "fotos_para_borrar",
+  materialesApoyo: "materiales_apoyo",
+};
+
+/** `materiales_apoyo` guarda objetos ({id,nombre,url,fileId}), no strings sueltos como `fotos` —
+ * `parseJsonArray` (tipada a string[]) no sirve aqui. */
+function parseMaterialesApoyo(valor: unknown): { id: string; nombre: string; url: string; fileId?: string }[] | undefined {
+  if (typeof valor !== "string" || !valor) return undefined;
+  try {
+    const parsed = JSON.parse(valor);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function filaAEntregable(f: Record<string, unknown>) {
   return {
@@ -42,6 +58,7 @@ function filaAEntregable(f: Record<string, unknown>) {
     fotosParaBorrar: f.fotos_para_borrar ? parseJsonArray(f.fotos_para_borrar) : undefined,
     guionId: f.guion_id ? String(f.guion_id) : undefined,
     dialogoTexto: f.dialogo_texto ? String(f.dialogo_texto) : undefined,
+    materialesApoyo: parseMaterialesApoyo(f.materiales_apoyo),
     aprobadorId: f.aprobador_id ? String(f.aprobador_id) : undefined,
     creadoEn: String(f.creado_en),
     fechaEnviado: f.fecha_enviado ? String(f.fecha_enviado) : undefined,
