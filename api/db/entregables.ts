@@ -127,7 +127,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "GET") {
-      const filas = await db().execute("SELECT * FROM entregables");
+      // Un colaborador_audiovisual solo ve SUS propios entregables asignados — antes la lista
+      // completa (todo el equipo) se mandaba sin filtrar y el Kanban de Entregables mostraba el
+      // trabajo de todos. Lider/superadmin/community (gestor de requisiciones) si ven todo: son
+      // quienes asignan o aprueban el trabajo de todo el equipo.
+      const veTodo = esSuperadmin(usuario) || esLiderAudiovisual(usuario) || esGestorRequisiciones(usuario);
+      const filas = veTodo
+        ? await db().execute("SELECT * FROM entregables")
+        : await db().execute({ sql: "SELECT * FROM entregables WHERE responsable_id = ?", args: [usuario.id] });
       res.status(200).json(filas.rows.map((f) => filaAEntregable(f as Record<string, unknown>)));
       return;
     }

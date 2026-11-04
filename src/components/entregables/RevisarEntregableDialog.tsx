@@ -880,7 +880,15 @@ export function RevisarEntregableDialog({
   // la columna de un horizontal no se estira (`lg:self-start`), solo ocupa lo que su contenido
   // real necesita — igual que antes de saber la orientacion (metadata sin cargar) se asume
   // horizontal por default, mismo criterio que ya usa `ratioVisor` mas abajo.
-  const esVideoVertical = ratioReal != null ? ratioReal < 1 : orientacion === "vertical";
+  // Antes, "no se sabe todavia" caia a horizontal (orientacion === "vertical" es false si
+  // orientacion es null) — un video vertical SIN `orientacionVideo` guardado (primera vez que se
+  // abre, o dato historico sin ese campo) arrancaba en la columna angosta "self-start" de
+  // horizontal y, al llegar la metadata real, saltaba a la caja grande de vertical: el dialogo
+  // se veia chico-cargando y de golpe mucho mas grande ya cargado. Ahora "no se sabe todavia" cae
+  // a vertical (solo se trata como horizontal con confirmacion real: metadata ya leida, o el
+  // campo guardado dice explicitamente "horizontal") — mientras carga ya reserva el tamaño grande,
+  // y si termina siendo horizontal la caja solo se ENCOGE una vez (nunca crece de golpe).
+  const esVideoVertical = ratioReal != null ? ratioReal < 1 : orientacion !== "horizontal";
   const bloqueVideo = (
     <div
       className={cn(

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   MapPin,
   Phone,
@@ -69,6 +70,30 @@ export function SalidasPage() {
   // autoriza. El responsable de produccion nunca se autoriza su propia jornada.
   const puedeAutorizar = puedeAsignarEntregables(usuario);
 
+  // Al venir de Calendario con `?abrir=<id>` (ver rutaDeEvento en CalendarioPage.tsx): con varias
+  // tarjetas en pantalla no se distinguia cual era la referida — aqui se resalta y se hace scroll
+  // hasta ella.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [resaltadaId, setResaltadaId] = useState<string | null>(null);
+  const refsTarjetas = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    const abrir = searchParams.get("abrir");
+    if (!abrir || !salidas.some((s) => s.id === abrir)) return;
+    setResaltadaId(abrir);
+    setSearchParams(
+      (p) => {
+        p.delete("abrir");
+        return p;
+      },
+      { replace: true }
+    );
+    requestAnimationFrame(() => {
+      refsTarjetas.current[abrir]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => setResaltadaId(null), 3000);
+    return () => clearTimeout(t);
+  }, [searchParams, salidas, setSearchParams]);
+
   const decidir = async (salida: SalidaGrabacion, estadoAutorizacion: DecisionSalida) => {
     setDecidiendo(salida.id);
     try {
@@ -116,7 +141,16 @@ export function SalidasPage() {
             const yaPaso = s.fecha < hoyIso;
             const yaRealizada = s.estadoAutorizacion === "autorizada" && yaPaso;
             return (
-            <Card key={s.id} className="flex flex-col overflow-hidden p-0">
+            <Card
+              key={s.id}
+              ref={(el) => {
+                refsTarjetas.current[s.id] = el;
+              }}
+              className={cn(
+                "flex flex-col overflow-hidden p-0 transition-shadow",
+                resaltadaId === s.id && "ring-2 ring-accent-dato"
+              )}
+            >
               <div className="bg-[#111827] px-3 pb-2 pt-3 text-white dark:bg-[#0B0D11]">
                 <div className="flex items-end justify-between gap-2">
                   <div className="flex items-baseline gap-1.5">

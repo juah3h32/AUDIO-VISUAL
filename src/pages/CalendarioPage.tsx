@@ -43,11 +43,12 @@ type EventoCalendario = {
 };
 
 /** Al dar clic en la tarjeta: una entrega manda directo al video/material (igual que el link de
- * una notificacion). Salida/requisicion no tienen vista de detalle por id todavia — mandan a su
- * lista general, mejor que no hacer nada. */
+ * una notificacion); una salida manda a Grabaciones y Salidas y resalta esa tarjeta exacta (ver
+ * `?abrir=` en SalidasPage.tsx) — sin esto, llegar a una lista con varias tarjetas no decia cual
+ * era la referida. Requisicion no tiene vista de detalle por id todavia — manda a su lista general. */
 function rutaDeEvento(e: EventoCalendario): string {
   if (e.tipo === "entrega") return `/entregables?abrir=${e.id}`;
-  if (e.tipo === "salida") return "/salidas";
+  if (e.tipo === "salida") return `/salidas?abrir=${e.id}`;
   return "/requisiciones";
 }
 

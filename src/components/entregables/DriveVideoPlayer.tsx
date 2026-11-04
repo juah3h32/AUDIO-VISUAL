@@ -146,8 +146,13 @@ export const DriveVideoPlayer = forwardRef<
   };
 
   // Mientras no se conoce la proporcion real se usa una de referencia segun la orientacion ya
-  // etiquetada — asi la caja no da un salto grande cuando el video carga.
-  const esVertical = ratio != null ? ratio < 1 : orientacion === "vertical";
+  // etiquetada — asi la caja no da un salto grande cuando el video carga. Si no hay ninguna
+  // etiqueta guardada todavia (`orientacion` null — primera vez que se abre este video, o dato
+  // historico sin ese campo), se asume vertical en vez de horizontal: la rama horizontal usa una
+  // caja mas chica/distinta, y un video vertical sin etiqueta arrancaba ahi para luego saltar de
+  // golpe a la caja grande de vertical en cuanto cargaba la metadata real. Solo se trata como
+  // horizontal con confirmacion real (ratio ya leido, o la etiqueta guardada dice "horizontal").
+  const esVertical = ratio != null ? ratio < 1 : orientacion !== "horizontal";
   const ratioDetectado = ratio ?? (esVertical ? 9 / 16 : 16 / 9);
   // Antes se ensanchaba la caja vertical mas alla de su proporcion real (9:16) para que se viera
   // mas grande — a costa de que `object-cover` recortara los lados del video de verdad. Se usa la
