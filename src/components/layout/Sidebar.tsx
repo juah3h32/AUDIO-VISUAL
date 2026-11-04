@@ -31,7 +31,7 @@ const grupos = [
       { to: "/", label: "Inicio", icon: Home, end: true, desc: "Resumen del día" },
       { to: "/entregables", label: "Entregables", icon: PackageCheck, desc: "Trabajos asignados y su revisión" },
       { to: "/calendario", label: "Calendario", icon: Calendar, desc: "Fechas de entrega y salidas" },
-      { to: "/salidas", label: "Grabaciones y Salidas", icon: Camera, desc: "Salidas a grabar o fotografiar" },
+      { to: "/salidas", label: "Grabaciones y Salidas", icon: Camera, desc: "Visitas a planta, grabación y fotografía" },
     ],
   },
   {
