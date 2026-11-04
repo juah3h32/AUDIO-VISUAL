@@ -141,8 +141,6 @@ export function generarDemoMasivo(ahora: Date = new Date()) {
         if (!entrega || azar.r() > perfil.cumple) {
           // Sin material: en futuro es normal; en pasado cuenta como atrasada.
           base.estado = azar.r() < 0.5 ? "en_proceso" : "pendiente";
-          // Avance real reportado por la persona (multiplos de 5), como si moviera su barra.
-          base.porcentajeAvance = base.estado === "en_proceso" ? azar.entero(4, 16) * 5 : azar.entero(0, 3) * 5;
           entregables.push(base);
           continue;
         }

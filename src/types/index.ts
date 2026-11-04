@@ -214,10 +214,6 @@ export interface Entregable {
   guionId?: string;
   aprobadorId?: string;
   creadoEn: string;
-  /** Avance real (0-100) que reporta el responsable mientras trabaja (ej. "la web va al 60%").
-   * Si no lo ha capturado se estima por estado — ver avanceDe() en lib/rendimiento.ts. */
-  porcentajeAvance?: number;
-  avanceActualizadoEn?: string;
   /** Cuando se subio el material POR PRIMERA VEZ (envio a revision). Es la fecha que cuenta para
    * "a tiempo / tarde": las correcciones posteriores no la mueven. */
   fechaEnviado?: string;

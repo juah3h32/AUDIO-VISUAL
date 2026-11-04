@@ -8,7 +8,6 @@ import {
   vincularGuionEntregable,
   cambiarEstadoEntregableDirecto,
   actualizarCarpetaFotos,
-  actualizarEntregable,
   cambiarTipoEntregable,
   eliminarEntregable,
   eliminarMaterialEntregable,
@@ -27,16 +26,6 @@ import {
   solicitarCorrecciones,
 } from "@/services/entregablesService";
 import type { CategoriaContenido, Entregable, EstadoEntregable } from "@/types";
-
-/** El responsable reporta cuanto lleva de su entregable (0-100). */
-export function useActualizarAvance() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, porcentajeAvance }: { id: string; porcentajeAvance: number }) =>
-      actualizarEntregable(id, { porcentajeAvance, avanceActualizadoEn: new Date().toISOString() }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
-  });
-}
 
 export function useCrearEntregable() {
   const qc = useQueryClient();

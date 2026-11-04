@@ -289,7 +289,7 @@ export function RendimientoPage() {
                               <p className="text-xs text-muted-foreground">Compromiso: {formatFecha(e.fechaCompromiso)}</p>
                             </div>
                             <div className="w-40">
-                              <AvanceEntregable entregable={e} editable={e.responsableId === usuario?.id} />
+                              <AvanceEntregable entregable={e} />
                             </div>
                             <div className="flex gap-1.5">
                               <Badge variant={ESTADO_ENTREGABLE_BADGE[e.estado]}>{etiquetaEstadoEntregable(e)}</Badge>

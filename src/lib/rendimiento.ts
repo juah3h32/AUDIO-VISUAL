@@ -34,7 +34,7 @@ export interface TareaSemana {
   estado: EstadoTareaSemana;
 }
 
-/** Avance estimado por estado cuando el responsable todavia no captura su % real. */
+/** Avance segun el estado del flujo — automatico, nadie lo captura a mano. */
 const AVANCE_POR_ESTADO: Record<Entregable["estado"], number> = {
   pendiente: 0,
   en_proceso: 40,
@@ -44,10 +44,9 @@ const AVANCE_POR_ESTADO: Record<Entregable["estado"], number> = {
   entregado: 100,
 };
 
-/** Avance real de un entregable: lo capturado por el responsable; aprobado/entregado siempre 100. */
+/** Avance de un entregable, derivado solo de su estado. */
 export function avanceDe(e: Entregable): number {
-  if (e.estado === "aprobado" || e.estado === "entregado") return 100;
-  return e.porcentajeAvance ?? AVANCE_POR_ESTADO[e.estado];
+  return AVANCE_POR_ESTADO[e.estado];
 }
 
 export interface RendimientoSemanal {

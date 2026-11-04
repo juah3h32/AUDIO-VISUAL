@@ -11,8 +11,8 @@ const COLUMNAS: Record<string, string> = {
   responsableId: "responsable_id", fechaCompromiso: "fecha_compromiso", version: "version", estado: "estado",
   urlRevision: "url_revision", urlFinal: "url_final", orientacionVideoAlt: "orientacion_video_alt",
   urlRevisionAlt: "url_revision_alt", urlFinalAlt: "url_final_alt", carpetaFotosUrl: "carpeta_fotos_url",
-  guionId: "guion_id", aprobadorId: "aprobador_id", creadoEn: "creado_en", porcentajeAvance: "porcentaje_avance",
-  avanceActualizadoEn: "avance_actualizado_en", fechaEnviado: "fecha_enviado", fechaEntregado: "fecha_entregado",
+  guionId: "guion_id", aprobadorId: "aprobador_id", creadoEn: "creado_en",
+  fechaEnviado: "fecha_enviado", fechaEntregado: "fecha_entregado",
   fechaAprobado: "fecha_aprobado",
 };
 const COLUMNAS_JSON: Record<string, string> = { fotos: "fotos", fotosParaBorrar: "fotos_para_borrar" };
@@ -43,8 +43,6 @@ function filaAEntregable(f: Record<string, unknown>) {
     guionId: f.guion_id ? String(f.guion_id) : undefined,
     aprobadorId: f.aprobador_id ? String(f.aprobador_id) : undefined,
     creadoEn: String(f.creado_en),
-    porcentajeAvance: f.porcentaje_avance != null ? Number(f.porcentaje_avance) : undefined,
-    avanceActualizadoEn: f.avance_actualizado_en ? String(f.avance_actualizado_en) : undefined,
     fechaEnviado: f.fecha_enviado ? String(f.fecha_enviado) : undefined,
     fechaEntregado: f.fecha_entregado ? String(f.fecha_entregado) : undefined,
     fechaAprobado: f.fecha_aprobado ? String(f.fecha_aprobado) : undefined,

@@ -46,9 +46,7 @@ export function MisAvances({ usuarioId, nombre, puesto }: { usuarioId: string; n
           </div>
           <div>
             <CardTitle>Mis avances</CardTitle>
-            <p className="text-xs text-muted-foreground">
-              {puesto ?? "Tus trabajos"} · arrastra la barra para reportar cuánto llevas de cada uno
-            </p>
+            <p className="text-xs text-muted-foreground">{puesto ?? "Tus trabajos"} · avance automatico segun el estado</p>
           </div>
         </div>
         <div className="text-right">
@@ -70,7 +68,7 @@ export function MisAvances({ usuarioId, nombre, puesto }: { usuarioId: string; n
                 {etiquetaEstadoEntregable(e)}
               </Badge>
               <div className="sm:w-56">
-                <AvanceEntregable entregable={e} editable />
+                <AvanceEntregable entregable={e} />
               </div>
             </li>
           ))}
