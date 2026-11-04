@@ -56,7 +56,7 @@ El sistema vive repartido en dos proveedores que hay que mantener sincronizados:
 
 Ver `.env.example` en la raiz para el detalle linea por linea de cada variable y como obtenerla.
 
-**Para correr el sistema completo en local** (incluyendo subir archivos y leer/escribir datos): `vercel dev`, NO `npm run dev`. `npm run dev` solo levanta Vite (el frontend) — las rutas `/api/*` no existen ahi y cualquier operacion truena con un 404 vacio o "Failed to execute json". `vercel link` ya quedo hecho apuntando a `control-go`; `vercel env pull .env.local --environment=production` trae las credenciales reales antes de correr `vercel dev`.
+**Para correr el sistema completo en local** (incluyendo subir archivos y leer/escribir datos): `npm run dev:full` (= `vercel dev --listen 3000`), NO `npm run dev`. `npm run dev` solo levanta Vite (el frontend) — las rutas `/api/*` no existen ahi y cualquier operacion truena con un 404 vacio o "Failed to execute json". `vercel link` ya quedo hecho apuntando a `control-go`; `vercel env pull .env.local --environment=production` trae las credenciales reales antes de correr `dev:full`.
 
 **Para aplicar cambios al schema de Turso**: editar `scripts/turso-schema.sql` y correr `node scripts/apply-schema.mjs` (usa `CREATE TABLE IF NOT EXISTS`, no destruye datos existentes).
 
