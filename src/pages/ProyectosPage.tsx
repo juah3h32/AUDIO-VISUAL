@@ -73,26 +73,28 @@ export function ProyectosPage() {
       ) : isError ? (
         <ErrorState label="No se pudieron cargar los proyectos." onRetry={() => refetch()} />
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {proyectos.map((p) => (
             <Card key={p.id} className="cursor-pointer hover:shadow-md" onClick={() => setSeleccionado(p)}>
-              <CardHeader className="flex-row items-start justify-between pb-2">
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground">{p.folio}</p>
-                  <CardTitle className="mt-0.5">{p.nombre}</CardTitle>
+              <CardHeader className="flex-row items-start justify-between gap-2 p-3 pb-1.5">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold text-muted-foreground">{p.folio}</p>
+                  <CardTitle className="mt-0.5 truncate text-sm">{p.nombre}</CardTitle>
                 </div>
-                <Badge variant={PRIORIDAD_BADGE[p.prioridad]}>{PRIORIDAD_LABELS[p.prioridad]}</Badge>
+                <Badge variant={PRIORIDAD_BADGE[p.prioridad]} className="shrink-0 text-[10px]">
+                  {PRIORIDAD_LABELS[p.prioridad]}
+                </Badge>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <p className="text-xs text-muted-foreground">{p.departamentoSolicitante}</p>
+              <CardContent className="space-y-2 p-3 pt-1.5 text-xs">
+                <p className="truncate text-muted-foreground">{p.departamentoSolicitante}</p>
                 {/* Un proyecto "recurrente" (sin fechaCompromiso — ver NuevoProyectoDialog, ej.
                     "Video redes sociales" que se reusa cada semana) no tiene un final definido:
                     una barra de avance ahi no significa nada ("0%" de que si nunca termina). */}
                 {p.fechaCompromiso ? (
                   <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span>{ETAPA_PROYECTO_LABELS[p.etapaActual]}</span>
-                      <span className="font-medium">{p.porcentajeAvance}%</span>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="truncate">{ETAPA_PROYECTO_LABELS[p.etapaActual]}</span>
+                      <span className="shrink-0 font-medium">{p.porcentajeAvance}%</span>
                     </div>
                     <Progress value={p.porcentajeAvance} />
                   </div>
@@ -101,16 +103,16 @@ export function ProyectosPage() {
                     Recurrente — sin fecha fija
                   </Badge>
                 )}
-                <div className="flex items-center justify-between pt-1">
+                <div className="flex items-center justify-between gap-2 pt-0.5">
                   <div className="flex -space-x-2">
                     {p.colaboradoresIds.slice(0, 4).map((id) => (
-                      <Avatar key={id} className="h-7 w-7 border-2 border-card">
-                        <AvatarFallback className="text-[10px]">{iniciales(nombreDe(id))}</AvatarFallback>
+                      <Avatar key={id} className="h-6 w-6 border-2 border-card">
+                        <AvatarFallback className="text-[9px]">{iniciales(nombreDe(id))}</AvatarFallback>
                       </Avatar>
                     ))}
                   </div>
                   {p.fechaCompromiso && (
-                    <span className="text-xs text-muted-foreground">Entrega {formatFecha(p.fechaCompromiso)}</span>
+                    <span className="truncate text-[10px] text-muted-foreground">{formatFecha(p.fechaCompromiso)}</span>
                   )}
                 </div>
               </CardContent>
