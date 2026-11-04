@@ -135,6 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const body = req.body as {
     nombre?: string;
+    nombreArchivoOriginal?: string;
     nombreCarpeta?: string;
     subcarpeta?: string;
     carpetaIdDestino?: string;
@@ -144,7 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(400).json({ error: "Falta el nombre del archivo." });
     return;
   }
-  const extension = extensionDe(body.nombre);
+  const extension = extensionDe(body.nombreArchivoOriginal || body.nombre);
   if (!EXTENSIONES_PERMITIDAS.has(extension)) {
     res.status(400).json({ error: `Tipo de archivo no permitido (.${extension || "sin extension"}). Solo video, imagen o PDF.` });
     return;

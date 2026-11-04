@@ -136,6 +136,10 @@ export async function subirArchivoCentralizado(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nombre,
+        // `nombre` es la etiqueta que vera Drive (ej. "Proyecto X - Entrega final"), casi nunca
+        // trae la extension real del archivo — el backend valida el TIPO contra esta, el nombre
+        // de archivo original tal cual lo eligio el usuario (ej. "video-final.mp4").
+        nombreArchivoOriginal: file.name,
         nombreCarpeta,
         subcarpeta,
         carpetaIdDestino,
