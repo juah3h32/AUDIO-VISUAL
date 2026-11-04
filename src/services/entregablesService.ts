@@ -62,6 +62,16 @@ export async function vincularGuionEntregable(id: string, guionId: string | null
   await actualizarEntregable(id, { guionId: guionId ?? null } as Partial<Entregable>);
 }
 
+/** Dialogo pegado directo en el entregable (sin pasar por el modulo Guiones) — ver comentario en
+ * `Entregable.dialogoTexto`, types/index.ts. */
+export async function actualizarDialogoTexto(id: string, dialogoTexto: string | null): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, dialogoTexto: dialogoTexto ?? undefined } : e));
+    return;
+  }
+  await actualizarEntregable(id, { dialogoTexto: dialogoTexto ?? null } as Partial<Entregable>);
+}
+
 export async function renombrarEntregable(id: string, nombre: string): Promise<void> {
   if (esModoDemo) {
     demoStore = demoStore.map((e) => (e.id === id ? { ...e, nombre } : e));

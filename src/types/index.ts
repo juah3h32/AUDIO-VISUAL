@@ -212,6 +212,10 @@ export interface Entregable {
    * del guion directo desde el dialogo de revision, sin tener que ir a buscarlo a la pestaña de
    * Guiones. Solo tiene sentido en video (no en fotografia/diseño, que no llevan dialogo). */
   guionId?: string;
+  /** Dialogo pegado directo en el entregable, SIN pasar por el modulo Guiones ni su flujo de
+   * aprobacion — para cuando a quien sube el video se lo entregan ya hecho (o lo genera con IA)
+   * y no existe (ni va a existir) un Guion formal que vincular. Independiente de `guionId`. */
+  dialogoTexto?: string;
   aprobadorId?: string;
   creadoEn: string;
   /** Cuando se subio el material POR PRIMERA VEZ (envio a revision). Es la fecha que cuenta para

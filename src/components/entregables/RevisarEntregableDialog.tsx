@@ -29,6 +29,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useUploadQueue } from "@/context/UploadQueueContext";
 import { puedeAprobarEntregables, puedeSubirVideos, esGestorRequisiciones, gestorTienePermiso } from "@/lib/roles";
 import {
+  useActualizarDialogoTexto,
   useAdjuntarMaterialHistorico,
   useAgregarComentario,
   useAgregarVersionAlterna,
@@ -76,6 +77,7 @@ import {
 } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -138,6 +140,13 @@ export function RevisarEntregableDialog({
   const vincularGuion = useVincularGuionEntregable();
   const [mostrandoGuion, setMostrandoGuion] = useState(false);
   const [guionCopiado, setGuionCopiado] = useState(false);
+  // Dialogo pegado directo (sin pasar por el modulo Guiones) — para cuando a quien sube el video
+  // se lo entregan ya hecho o lo genera con IA y no hay (ni va a haber) un Guion formal.
+  const actualizarDialogo = useActualizarDialogoTexto();
+  const [editandoDialogo, setEditandoDialogo] = useState(false);
+  const [dialogoBorrador, setDialogoBorrador] = useState("");
+  const [mostrandoDialogo, setMostrandoDialogo] = useState(false);
+  const [dialogoCopiado, setDialogoCopiado] = useState(false);
   const [comentario, setComentario] = useState("");
   const [momento, setMomento] = useState("");
   const [subiendo, setSubiendo] = useState(false);
@@ -712,6 +721,18 @@ export function RevisarEntregableDialog({
     await navigator.clipboard.writeText(guionVinculado.contenido);
     setGuionCopiado(true);
     setTimeout(() => setGuionCopiado(false), 1500);
+  };
+
+  const onCopiarDialogo = async () => {
+    if (!entregable.dialogoTexto) return;
+    await navigator.clipboard.writeText(entregable.dialogoTexto);
+    setDialogoCopiado(true);
+    setTimeout(() => setDialogoCopiado(false), 1500);
+  };
+
+  const onGuardarDialogo = async () => {
+    await actualizarDialogo.mutateAsync({ id: entregable.id, dialogoTexto: dialogoBorrador.trim() || null });
+    setEditandoDialogo(false);
   };
 
   const onEmpezarRenombrar = () => {
@@ -1368,6 +1389,101 @@ export function RevisarEntregableDialog({
             <p className="rounded-md border border-dashed border-border p-2.5 text-xs text-muted-foreground">
               Sin guion vinculado — elige uno aprobado arriba para poder ver/copiar su dialogo aqui.
             </p>
+          )}
+        </div>
+      )}
+      {/* Dialogo pegado directo — para cuando no hay (ni va a haber) un Guion formal en la
+          pestaña Guiones: a veces lo entregan ya hecho, otras lo generan con IA. Independiente
+          del bloque de arriba (que vincula un Guion ya aprobado); solo se ofrece mientras no haya
+          uno vinculado, para no mostrar dos fuentes de dialogo a la vez. */}
+      {puedeVincularGuion && !guionVinculado && (
+        <div className="space-y-2">
+          {!editandoDialogo && !entregable.dialogoTexto && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setDialogoBorrador(entregable.dialogoTexto ?? "");
+                setEditandoDialogo(true);
+              }}
+            >
+              <ScrollText className="h-4 w-4" /> Tengo el guion — pegarlo aqui
+            </Button>
+          )}
+
+          {editandoDialogo && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <ScrollText className="h-3.5 w-3.5" /> Guion / dialogo
+              </Label>
+              <Textarea
+                value={dialogoBorrador}
+                onChange={(e) => setDialogoBorrador(e.target.value)}
+                rows={6}
+                placeholder="Pega o escribe aqui el dialogo de este video..."
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setEditandoDialogo(false)}
+                  disabled={actualizarDialogo.isPending}
+                >
+                  Cancelar
+                </Button>
+                <Button type="button" className="flex-1" onClick={onGuardarDialogo} disabled={actualizarDialogo.isPending}>
+                  {actualizarDialogo.isPending ? "Guardando..." : "Guardar guion"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!editandoDialogo && entregable.dialogoTexto && (
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => setMostrandoDialogo((v) => !v)}
+                className="flex w-full items-center justify-between rounded-md border border-border bg-bg-secondary/40 p-2.5 text-left text-sm font-medium hover:bg-bg-secondary"
+              >
+                <span className="flex items-center gap-1.5 truncate">
+                  <ScrollText className="h-3.5 w-3.5 shrink-0" /> Guion pegado
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{mostrandoDialogo ? "Ocultar" : "Ver"}</span>
+              </button>
+              {mostrandoDialogo && (
+                <div className="space-y-2">
+                  <div className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap rounded-md border border-border p-3 text-sm scrollbar-thin">
+                    {entregable.dialogoTexto}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" className="flex-1" onClick={onCopiarDialogo}>
+                      {dialogoCopiado ? (
+                        <>
+                          <Check className="h-4 w-4" /> Copiado
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" /> Copiar todo el dialogo
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setDialogoBorrador(entregable.dialogoTexto ?? "");
+                        setEditandoDialogo(true);
+                      }}
+                    >
+                      Editar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

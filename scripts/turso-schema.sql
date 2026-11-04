@@ -162,6 +162,7 @@ CREATE TABLE IF NOT EXISTS entregables (
   carpeta_fotos_url TEXT,
   fotos_para_borrar TEXT,
   guion_id TEXT,
+  dialogo_texto TEXT,
   aprobador_id TEXT,
   creado_en TEXT NOT NULL,
   porcentaje_avance INTEGER,

@@ -11,7 +11,7 @@ const COLUMNAS: Record<string, string> = {
   responsableId: "responsable_id", fechaCompromiso: "fecha_compromiso", version: "version", estado: "estado",
   urlRevision: "url_revision", urlFinal: "url_final", orientacionVideoAlt: "orientacion_video_alt",
   urlRevisionAlt: "url_revision_alt", urlFinalAlt: "url_final_alt", carpetaFotosUrl: "carpeta_fotos_url",
-  guionId: "guion_id", aprobadorId: "aprobador_id", creadoEn: "creado_en",
+  guionId: "guion_id", dialogoTexto: "dialogo_texto", aprobadorId: "aprobador_id", creadoEn: "creado_en",
   fechaEnviado: "fecha_enviado", fechaEntregado: "fecha_entregado",
   fechaAprobado: "fecha_aprobado",
 };
@@ -41,6 +41,7 @@ function filaAEntregable(f: Record<string, unknown>) {
     carpetaFotosUrl: f.carpeta_fotos_url ? String(f.carpeta_fotos_url) : undefined,
     fotosParaBorrar: f.fotos_para_borrar ? parseJsonArray(f.fotos_para_borrar) : undefined,
     guionId: f.guion_id ? String(f.guion_id) : undefined,
+    dialogoTexto: f.dialogo_texto ? String(f.dialogo_texto) : undefined,
     aprobadorId: f.aprobador_id ? String(f.aprobador_id) : undefined,
     creadoEn: String(f.creado_en),
     fechaEnviado: f.fecha_enviado ? String(f.fecha_enviado) : undefined,

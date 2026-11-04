@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  actualizarDialogoTexto,
   adjuntarMaterialHistorico,
   agregarComentario,
   agregarVersionAlterna,
@@ -72,6 +73,15 @@ export function useVincularGuionEntregable() {
   return useMutation({
     mutationFn: ({ id, guionId }: { id: string; guionId: string | null }) =>
       vincularGuionEntregable(id, guionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
+export function useActualizarDialogoTexto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dialogoTexto }: { id: string; dialogoTexto: string | null }) =>
+      actualizarDialogoTexto(id, dialogoTexto),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
   });
 }
