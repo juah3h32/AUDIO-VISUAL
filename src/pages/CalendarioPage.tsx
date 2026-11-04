@@ -193,7 +193,10 @@ export function CalendarioPage() {
     entregables.forEach((en) =>
       e.push({
         id: en.id,
-        fecha: en.fechaCompromiso,
+        // Ya entregado/aprobado: se ancla a la fecha REAL en que paso, no a la fecha compromiso
+        // original — si no, un video entregado tarde (o antes) aparecia en el dia equivocado y
+        // nunca reflejaba cuando de verdad se entrego.
+        fecha: en.fechaEntregado ?? en.fechaAprobado ?? en.fechaCompromiso,
         tipo: "entrega",
         titulo: en.nombre,
         terminado: en.estado === "aprobado" || en.estado === "entregado",

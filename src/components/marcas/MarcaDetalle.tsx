@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Copy, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Marca, Proyecto } from "@/types";
 
@@ -132,20 +132,23 @@ export function MarcaDetalle({
               {marca.assets
                 .filter((a) => a.tipo === "logo")
                 .map((a) => (
-                  <a
-                    key={a.id}
-                    href={a.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex flex-col items-center gap-1 rounded-md border border-border p-2 hover:bg-bg-secondary"
-                  >
-                    <img
-                      src={`/api/drive-thumbnail?id=${encodeURIComponent(a.fileId ?? "")}&size=150`}
-                      alt={a.nombre}
-                      className="h-14 w-14 rounded border border-border object-contain"
-                    />
+                  <div key={a.id} className="flex flex-col items-center gap-1 rounded-md border border-border p-2">
+                    <a href={a.url} target="_blank" rel="noreferrer" className="rounded hover:opacity-80">
+                      <img
+                        src={`/api/drive-thumbnail?id=${encodeURIComponent(a.fileId ?? "")}&size=150`}
+                        alt={a.nombre}
+                        className="h-14 w-14 rounded border border-border object-contain"
+                      />
+                    </a>
                     <span className="max-w-[6rem] truncate text-[10px] text-muted-foreground">{a.nombre}</span>
-                  </a>
+                    <a
+                      href={`/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}&download=1&nombre=${encodeURIComponent(a.nombre)}`}
+                      className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium hover:bg-bg-secondary"
+                      title={`Descargar ${a.nombre}`}
+                    >
+                      <Download className="h-3 w-3" /> Descargar
+                    </a>
+                  </div>
                 ))}
             </div>
           )}
