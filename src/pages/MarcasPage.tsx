@@ -182,11 +182,6 @@ export function MarcasPage() {
                     {seleccionada.descripcion && (
                       <p className="text-sm text-muted-foreground">{seleccionada.descripcion}</p>
                     )}
-                    {seleccionada.tipografia && (
-                      <p className="mt-1 text-xs text-muted-foreground" style={{ fontFamily: seleccionada.tipografia }}>
-                        Aa Bb Cc — {seleccionada.tipografia}
-                      </p>
-                    )}
                   </div>
                   {puedeGestionar && (
                     <Button
@@ -203,9 +198,25 @@ export function MarcasPage() {
                 </div>
               </DialogHeader>
 
-              <div className="space-y-4 text-sm">
+              <div className="space-y-5 text-sm">
                 <div>
-                  <p className="mb-2 text-xs text-muted-foreground">Paleta de colores</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tipografía</p>
+                  {seleccionada.tipografia ? (
+                    <div className="rounded-md border border-border p-3">
+                      <p className="text-2xl" style={{ fontFamily: seleccionada.tipografia }}>
+                        Aa Bb Cc
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{seleccionada.tipografia}</p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sin tipografía registrada.</p>
+                  )}
+                </div>
+
+                <div>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Paleta de colores
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {seleccionada.colores.map((c) => (
                       <Swatch key={c} color={c} />
@@ -214,7 +225,7 @@ export function MarcasPage() {
                 </div>
 
                 <div>
-                  <p className="mb-2 text-xs text-muted-foreground">Logos y assets</p>
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Logos</p>
                   {seleccionada.assets.filter((a) => a.tipo === "logo").length === 0 ? (
                     <p className="text-xs text-muted-foreground">Sin logos cargados.</p>
                   ) : (
@@ -242,26 +253,31 @@ export function MarcasPage() {
                 </div>
 
                 {seleccionada.manualUrl && (
-                  <a
-                    href={seleccionada.manualUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-3 rounded-md border border-border p-2.5 text-sm hover:bg-bg-secondary"
-                  >
-                    {manualPdfDe(seleccionada) && (
-                      <img
-                        src={`/api/drive-thumbnail?id=${encodeURIComponent(manualPdfDe(seleccionada)!.fileId ?? "")}&size=150`}
-                        alt="Vista previa del manual"
-                        className="h-14 w-11 shrink-0 rounded border border-border object-cover"
-                      />
-                    )}
-                    <FileText className="h-4 w-4 shrink-0" /> Ver manual de identidad completo (PDF)
-                    <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-60" />
-                  </a>
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Manual de identidad
+                    </p>
+                    <a
+                      href={seleccionada.manualUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-3 rounded-md border border-border p-2.5 text-sm hover:bg-bg-secondary"
+                    >
+                      {manualPdfDe(seleccionada) && (
+                        <img
+                          src={`/api/drive-thumbnail?id=${encodeURIComponent(manualPdfDe(seleccionada)!.fileId ?? "")}&size=150`}
+                          alt="Vista previa del manual"
+                          className="h-14 w-11 shrink-0 rounded border border-border object-cover"
+                        />
+                      )}
+                      <FileText className="h-4 w-4 shrink-0" /> Ver manual de identidad completo (PDF)
+                      <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-60" />
+                    </a>
+                  </div>
                 )}
 
                 <div>
-                  <p className="mb-2 text-xs text-muted-foreground">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     Proyectos asociados ({proyectosDe(seleccionada.id).length})
                   </p>
                   {proyectosDe(seleccionada.id).length === 0 ? (
