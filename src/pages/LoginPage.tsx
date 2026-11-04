@@ -72,10 +72,10 @@ export function LoginPage() {
           va a hex fijo. */}
       <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-[#111827] p-12 text-white lg:flex dark:bg-[#0B0D11]">
         <div
-          className="pointer-events-none absolute inset-0 opacity-20"
+          className="pointer-events-none absolute inset-0 opacity-25"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 20% 20%, #FFFFFF 0%, transparent 45%), radial-gradient(circle at 80% 70%, #FFFFFF 0%, transparent 40%)",
+              "radial-gradient(circle at 15% 15%, #C1EB1F 0%, transparent 40%), radial-gradient(circle at 85% 75%, #FFFFFF 0%, transparent 45%)",
           }}
         />
         <div className="relative flex items-center gap-2">
@@ -86,14 +86,15 @@ export function LoginPage() {
         </div>
 
         <div className="relative space-y-8">
-          <h2 className="max-w-md text-3xl font-bold leading-tight">
+          <span className="inline-block h-1 w-10 rounded-full bg-accent-dato" />
+          <h2 className="max-w-md text-4xl font-bold leading-tight">
             Gestión audiovisual de Grupo Ortiz, ordenada de principio a fin.
           </h2>
           <ul className="space-y-4">
             {BENEFICIOS.map(({ icon: Icon, texto }) => (
               <li key={texto} className="flex items-start gap-3">
                 <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/10">
-                  <Icon className="h-4 w-4 text-white" />
+                  <Icon className="h-4 w-4 text-accent-dato" />
                 </div>
                 <span className="text-sm text-white/80">{texto}</span>
               </li>
@@ -107,7 +108,8 @@ export function LoginPage() {
       </div>
 
       <div className="flex flex-1 items-center justify-center px-4 py-10 sm:px-6 sm:py-12">
-        <Card className="w-full max-w-sm border-border shadow-card">
+        <Card className="w-full max-w-sm overflow-hidden border-border shadow-card">
+          <div className="h-1 w-full bg-accent-dato" />
           <CardContent className="pt-8">
             <div className="mb-8 flex flex-col items-center gap-3 text-center lg:hidden">
               <div className="flex h-12 w-12 items-center justify-center rounded-md bg-accent">
