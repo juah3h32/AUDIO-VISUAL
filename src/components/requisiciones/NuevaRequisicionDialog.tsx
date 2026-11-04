@@ -45,7 +45,8 @@ const schema = z.object({
   observaciones: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof schema>;
+type FormValues = z.input<typeof schema>;
+type FormOutput = z.output<typeof schema>;
 
 export function NuevaRequisicionDialog() {
   const [open, setOpen] = useState(false);
@@ -64,7 +65,7 @@ export function NuevaRequisicionDialog() {
     control,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({
+  } = useForm<FormValues, unknown, FormOutput>({
     resolver: zodResolver(schema),
     defaultValues: {
       necesitaGrabacion: false,
@@ -74,7 +75,7 @@ export function NuevaRequisicionDialog() {
     },
   });
 
-  const onSubmit = async (values: FormValues) => {
+  const onSubmit = async (values: FormOutput) => {
     if (!usuario) return;
     setError(null);
     // Antes este dialogo solo cambiaba el NOMBRE mostrado (texto libre) y dejaba el

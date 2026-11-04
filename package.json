@@ -11,7 +11,7 @@
     "lint:api": "tsc --noEmit --moduleResolution bundler --module ESNext --target ES2020 --lib ES2020,DOM --skipLibCheck --strict api/db/*.ts api/auth/*.ts api/_shared/*.ts api/drive-*.ts"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
+    "@hookform/resolvers": "^7.0.2",
     "@libsql/client": "^0.18.0",
     "@radix-ui/react-avatar": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.4",
@@ -32,11 +32,11 @@
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.2",
+    "react-hook-form": "^7.91.0",
     "react-router-dom": "^7.1.1",
     "recharts": "^2.15.0",
     "tailwind-merge": "^2.6.0",
-    "zod": "^3.24.1"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
