@@ -37,7 +37,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const usuario = await requerirUsuario(req);
 
     if (req.method === "GET") {
-      const filas = await db().execute("SELECT * FROM salidas");
+      // Orden por fecha: sin esto, una salida cargada despues pero con fecha ANTERIOR (ej. una
+      // visita que se nos paso registrar a tiempo) aparecia al final de la lista en vez de en su
+      // lugar cronologico.
+      const filas = await db().execute("SELECT * FROM salidas ORDER BY fecha ASC");
       res.status(200).json(filas.rows.map((f) => filaASalida(f as Record<string, unknown>)));
       return;
     }

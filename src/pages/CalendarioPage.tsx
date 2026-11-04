@@ -9,7 +9,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatFecha, partesFecha } from "@/lib/utils";
+import { formatFecha } from "@/lib/utils";
 import {
   etiquetaEstadoEntregable,
   ESTADO_ENTREGABLE_BADGE,
@@ -113,34 +113,19 @@ function ChipEvento({ evento }: { evento: EventoCalendario }) {
   );
 }
 
-/** Misma franja de fecha estilo "calendario de visitas a planta" que ya usa SalidasPage.tsx —
- * consistencia visual entre las dos pantallas que muestran estos mismos eventos. */
 function TarjetaEvento({ evento }: { evento: EventoCalendario }) {
   const navigate = useNavigate();
   const Icono = ICONO_TIPO[evento.tipo];
-  const { dia, diaSemana, mes } = partesFecha(evento.fecha);
   return (
     <button
       type="button"
       onClick={() => navigate(rutaDeEvento(evento))}
-      className="flex w-full flex-col overflow-hidden rounded-lg border border-border text-left hover:bg-bg-secondary"
+      className="flex w-full items-start gap-3 rounded-lg border border-border p-2.5 text-left hover:bg-bg-secondary"
     >
-      <div className="flex items-center gap-2 bg-[#111827] px-3 py-2 text-white dark:bg-[#0B0D11]">
-        <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl font-bold leading-none">{dia}</span>
-          <div className="text-[9px] font-semibold uppercase leading-tight text-white/60">
-            <p>{diaSemana}</p>
-            <p>{mes}</p>
-          </div>
-        </div>
-        <div
-          className={`ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-white ${COLOR_TIPO[evento.tipo]}`}
-        >
-          <Icono className="h-3.5 w-3.5" />
-        </div>
+      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-white ${COLOR_TIPO[evento.tipo]}`}>
+        <Icono className="h-4 w-4" />
       </div>
-      <div className="h-0.5 w-full bg-accent-dato" />
-      <div className="min-w-0 flex-1 p-2.5">
+      <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="truncate text-sm font-semibold leading-tight">{evento.titulo}</p>
           <span className="shrink-0 rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
@@ -148,11 +133,14 @@ function TarjetaEvento({ evento }: { evento: EventoCalendario }) {
           </span>
         </div>
         <div className="mt-1 flex items-center gap-2">
-          {evento.hora && (
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" /> {evento.hora}
-            </p>
-          )}
+          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+            {formatFecha(evento.fecha)}
+            {evento.hora && (
+              <>
+                <Clock className="ml-1 h-3 w-3" /> {evento.hora}
+              </>
+            )}
+          </p>
           <Badge variant={evento.estadoBadge} className="text-[10px]">
             {evento.estadoLabel}
           </Badge>
