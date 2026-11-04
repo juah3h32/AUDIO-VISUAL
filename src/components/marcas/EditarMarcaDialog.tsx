@@ -42,9 +42,10 @@ export function EditarMarcaDialog({
   const [colores, setColores] = useState<string[]>(marca.colores.length > 0 ? marca.colores : ["#C1EB1F"]);
   const [assets, setAssets] = useState<AssetMarca[]>(marca.assets);
   const [manualUrl, setManualUrl] = useState<string | undefined>(marca.manualUrl);
-  const [subiendo, setSubiendo] = useState<"logo" | "manual" | null>(null);
+  const [subiendo, setSubiendo] = useState<"logo" | "manual" | "tipografia" | null>(null);
   const inputLogoRef = useRef<HTMLInputElement>(null);
   const inputManualRef = useRef<HTMLInputElement>(null);
+  const inputTipografiaRef = useRef<HTMLInputElement>(null);
   const actualizar = useActualizarMarca();
 
   const {
@@ -105,6 +106,29 @@ export function EditarMarcaDialog({
     }
   };
 
+  const onSubirTipografia = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setSubiendo("tipografia");
+    try {
+      const subido = await subirArchivoCentralizado(file, {
+        nombre: `${marca.nombre} - Tipografia`,
+        nombreCarpeta: marca.nombre,
+        subcarpeta: "Tipografia",
+      });
+      setAssets((prev) => [
+        ...prev.filter((a) => a.tipo !== "tipografia"),
+        { id: subido.id, tipo: "tipografia", nombre: file.name, url: subido.viewUrl, fileId: subido.id },
+      ]);
+    } catch (err) {
+      setError(mensajeErrorAuth(err));
+    } finally {
+      setSubiendo(null);
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
     setError(null);
     try {
@@ -148,6 +172,33 @@ export function EditarMarcaDialog({
           <div className="space-y-1.5">
             <Label htmlFor="edit-tipografia">Tipografia principal (opcional)</Label>
             <Input id="edit-tipografia" {...register("tipografia")} placeholder="Ej. Montserrat, Helvetica Neue Bold" />
+            <input
+              ref={inputTipografiaRef}
+              type="file"
+              accept=".ttf,.otf,.woff,.woff2"
+              className="hidden"
+              onChange={onSubirTipografia}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => inputTipografiaRef.current?.click()}
+              disabled={subiendo !== null}
+            >
+              <Upload className="h-3.5 w-3.5" />
+              {subiendo === "tipografia"
+                ? "Subiendo..."
+                : assets.find((a) => a.tipo === "tipografia")
+                  ? "Reemplazar archivo de la fuente"
+                  : "Subir archivo de la fuente (.ttf/.otf/.woff)"}
+            </Button>
+            {assets.find((a) => a.tipo === "tipografia") && (
+              <p className="truncate text-xs text-muted-foreground">
+                Cargado: {assets.find((a) => a.tipo === "tipografia")?.nombre}
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">

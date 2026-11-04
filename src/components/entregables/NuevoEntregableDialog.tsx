@@ -6,10 +6,11 @@ import { Plus, Star } from "lucide-react";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useEntregables, useUsuarios } from "@/hooks/useCatalogos";
 import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
+import { useGuiones } from "@/hooks/useGuiones";
 import { especialidadesPara } from "@/lib/especialidades";
 import { cargaDeTrabajo, entregablesPorResponsable } from "@/lib/rendimiento";
 import { useCrearEntregable } from "@/hooks/useEntregables";
-import { CATEGORIA_CONTENIDO_LABELS } from "@/lib/labels";
+import { CATEGORIA_CONTENIDO_LABELS, esCategoriaFotografia } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +30,7 @@ import type { CategoriaContenido } from "@/types";
 /** Sentinel del Select — Radix no acepta value="" en un SelectItem. Se convierte a
  * `undefined` (sin proyecto/requisicion) justo antes de crear el entregable. */
 const SIN_PROYECTO = "sin-proyecto";
+const SIN_GUION = "sin-guion";
 
 const schema = z.object({
   nombre: z.string().min(3, "Escribe al menos 3 caracteres"),
@@ -36,6 +38,7 @@ const schema = z.object({
   responsableId: z.string().min(1, "Elige a quién se asigna"),
   tipo: z.custom<CategoriaContenido>((v) => typeof v === "string" && v.length > 0, "Elige el tipo de trabajo"),
   fechaCompromiso: z.string().min(1, "Elige la fecha de entrega"),
+  guionId: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -53,11 +56,23 @@ export function NuevoEntregableDialog() {
     control,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { proyectoId: SIN_PROYECTO } });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { proyectoId: SIN_PROYECTO, guionId: SIN_GUION } });
 
   const { data: equipo = [] } = useColaboradoresDelEquipo();
   const { data: entregables = [] } = useEntregables();
+  const { data: guiones = [] } = useGuiones();
   const tipo = useWatch({ control, name: "tipo" });
+  const proyectoId = useWatch({ control, name: "proyectoId" });
+
+  // Solo tiene sentido en video (fotografia/diseño no llevan dialogo) — mismo criterio que
+  // RevisarEntregableDialog.tsx. Un guion aprobado "suelto" (sin proyecto) solo aplica cuando
+  // tampoco se eligio proyecto aqui.
+  const puedeVincularGuion = Boolean(tipo) && tipo !== "diseno_grafico" && !esCategoriaFotografia(tipo);
+  const proyectoParaGuion = proyectoId && proyectoId !== SIN_PROYECTO ? proyectoId : undefined;
+  const guionesAprobados = useMemo(
+    () => guiones.filter((g) => g.estado === "aprobado" && g.proyectoId === proyectoParaGuion),
+    [guiones, proyectoParaGuion]
+  );
 
   // Primero quien tiene la especialidad para este tipo de trabajo; entre iguales, el menos cargado.
   const colaboradores = useMemo(() => {
@@ -84,8 +99,9 @@ export function NuevoEntregableDialog() {
         responsableId: values.responsableId,
         tipo: values.tipo,
         fechaCompromiso: values.fechaCompromiso,
+        ...(values.guionId && values.guionId !== SIN_GUION ? { guionId: values.guionId } : {}),
       });
-      reset({ proyectoId: SIN_PROYECTO });
+      reset({ proyectoId: SIN_PROYECTO, guionId: SIN_GUION });
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el entregable.");
@@ -201,6 +217,34 @@ export function NuevoEntregableDialog() {
             />
             {errors.fechaCompromiso && <p className="text-xs text-destructive">{errors.fechaCompromiso.message}</p>}
           </div>
+
+          {puedeVincularGuion && guionesAprobados.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Guion ya aprobado (opcional)</Label>
+              <Controller
+                control={control}
+                name="guionId"
+                render={({ field }) => (
+                  <Select value={field.value ?? SIN_GUION} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sin guion" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={SIN_GUION}>Sin guion</SelectItem>
+                      {guionesAprobados.map((g) => (
+                        <SelectItem key={g.id} value={g.id}>
+                          {g.titulo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Si ya tienes el guion listo, anexalo aqui para que quien lo revise lo vea y genere la voz.
+              </p>
+            </div>
+          )}
 
           {error && <p className="text-xs text-destructive">{error}</p>}
 

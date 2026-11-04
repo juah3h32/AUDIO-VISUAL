@@ -65,7 +65,8 @@ async function verificarRolAutorizado(uid: string): Promise<void> {
 const CARPETA_RAIZ = "AV Control";
 
 /** Solo lo que la app realmente maneja (ver RevisarEntregableDialog/NuevaMarcaDialog): video,
- * imagen o PDF del manual de marca. No es deteccion de contenido real (eso exigiria leer los
+ * imagen, PDF del manual de marca o archivo de fuente tipografica. No es deteccion de contenido
+ * real (eso exigiria leer los
  * primeros bytes del archivo, que aqui todavia no llegan — el navegador sube los bytes directo a
  * Drive, no a esta funcion) — es un filtro por extension para rechazar lo obviamente ajeno
  * (.exe, .zip, .sh...) antes de gastar una sesion de subida en Drive. */
@@ -73,6 +74,7 @@ const EXTENSIONES_PERMITIDAS = new Set([
   "mp4", "mov", "avi", "mkv", "webm", "m4v",
   "jpg", "jpeg", "png", "webp", "gif", "heic",
   "pdf", "ai", "psd", "fig", "sketch", "eps",
+  "ttf", "otf", "woff", "woff2",
 ]);
 
 function extensionDe(nombre: string): string {
@@ -147,7 +149,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
   const extension = extensionDe(body.nombreArchivoOriginal || body.nombre);
   if (!EXTENSIONES_PERMITIDAS.has(extension)) {
-    res.status(400).json({ error: `Tipo de archivo no permitido (.${extension || "sin extension"}). Solo video, imagen o PDF.` });
+    res.status(400).json({ error: `Tipo de archivo no permitido (.${extension || "sin extension"}). Solo video, imagen, PDF o fuente.` });
     return;
   }
 
