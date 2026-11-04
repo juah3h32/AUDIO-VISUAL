@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, parseJsonArray, parseBool } from "../_shared/turso";
-import { requerirUsuario } from "../_shared/authz";
-import { manejarApi, cuerpoJson } from "../_shared/http";
-import { ErrorAuth } from "../_shared/session";
-import { nuevoId } from "../_shared/ids";
+import { db, parseJsonArray, parseBool } from "../_shared/turso.js";
+import { requerirUsuario } from "../_shared/authz.js";
+import { manejarApi, cuerpoJson } from "../_shared/http.js";
+import { ErrorAuth } from "../_shared/session.js";
+import { nuevoId } from "../_shared/ids.js";
 
 function filaAEquipoAV(f: Record<string, unknown>) {
   return {

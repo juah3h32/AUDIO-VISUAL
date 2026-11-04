@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ErrorAuth, requerirSesion } from "./_shared/session";
-import { db } from "./_shared/turso";
+import { ErrorAuth, requerirSesion } from "./_shared/session.js";
+import { db } from "./_shared/turso.js";
 
 /**
  * Reenvia UN PEDAZO (chunk) de un archivo a una sesion de subida reanudable de Drive ya abierta

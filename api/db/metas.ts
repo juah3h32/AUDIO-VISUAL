@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, parseJsonArray, parseJsonObject } from "../_shared/turso";
-import { requerirUsuario, puedeGestionarUsuarios } from "../_shared/authz";
-import { manejarApi, cuerpoJson } from "../_shared/http";
-import { ErrorAuth } from "../_shared/session";
+import { db, parseJsonArray, parseJsonObject } from "../_shared/turso.js";
+import { requerirUsuario, puedeGestionarUsuarios } from "../_shared/authz.js";
+import { manejarApi, cuerpoJson } from "../_shared/http.js";
+import { ErrorAuth } from "../_shared/session.js";
 
 function filaAMeta(f: Record<string, unknown>) {
   return {

@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, parseJsonArray, parseBool } from "../_shared/turso";
-import { requerirUsuario, puedeAsignarEntregables, esSuperadmin, esLiderAudiovisual, esGestorRequisiciones, type UsuarioFila } from "../_shared/authz";
-import { manejarApi, cuerpoJson } from "../_shared/http";
-import { ErrorAuth } from "../_shared/session";
-import { nuevoId } from "../_shared/ids";
+import { db, parseJsonArray, parseBool } from "../_shared/turso.js";
+import { requerirUsuario, puedeAsignarEntregables, esSuperadmin, esLiderAudiovisual, esGestorRequisiciones, type UsuarioFila } from "../_shared/authz.js";
+import { manejarApi, cuerpoJson } from "../_shared/http.js";
+import { ErrorAuth } from "../_shared/session.js";
+import { nuevoId } from "../_shared/ids.js";
 
 const COLUMNAS: Record<string, string> = {
   proyectoId: "proyecto_id", marcaId: "marca_id", nombre: "nombre", tipo: "tipo", formato: "formato",

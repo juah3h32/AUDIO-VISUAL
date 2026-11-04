@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso";
-import { requerirUsuario, esSuperadmin, esLiderAudiovisual, puedeGestionarUsuarios, type UsuarioFila } from "../_shared/authz";
-import { manejarApi, cuerpoJson } from "../_shared/http";
-import { ErrorAuth } from "../_shared/session";
+import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso.js";
+import { requerirUsuario, esSuperadmin, esLiderAudiovisual, puedeGestionarUsuarios, type UsuarioFila } from "../_shared/authz.js";
+import { manejarApi, cuerpoJson } from "../_shared/http.js";
+import { ErrorAuth } from "../_shared/session.js";
 
 // El alta/activacion de cuenta (correo + password) vive en api/auth/*.ts — este archivo solo
 // administra usuarios YA existentes e invitaciones, siempre con sesion activa.

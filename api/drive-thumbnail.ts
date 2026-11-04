@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleAuth } from "google-auth-library";
-import { ErrorAuth, requerirSesion } from "./_shared/session";
+import { ErrorAuth, requerirSesion } from "./_shared/session.js";
 
 /**
  * Igual que `drive-video.ts` pero para la miniatura: con la cuenta de servicio, cualquiera ve la

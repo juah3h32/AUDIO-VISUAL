@@ -1,6 +1,6 @@
 import type { VercelRequest } from "@vercel/node";
-import { db, parseJsonObject } from "./turso";
-import { ErrorAuth, requerirSesion } from "./session";
+import { db, parseJsonObject } from "./turso.js";
+import { ErrorAuth, requerirSesion } from "./session.js";
 
 /** Mismo shape que `GestorRequisicionesPermisos` en `src/types/index.ts` — duplicado aqui
  * porque `api/` no importa de `src/` (son dos builds separados: Vite para el frontend, el

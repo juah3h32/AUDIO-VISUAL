@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { OAuth2Client } from "google-auth-library";
-import { ErrorAuth, requerirSesion } from "./_shared/session";
-import { db } from "./_shared/turso";
+import { ErrorAuth, requerirSesion } from "./_shared/session.js";
+import { db } from "./_shared/turso.js";
 
 /**
  * Manda un archivo (o carpeta) de Drive a la papelera — no borrado permanente, Drive la vacia

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleAuth } from "google-auth-library";
-import { ErrorAuth, requerirSesion } from "./_shared/session";
+import { ErrorAuth, requerirSesion } from "./_shared/session.js";
 
 /**
  * Resuelve la carpeta de Drive donde vive un archivo (su `parents[0]`) — para backfill del link

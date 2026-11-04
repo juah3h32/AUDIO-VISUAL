@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { ErrorAuth } from "./session";
+import { ErrorAuth } from "./session.js";
 
 /** Envuelve un handler de endpoint: atrapa `ErrorAuth` (401/403/500 con mensaje claro) y
  * cualquier otro error (500 generico) para que ningun endpoint de `api/db/*.ts` deje un request

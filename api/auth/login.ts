@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import bcrypt from "bcryptjs";
-import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso";
-import { manejarApi, cuerpoJson } from "../_shared/http";
-import { ErrorAuth, firmarSesion, setCookieSesion } from "../_shared/session";
+import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso.js";
+import { manejarApi, cuerpoJson } from "../_shared/http.js";
+import { ErrorAuth, firmarSesion, setCookieSesion } from "../_shared/session.js";
 
 function filaAUsuario(f: Record<string, unknown>) {
   return {

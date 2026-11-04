@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { OAuth2Client } from "google-auth-library";
-import { ErrorAuth, requerirSesion } from "./_shared/session";
-import { db } from "./_shared/turso";
+import { ErrorAuth, requerirSesion } from "./_shared/session.js";
+import { db } from "./_shared/turso.js";
 
 /**
  * Comparte un archivo o carpeta (role: reader, type: anyone) con la cuenta central del dueño del

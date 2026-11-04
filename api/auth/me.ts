@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso";
-import { manejarApi } from "../_shared/http";
-import { ErrorAuth, requerirSesion } from "../_shared/session";
+import { db, parseJsonArray, parseJsonObject, parseBool } from "../_shared/turso.js";
+import { manejarApi } from "../_shared/http.js";
+import { ErrorAuth, requerirSesion } from "../_shared/session.js";
 
 function filaAUsuario(f: Record<string, unknown>) {
   return {

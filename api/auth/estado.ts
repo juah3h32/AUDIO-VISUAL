@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db } from "../_shared/turso";
-import { manejarApi, cuerpoJson } from "../_shared/http";
-import { ErrorAuth } from "../_shared/session";
+import { db } from "../_shared/turso.js";
+import { manejarApi, cuerpoJson } from "../_shared/http.js";
+import { ErrorAuth } from "../_shared/session.js";
 
 /**
  * Primer paso del login: dado un correo, le dice al frontend que formulario mostrar.

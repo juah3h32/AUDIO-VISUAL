@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { db } from "./turso";
+import { db } from "./turso.js";
 
 export function nuevoId(): string {
   return randomUUID();

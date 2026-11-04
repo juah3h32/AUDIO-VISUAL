@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { GoogleAuth } from "google-auth-library";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
-import { ErrorAuth, requerirSesion } from "./_shared/session";
+import { ErrorAuth, requerirSesion } from "./_shared/session.js";
 
 /**
  * Sirve el video de Drive desde el propio dominio, con la cuenta de servicio de Google
