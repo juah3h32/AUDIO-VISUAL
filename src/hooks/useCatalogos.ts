@@ -8,6 +8,7 @@ import {
   autorizarSalida,
   crearColaborador,
   crearSalida,
+  eliminarUsuario,
   listarColaboradores,
   listarEntregables,
   listarEquipoAV,
@@ -154,4 +155,12 @@ export function useActualizarRolUsuario() {
 
 export function useReiniciarPasswordUsuario() {
   return useMutation({ mutationFn: (usuarioId: string) => reiniciarPasswordUsuario(usuarioId) });
+}
+
+export function useEliminarUsuario() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (usuarioId: string) => eliminarUsuario(usuarioId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["usuarios"] }),
+  });
 }

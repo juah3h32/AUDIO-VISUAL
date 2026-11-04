@@ -141,3 +141,8 @@ export async function reiniciarPasswordUsuario(usuarioId: string): Promise<void>
     method: "PATCH",
   });
 }
+
+export async function eliminarUsuario(usuarioId: string): Promise<void> {
+  if (esModoDemo) return;
+  await apiFetch(`/api/db/usuarios?id=${encodeURIComponent(usuarioId)}`, { method: "DELETE" });
+}

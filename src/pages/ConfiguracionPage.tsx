@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, KeyRound } from "lucide-react";
+import { AlertTriangle, KeyRound, Trash2 } from "lucide-react";
 import {
   useActualizarGestorRequisiciones,
   useActualizarRolUsuario,
+  useEliminarUsuario,
   useReiniciarPasswordUsuario,
   useUsuarios,
 } from "@/hooks/useCatalogos";
@@ -50,7 +51,9 @@ export function ConfiguracionPage() {
   const actualizarGestor = useActualizarGestorRequisiciones();
   const actualizarRol = useActualizarRolUsuario();
   const reiniciarPassword = useReiniciarPasswordUsuario();
+  const eliminarUsuario = useEliminarUsuario();
   const [usuarioAReiniciar, setUsuarioAReiniciar] = useState<{ id: string; nombre: string } | null>(null);
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState<{ id: string; nombre: string } | null>(null);
   const [confirmarReset, setConfirmarReset] = useState(false);
   const [reseteando, setReseteando] = useState(false);
   const [errorReset, setErrorReset] = useState<string | null>(null);
@@ -148,17 +151,32 @@ export function ConfiguracionPage() {
                   </TableCell>
                   {puedeGestionarUsuarios(usuarioActual) && (
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-1 px-2 text-xs"
-                        title="Reiniciar contraseña — la persona crea una nueva al entrar"
-                        onClick={() => setUsuarioAReiniciar({ id: u.id, nombre: u.nombre })}
-                      >
-                        <KeyRound className="h-3.5 w-3.5" />
-                        Reiniciar contraseña
-                      </Button>
+                      <div className="flex justify-end gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-xs"
+                          title="Reiniciar contraseña — la persona crea una nueva al entrar"
+                          onClick={() => setUsuarioAReiniciar({ id: u.id, nombre: u.nombre })}
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />
+                          Reiniciar contraseña
+                        </Button>
+                        {u.id !== usuarioActual?.id && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                            title="Eliminar usuario"
+                            onClick={() => setUsuarioAEliminar({ id: u.id, nombre: u.nombre })}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Eliminar
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
@@ -258,6 +276,22 @@ export function ConfiguracionPage() {
           if (!usuarioAReiniciar) return;
           await reiniciarPassword.mutateAsync(usuarioAReiniciar.id);
           setUsuarioAReiniciar(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(usuarioAEliminar)}
+        onOpenChange={(v) => {
+          if (!v) setUsuarioAEliminar(null);
+        }}
+        title={`¿Eliminar a ${usuarioAEliminar?.nombre}?`}
+        description="Se borra su cuenta y pierde acceso al sistema de inmediato. Sus requisiciones, proyectos y entregables ya asignados no se borran. No se puede deshacer."
+        confirmLabel={eliminarUsuario.isPending ? "Eliminando..." : "Eliminar usuario"}
+        destructive
+        onConfirm={async () => {
+          if (!usuarioAEliminar) return;
+          await eliminarUsuario.mutateAsync(usuarioAEliminar.id);
+          setUsuarioAEliminar(null);
         }}
       />
     </div>
