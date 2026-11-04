@@ -193,10 +193,11 @@ export function CalendarioPage() {
     entregables.forEach((en) =>
       e.push({
         id: en.id,
-        // Ya entregado/aprobado: se ancla a la fecha REAL en que paso, no a la fecha compromiso
-        // original — si no, un video entregado tarde (o antes) aparecia en el dia equivocado y
-        // nunca reflejaba cuando de verdad se entrego.
-        fecha: en.fechaEntregado ?? en.fechaAprobado ?? en.fechaCompromiso,
+        // Ya entregado/aprobado: se ancla a la fecha REAL en que paso. Si solo se cargo el
+        // material (en revision, aun sin aprobar) se ancla al dia en que se subio — asi el
+        // calendario ya refleja el trabajo desde que se carga en Archivos, no hasta que alguien
+        // lo aprueba. Solo cae a la fecha compromiso mientras sigue sin nada subido.
+        fecha: en.fechaEntregado ?? en.fechaAprobado ?? en.fechaEnviado ?? en.fechaCompromiso,
         tipo: "entrega",
         titulo: en.nombre,
         terminado: en.estado === "aprobado" || en.estado === "entregado",

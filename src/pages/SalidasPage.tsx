@@ -65,6 +65,7 @@ function BotonAgregarCalendar({ salida }: { salida: SalidaGrabacion }) {
 
 export function SalidasPage() {
   const { usuario } = useAuth();
+  const hoyIso = new Date().toISOString().slice(0, 10);
   const { data: salidas = [], isLoading, isError, refetch } = useSalidas();
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
@@ -118,6 +119,10 @@ export function SalidasPage() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {salidas.map((s) => {
             const { dia, diaSemana, mes } = partesFecha(s.fecha);
+            // Ya se realizo: sin que nadie la marque a mano, si ya quedo autorizada y su fecha ya
+            // paso, ya se fue/visito — no tiene caso seguir mostrandola como si fuera a futuro.
+            const yaPaso = s.fecha < hoyIso;
+            const yaRealizada = s.estadoAutorizacion === "autorizada" && yaPaso;
             return (
             <Card key={s.id} className="flex flex-col overflow-hidden p-0">
               <div className="bg-[#111827] px-4 pb-3 pt-4 text-white dark:bg-[#0B0D11]">
@@ -129,9 +134,15 @@ export function SalidasPage() {
                       <p>{mes}</p>
                     </div>
                   </div>
-                  <Badge variant={BADGE_AUTORIZACION_SALIDA[s.estadoAutorizacion]} className="shrink-0">
-                    {ETIQUETA_AUTORIZACION_SALIDA[s.estadoAutorizacion]}
-                  </Badge>
+                  {yaRealizada ? (
+                    <Badge variant="accent" className="shrink-0">
+                      Ya se realizó
+                    </Badge>
+                  ) : (
+                    <Badge variant={BADGE_AUTORIZACION_SALIDA[s.estadoAutorizacion]} className="shrink-0">
+                      {ETIQUETA_AUTORIZACION_SALIDA[s.estadoAutorizacion]}
+                    </Badge>
+                  )}
                 </div>
                 <div className="mt-3 h-0.5 w-full bg-accent-dato" />
               </div>
