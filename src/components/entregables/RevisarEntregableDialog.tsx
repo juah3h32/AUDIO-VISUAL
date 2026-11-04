@@ -772,20 +772,30 @@ export function RevisarEntregableDialog({
     actualizarMateriales.mutate({ id: entregable.id, materialesApoyo: nuevaLista });
   };
 
-  // Pegar un link de Drive que ya existe (no se sube ni se mueve nada — el archivo se queda
-  // donde ya estaba, solo se guarda la referencia para que el responsable lo abra/descargue).
+  // Pegar un link de Drive que ya existe (no se sube ni se mueve nada — el archivo/carpeta se
+  // queda donde ya estaba, solo se guarda la referencia). Puede ser un archivo suelto
+  // (drive.google.com/file/d/...) o una carpeta completa (drive.google.com/drive/folders/...) —
+  // ambos son links validos de "material de apoyo" (ej. toda una sesion de fotos de referencia).
   const onAgregarLinkApoyo = async () => {
     const link = linkApoyoBorrador.trim();
     if (!link) return;
     const fileId = extraerFileIdDrive(link);
-    if (!fileId) {
-      setErrorLinkApoyo("No se reconoce ese link como un archivo de Drive.");
+    const carpetaId = fileId ? null : extraerCarpetaIdDrive(link);
+    if (!fileId && !carpetaId) {
+      setErrorLinkApoyo("No se reconoce ese link como un archivo o carpeta de Drive.");
       return;
     }
     setErrorLinkApoyo(null);
+    const id = fileId ?? carpetaId!;
     const nuevaLista = [
       ...(entregable.materialesApoyo ?? []),
-      { id: fileId, nombre: `Link de Drive (${fileId.slice(0, 8)}...)`, url: link, fileId },
+      {
+        id,
+        nombre: carpetaId ? `Carpeta de Drive (${id.slice(0, 8)}...)` : `Link de Drive (${id.slice(0, 8)}...)`,
+        url: link,
+        fileId: fileId ?? undefined,
+        esCarpeta: Boolean(carpetaId),
+      },
     ];
     await actualizarMateriales.mutateAsync({ id: entregable.id, materialesApoyo: nuevaLista });
     setLinkApoyoBorrador("");
@@ -1559,13 +1569,25 @@ export function RevisarEntregableDialog({
             <div key={m.id} className="flex items-center justify-between gap-2 rounded-md bg-bg-secondary px-2.5 py-1.5 text-xs">
               <span className="truncate">{m.nombre}</span>
               <div className="flex shrink-0 items-center gap-1">
-                <a
-                  href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}&download=1&nombre=${encodeURIComponent(m.nombre)}`}
-                  className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
-                  title={`Descargar ${m.nombre}`}
-                >
-                  <Download className="h-3 w-3" /> Descargar
-                </a>
+                {m.esCarpeta ? (
+                  <a
+                    href={m.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                    title={`Abrir ${m.nombre} en Drive`}
+                  >
+                    <ExternalLink className="h-3 w-3" /> Abrir en Drive
+                  </a>
+                ) : (
+                  <a
+                    href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}&download=1&nombre=${encodeURIComponent(m.nombre)}`}
+                    className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                    title={`Descargar ${m.nombre}`}
+                  >
+                    <Download className="h-3 w-3" /> Descargar
+                  </a>
+                )}
                 {puedeAsignarEntregables(usuario) && (
                   <button
                     type="button"

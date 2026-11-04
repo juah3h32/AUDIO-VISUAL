@@ -178,6 +178,10 @@ export interface MaterialApoyo {
   nombre: string;
   url: string;
   fileId?: string;
+  /** true cuando `url`/`id` apuntan a una CARPETA de Drive (ej. toda una sesion de fotos de
+   * referencia), no a un solo archivo — no hay nada que "descargar" via el proxy de archivo, se
+   * abre directo en Drive con el link guardado. */
+  esCarpeta?: boolean;
 }
 
 export interface Entregable {

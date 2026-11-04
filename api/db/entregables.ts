@@ -21,9 +21,11 @@ const COLUMNAS_JSON: Record<string, string> = {
   materialesApoyo: "materiales_apoyo",
 };
 
-/** `materiales_apoyo` guarda objetos ({id,nombre,url,fileId}), no strings sueltos como `fotos` —
- * `parseJsonArray` (tipada a string[]) no sirve aqui. */
-function parseMaterialesApoyo(valor: unknown): { id: string; nombre: string; url: string; fileId?: string }[] | undefined {
+/** `materiales_apoyo` guarda objetos ({id,nombre,url,fileId,esCarpeta}), no strings sueltos como
+ * `fotos` — `parseJsonArray` (tipada a string[]) no sirve aqui. */
+function parseMaterialesApoyo(
+  valor: unknown
+): { id: string; nombre: string; url: string; fileId?: string; esCarpeta?: boolean }[] | undefined {
   if (typeof valor !== "string" || !valor) return undefined;
   try {
     const parsed = JSON.parse(valor);
