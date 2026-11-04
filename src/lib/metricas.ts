@@ -12,6 +12,19 @@ export function yaEntregoMaterial(e: Entregable): boolean {
   return Boolean(e.urlRevision || e.urlFinal) || e.estado === "aprobado" || e.estado === "entregado";
 }
 
+/** Atrasado = ya paso el DIA COMPLETO de la fecha compromiso sin que se haya entregado material —
+ * una tarea con compromiso HOY no cuenta como atrasada hasta que el dia termine (medianoche),
+ * aunque ya sean las 11pm de ese mismo dia. Comparar directo `fechaCompromiso < ahora` marcaba
+ * atrasado desde la medianoche del dia en que se creo, sin darle chance a cumplirla ese mismo
+ * dia. Mismo criterio que ya usa `cargaDeTrabajo()` en rendimiento.ts (sumar un dia antes de
+ * comparar), centralizado aqui para no repetir el calculo en cada pantalla. */
+export function estaAtrasado(e: Entregable, ahora: Date = new Date()): boolean {
+  if (!e.fechaCompromiso || yaEntregoMaterial(e)) return false;
+  const limite = aFecha(e.fechaCompromiso);
+  limite.setDate(limite.getDate() + 1);
+  return ahora >= limite;
+}
+
 /** Fecha real de cuando se entrego el material — si todavia no hay fechaEntregado/fechaAprobado
  * (ej. recien subido, en revision) usa creadoEn como mejor aproximacion disponible. `creadoEn`
  * se escribe con `serverTimestamp()` — al leerlo de vuelta es un Timestamp de Firestore, NO un

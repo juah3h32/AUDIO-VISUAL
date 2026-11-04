@@ -1452,10 +1452,11 @@ export function RevisarEntregableDialog({
       {/* Dialogo pegado directo — para cuando no hay (ni va a haber) un Guion formal en la
           pestaña Guiones: a veces lo entregan ya hecho, otras lo generan con IA. Independiente
           del bloque de arriba (que vincula un Guion ya aprobado); solo se ofrece mientras no haya
-          uno vinculado, para no mostrar dos fuentes de dialogo a la vez. */}
-      {puedeVincularGuion && !guionVinculado && (
+          uno vinculado, para no mostrar dos fuentes de dialogo a la vez. Solo superadmin/lider
+          pueden PEGAR o EDITAR — cualquiera con acceso al dialogo puede ver/copiar uno ya pegado. */}
+      {puedeVincularGuion && !guionVinculado && (entregable.dialogoTexto || puedeAsignarEntregables(usuario)) && (
         <div className="space-y-2">
-          {!editandoDialogo && !entregable.dialogoTexto && (
+          {!editandoDialogo && !entregable.dialogoTexto && puedeAsignarEntregables(usuario) && (
             <Button
               type="button"
               variant="outline"
@@ -1527,16 +1528,18 @@ export function RevisarEntregableDialog({
                         </>
                       )}
                     </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setDialogoBorrador(entregable.dialogoTexto ?? "");
-                        setEditandoDialogo(true);
-                      }}
-                    >
-                      Editar
-                    </Button>
+                    {puedeAsignarEntregables(usuario) && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setDialogoBorrador(entregable.dialogoTexto ?? "");
+                          setEditandoDialogo(true);
+                        }}
+                      >
+                        Editar
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}

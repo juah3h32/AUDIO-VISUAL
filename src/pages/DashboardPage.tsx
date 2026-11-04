@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { MisAvances } from "@/components/entregables/MisAvances";
 import {
   BarChart,
@@ -53,6 +54,7 @@ import { formatFecha } from "@/lib/utils";
 import { aFecha, inicioDeSemana } from "@/lib/periodo";
 import {
   cumplidosPorMes,
+  estaAtrasado,
   mesesVacios,
   produccionSemanal as calcularProduccionSemanal,
   yaEntregoMaterial,
@@ -137,6 +139,7 @@ function DonaTipoEntregables({ datos, g }: { datos: ReturnType<typeof tipoEntreg
 
 export function DashboardPage() {
   const g = useTemaGrafica();
+  const navigate = useNavigate();
   const { usuario } = useAuth();
   const {
     data: requisiciones = [],
@@ -385,9 +388,11 @@ export function DashboardPage() {
     return fecha.getFullYear() === ahora.getFullYear() && fecha.getMonth() === ahora.getMonth();
   }).length;
   // Lista completa (no solo el conteo) para el widget "Tareas atrasadas" del lider — ordenada
-  // por la mas vieja primero (la que lleva mas tiempo atrasada es la mas urgente).
+  // por la mas vieja primero (la que lleva mas tiempo atrasada es la mas urgente). `estaAtrasado`
+  // (no comparar la fecha directo) evita marcar como atrasada una tarea con compromiso HOY mismo
+  // antes de que el dia termine.
   const tareasAtrasadas = entregables
-    .filter((e) => aFecha(e.fechaCompromiso) < ahora && !yaEntregoMaterial(e))
+    .filter((e) => estaAtrasado(e, ahora))
     .sort((a, b) => aFecha(a.fechaCompromiso).getTime() - aFecha(b.fechaCompromiso).getTime());
   const entregasAtrasadas = tareasAtrasadas.length;
   // "Colaboradores" se cuenta de las cuentas reales (usuarios) por rol — la coleccion aparte
@@ -471,7 +476,7 @@ export function DashboardPage() {
       const fecha = aFecha(e.fechaEntregado ?? e.fechaAprobado ?? e.creadoEn);
       return fecha.getFullYear() === ahora.getFullYear() && fecha.getMonth() === ahora.getMonth();
     }).length;
-    const misAtrasados = misEntregables.filter((e) => aFecha(e.fechaCompromiso) < ahora && !yaEntregoMaterial(e)).length;
+    const misAtrasados = misEntregables.filter((e) => estaAtrasado(e, ahora)).length;
     const miCumplimiento = misEntregables.length
       ? Math.round((misEntregables.filter(yaEntregoMaterial).length / misEntregables.length) * 100)
       : 0;
@@ -857,7 +862,12 @@ export function DashboardPage() {
               </CardHeader>
               <CardContent className="space-y-2">
                 {tareasAtrasadas.slice(0, 8).map((e) => (
-                  <div key={e.id} className="flex items-center justify-between gap-2 rounded-md bg-card/70 px-3 py-2 text-sm">
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => navigate(`/entregables?abrir=${e.id}`)}
+                    className="flex w-full items-center justify-between gap-2 rounded-md bg-card/70 px-3 py-2 text-left text-sm hover:bg-card"
+                  >
                     <div className="min-w-0">
                       <p className="truncate font-medium">{e.nombre}</p>
                       <p className="truncate text-xs text-muted-foreground">
@@ -868,7 +878,7 @@ export function DashboardPage() {
                     <span className="shrink-0 text-xs font-medium text-red-700 dark:text-red-300">
                       Vencio {formatFecha(e.fechaCompromiso)}
                     </span>
-                  </div>
+                  </button>
                 ))}
                 {tareasAtrasadas.length > 8 && (
                   <p className="pt-1 text-center text-xs text-muted-foreground">
