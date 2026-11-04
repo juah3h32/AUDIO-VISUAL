@@ -108,7 +108,7 @@ export function SalidasPage() {
       ) : (
         // Tarjetas compactas: 3 columnas en pantallas anchas (antes 2 columnas con texto grande
         // dejaban cada tarjeta de media pantalla).
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {salidas.map((s) => {
             const { dia, diaSemana, mes } = partesFecha(s.fecha);
             // Ya se realizo: sin que nadie la marque a mano, si ya quedo autorizada y su fecha ya
@@ -117,48 +117,48 @@ export function SalidasPage() {
             const yaRealizada = s.estadoAutorizacion === "autorizada" && yaPaso;
             return (
             <Card key={s.id} className="flex flex-col overflow-hidden p-0">
-              <div className="bg-[#111827] px-4 pb-3 pt-4 text-white dark:bg-[#0B0D11]">
+              <div className="bg-[#111827] px-3 pb-2 pt-3 text-white dark:bg-[#0B0D11]">
                 <div className="flex items-end justify-between gap-2">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold leading-none">{dia}</span>
-                    <div className="pb-0.5 text-[10px] font-semibold uppercase leading-tight text-white/60">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold leading-none">{dia}</span>
+                    <div className="pb-0.5 text-[9px] font-semibold uppercase leading-tight text-white/60">
                       <p>{diaSemana}</p>
                       <p>{mes}</p>
                     </div>
                   </div>
                   {yaRealizada ? (
-                    <Badge variant="accent" className="shrink-0">
+                    <Badge variant="accent" className="shrink-0 text-[10px]">
                       Ya se realizó
                     </Badge>
                   ) : (
-                    <Badge variant={BADGE_AUTORIZACION_SALIDA[s.estadoAutorizacion]} className="shrink-0">
+                    <Badge variant={BADGE_AUTORIZACION_SALIDA[s.estadoAutorizacion]} className="shrink-0 text-[10px]">
                       {ETIQUETA_AUTORIZACION_SALIDA[s.estadoAutorizacion]}
                     </Badge>
                   )}
                 </div>
-                <div className="mt-3 h-0.5 w-full bg-accent-dato" />
+                <div className="mt-2 h-0.5 w-full bg-accent-dato" />
               </div>
-              <CardHeader className="gap-0 p-4 pb-0">
-                <p className="text-[11px] font-semibold text-muted-foreground">{s.folio}</p>
-                <CardTitle className="truncate text-base" title={s.nombreJornada}>
+              <CardHeader className="gap-0 p-3 pb-0">
+                <p className="text-[10px] font-semibold text-muted-foreground">{s.folio}</p>
+                <CardTitle className="truncate text-sm" title={s.nombreJornada}>
                   {s.nombreJornada}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-1.5 p-4 pt-2 text-xs">
+              <CardContent className="flex flex-1 flex-col gap-1 p-3 pt-1.5 text-[11px]">
                 <p className="truncate text-muted-foreground">
                   {TIPO_ACTIVIDAD_SALIDA_LABELS[s.tipoActividad]}
                   {s.proyectosRelacionados.length > 0 && ` · ${nombreProyectoDe(s.proyectosRelacionados[0])}`}
                 </p>
 
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <Clock className="h-3 w-3 shrink-0 text-muted-foreground" />
                   <span className="truncate font-medium">
-                    Salida {s.horaSalida} · Llegada {s.horaEstimadaLlegada}
+                    {s.horaSalida} · {s.horaEstimadaLlegada}
                   </span>
                 </div>
 
                 <div className="flex min-w-0 items-center gap-1.5" title={s.direccion}>
-                  <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />
                   <span className="truncate">
                     {s.planta}
                     {s.direccion && <span className="text-muted-foreground"> — {s.direccion}</span>}
@@ -167,7 +167,7 @@ export function SalidasPage() {
 
                 {s.contactoPlanta && (
                   <div className="flex min-w-0 items-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <Phone className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="truncate">
                       {s.contactoPlanta}
                       {s.telefonoContacto && <span className="text-muted-foreground"> {s.telefonoContacto}</span>}
@@ -177,15 +177,14 @@ export function SalidasPage() {
 
                 {s.transporte && (
                   <div className="flex min-w-0 items-center gap-1.5">
-                    <Truck className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                    <Truck className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="truncate">{s.transporte}</span>
                   </div>
                 )}
 
                 <div className="flex flex-wrap items-center gap-1">
-                  <span className="mr-0.5 text-muted-foreground">Personal:</span>
                   {s.personalAsignado.map((id) => (
-                    <Badge key={id} variant="default" className="px-2 py-0 text-[11px]">
+                    <Badge key={id} variant="default" className="px-1.5 py-0 text-[10px]">
                       {nombreDe(id)}
                     </Badge>
                   ))}
@@ -197,7 +196,7 @@ export function SalidasPage() {
                   </p>
                 )}
 
-                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2.5">
+                <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2">
                   <BotonAgregarCalendar salida={s} />
                   <div className="flex flex-wrap items-center gap-1.5">
                     {puedeAutorizar && s.estadoAutorizacion === "pendiente" && (

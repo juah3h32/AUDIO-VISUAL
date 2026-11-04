@@ -31,6 +31,10 @@ type EventoCalendario = {
   fecha: string;
   tipo: TipoEvento;
   titulo: string;
+  /** Version corta para las celdas chicas del grid de dias (ver ChipEvento) — una salida se
+   * llama "Reconocimiento — <planta>", que no cabe sin cortarse; ahi basta con la planta sola.
+   * Sin esto se usa `titulo` completo (entrega/requisicion ya son cortos). */
+  tituloCorto?: string;
   hora?: string;
   /** true = ya se hizo/aprobo (dot relleno). false = sigue pendiente/en revision (dot en anillo). */
   terminado: boolean;
@@ -104,7 +108,7 @@ function ChipEvento({ evento }: { evento: EventoCalendario }) {
       }
     >
       <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${COLOR_TIPO[evento.tipo]}`} />
-      <span className="truncate">{evento.titulo}</span>
+      <span className="truncate">{evento.tituloCorto ?? evento.titulo}</span>
     </span>
   );
 }
@@ -196,6 +200,7 @@ export function CalendarioPage() {
         fecha: s.fecha,
         tipo: "salida",
         titulo: s.nombreJornada,
+        tituloCorto: s.planta,
         hora: s.horaSalida,
         terminado: s.estadoAutorizacion === "autorizada",
         estadoLabel: ETIQUETA_AUTORIZACION_SALIDA[s.estadoAutorizacion],
