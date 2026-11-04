@@ -70,8 +70,12 @@ export function MarcaDetalle({
 
   return (
     <div>
+      {/* `font-display: swap` — sin esto el navegador deja el texto INVISIBLE mientras baja el
+          archivo de fuente (font-display default es "block", hasta ~3s) antes de mostrar algo,
+          se sentia como que "tarda en verse la tipografia". Con swap se ve de inmediato con una
+          fuente de reemplazo y cambia en cuanto el archivo real termina de cargar. */}
       {tipografiaAssets.map((a, i) => (
-        <style key={a.id}>{`@font-face { font-family: '${familiaDe(i)}'; src: url(/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}) format('${formatoFuente(a.nombre)}'); }`}</style>
+        <style key={a.id}>{`@font-face { font-family: '${familiaDe(i)}'; src: url(/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}) format('${formatoFuente(a.nombre)}'); font-display: swap; }`}</style>
       ))}
       <div
         className="relative flex h-28 items-end overflow-hidden rounded-t-lg p-4 sm:h-32"
@@ -97,7 +101,7 @@ export function MarcaDetalle({
       <div className="space-y-5 border border-t-0 border-border rounded-b-lg p-4 text-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h2 className="truncate text-xl font-bold text-text-primary" style={familiaPrincipal ? { fontFamily: familiaPrincipal } : undefined}>
+            <h2 className="truncate text-3xl font-extrabold text-text-primary sm:text-4xl" style={familiaPrincipal ? { fontFamily: familiaPrincipal } : undefined}>
               {marca.nombre}
             </h2>
             {marca.descripcion && <p className="text-sm text-muted-foreground">{marca.descripcion}</p>}
