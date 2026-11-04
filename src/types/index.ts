@@ -111,6 +111,8 @@ export interface Proyecto {
   folio: string;
   nombre: string;
   requisicionesVinculadas: string[];
+  /** Marca/cliente al que pertenece este proyecto — para consultar su manual de identidad. */
+  marcaId?: string;
   /** Sin valor para proyectos recurrentes sin un dueño fijo (ej. "Videos de redes semanales"). */
   responsablePrincipalId?: string;
   colaboradoresIds: string[];
@@ -171,6 +173,9 @@ export interface Entregable {
   /** Sin valor cuando el lider lo crea directo, sin requisicion/proyecto previo (ej. un cambio
    * de pagina web que le asignaron de palabra). */
   proyectoId?: string;
+  /** Marca/cliente de este entregable — normalmente heredada del proyecto, pero util cuando
+   * el entregable se crea sin proyecto (ver `proyectoId`). */
+  marcaId?: string;
   nombre: string;
   tipo: CategoriaContenido;
   formato?: string;
@@ -361,4 +366,30 @@ export interface MetaColaborador {
   /** Proyectos de los que esta persona es responsable. */
   proyectosACargo: string[];
   actualizadoEn?: string;
+}
+
+export type TipoAssetMarca = "logo" | "tipografia" | "pdf" | "otro";
+
+export interface AssetMarca {
+  id: string;
+  tipo: TipoAssetMarca;
+  nombre: string;
+  url: string;
+  /** id del archivo en Drive — para poder reemplazarlo o borrarlo despues sin perder el resto. */
+  fileId?: string;
+}
+
+/** Manual de identidad de una marca/cliente — logos, colores, tipografias y assets descargables
+ * para que el equipo produzca contenido sin desviarse de la identidad visual del cliente. */
+export interface Marca {
+  id: string;
+  nombre: string;
+  descripcion?: string;
+  /** Paleta en hex, ej "#C1EB1F" — en el orden que se quiere mostrar (principal primero). */
+  colores: string[];
+  assets: AssetMarca[];
+  /** Link al manual de identidad completo en PDF (Drive), si existe. */
+  manualUrl?: string;
+  creadoEn: string;
+  actualizadoEn: string;
 }

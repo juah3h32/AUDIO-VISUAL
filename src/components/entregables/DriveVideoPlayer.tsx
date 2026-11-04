@@ -224,7 +224,7 @@ export const DriveVideoPlayer = forwardRef<
         )}
 
         <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 bg-gradient-to-b from-black/70 to-transparent px-2.5 pb-5 pt-2">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#C1EB1F]" />
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-dato" />
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center gap-1.5 bg-gradient-to-t from-black/70 to-transparent px-2.5 pb-2 pt-5">
@@ -245,7 +245,7 @@ export const DriveVideoPlayer = forwardRef<
     <div className="flex w-full flex-col overflow-hidden rounded-lg bg-[#0B0B0C] shadow-card ring-1 ring-black/10 lg:w-auto">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#141416] px-2.5 py-2">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#C1EB1F]" />
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-dato" />
           <span className="text-[10px] font-semibold uppercase tracking-[0.09em] text-white/55">Visor</span>
         </div>
       </div>

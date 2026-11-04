@@ -15,6 +15,7 @@ import {
   Camera,
   TrendingUp,
   Network,
+  Palette,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ const grupos = [
       { to: "/requisiciones", label: "Requisiciones", icon: FileText, desc: "Solicitudes de contenido" },
       { to: "/proyectos", label: "Proyectos", icon: FolderKanban, desc: "Trabajos en curso por etapa" },
       { to: "/equipo", label: "Equipo", icon: Users, desc: "Personas, especialidades y carga" },
+      { to: "/marcas", label: "Marcas", icon: Palette, desc: "Manuales de identidad y assets de marca" },
       { to: "/archivos", label: "Archivos", icon: FolderOpen, desc: "Material entregado y referencias" },
     ],
   },

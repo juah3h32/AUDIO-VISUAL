@@ -28,6 +28,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { NuevaSalidaDialog } from "@/components/salidas/NuevaSalidaDialog";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { DemoBadge } from "@/components/DemoBadge";
 import type { SalidaGrabacion } from "@/types";
 
@@ -85,7 +88,7 @@ function BotonAgregarCalendar({ salida }: { salida: SalidaGrabacion }) {
 
 export function SalidasPage() {
   const { usuario } = useAuth();
-  const { data: salidas = [], isLoading } = useSalidas();
+  const { data: salidas = [], isLoading, isError, refetch } = useSalidas();
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
   const autorizar = useAutorizarSalida();
@@ -113,18 +116,10 @@ export function SalidasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Grabaciones y salidas a fabricas</h1>
-          <p className="text-sm text-muted-foreground">
-            Planeacion de jornadas en planta y locaciones externas.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <DemoBadge />
-          {puedeAsignarEntregables(usuario) && <NuevaSalidaDialog />}
-        </div>
-      </div>
+      <PageHeader title="Grabaciones y salidas a fabricas" description="Planeacion de jornadas en planta y locaciones externas.">
+        <DemoBadge />
+        {puedeAsignarEntregables(usuario) && <NuevaSalidaDialog />}
+      </PageHeader>
 
       <Card className="border-amber-300 bg-amber-50 dark:border-amber-400/30 dark:bg-amber-400/10">
         <CardContent className="flex items-center gap-2.5 px-4 py-2.5">
@@ -137,7 +132,9 @@ export function SalidasPage() {
       </Card>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando...</p>
+        <LoadingState label="Cargando salidas…" />
+      ) : isError ? (
+        <ErrorState label="No se pudieron cargar las salidas." onRetry={() => refetch()} />
       ) : (
         // Tarjetas compactas: 3 columnas en pantallas anchas (antes 2 columnas con texto grande
         // dejaban cada tarjeta de media pantalla).

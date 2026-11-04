@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { useRequisiciones } from "@/hooks/useRequisiciones";
 import { useCrearProyecto } from "@/hooks/useProyectos";
 import { useUsuarios } from "@/hooks/useCatalogos";
+import { useMarcas } from "@/hooks/useMarcas";
 import { PRIORIDAD_LABELS } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +25,12 @@ import { DatePicker } from "@/components/ui/date-picker";
 import type { Prioridad } from "@/types";
 
 const SIN_REQUISICION = "ninguna";
+const SIN_MARCA = "sin-marca";
 
 const schema = z.object({
   nombre: z.string().min(3, "Minimo 3 caracteres"),
   requisicionId: z.string().min(1, "Requerido"),
+  marcaId: z.string().optional(),
   responsablePrincipalId: z.string().optional(),
   prioridad: z.custom<Prioridad>((v) => typeof v === "string" && v.length > 0, "Requerido"),
   fechaInicio: z.string().optional(),
@@ -41,6 +44,7 @@ export function NuevoProyectoDialog() {
   const [error, setError] = useState<string | null>(null);
   const { data: requisiciones = [] } = useRequisiciones();
   const { data: usuarios = [] } = useUsuarios();
+  const { data: marcas = [] } = useMarcas();
   const crear = useCrearProyecto();
 
   const {
@@ -63,6 +67,7 @@ export function NuevoProyectoDialog() {
       await crear.mutateAsync({
         nombre: values.nombre,
         requisicionesVinculadas: requisicion ? [requisicion.id] : [],
+        ...(values.marcaId && values.marcaId !== SIN_MARCA ? { marcaId: values.marcaId } : {}),
         ...(values.responsablePrincipalId ? { responsablePrincipalId: values.responsablePrincipalId } : {}),
         colaboradoresIds: values.responsablePrincipalId ? [values.responsablePrincipalId] : [],
         departamentoSolicitante: requisicion?.departamentoSolicitante ?? "Marketing",
@@ -124,6 +129,29 @@ export function NuevoProyectoDialog() {
               Para contenido que se repite cada semana (ej. videos de redes sociales), deja "proyecto recurrente"
               y reusa este mismo proyecto cada vez — no hace falta crear una requisicion nueva.
             </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Marca (opcional)</Label>
+            <Controller
+              control={control}
+              name="marcaId"
+              render={({ field }) => (
+                <Select value={field.value ?? SIN_MARCA} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona marca" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SIN_MARCA}>Sin marca asignada</SelectItem>
+                    {marcas.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

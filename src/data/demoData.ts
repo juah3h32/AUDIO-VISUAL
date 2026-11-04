@@ -4,6 +4,7 @@ import type {
   Colaborador,
   Entregable,
   EquipoAV,
+  Marca,
   Proyecto,
   Requisicion,
   SalidaGrabacion,
@@ -184,6 +185,27 @@ export const DEMO_REQUISICIONES: Requisicion[] = [
     estado: "en_planeacion",
     creadoEn: "2026-09-15",
     actualizadoEn: "2026-10-01",
+  },
+];
+
+export const DEMO_MARCAS: Marca[] = [
+  {
+    id: "mrc-1",
+    nombre: "Grupo Ortiz",
+    descripcion: "Marca corporativa institucional del grupo.",
+    colores: ["#C1EB1F", "#111111", "#FFFFFF"],
+    assets: [],
+    creadoEn: "2026-09-01",
+    actualizadoEn: "2026-09-01",
+  },
+  {
+    id: "mrc-2",
+    nombre: "Planta Toluca",
+    descripcion: "Linea industrial — contenido de planta y producto.",
+    colores: ["#1F6FEB", "#0D1117"],
+    assets: [],
+    creadoEn: "2026-09-05",
+    actualizadoEn: "2026-09-05",
   },
 ];
 

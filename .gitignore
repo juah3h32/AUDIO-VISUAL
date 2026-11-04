@@ -10,3 +10,5 @@ dist
 *-firebase-adminsdk-*.json
 av-control-*.json
 *.serviceaccount.json
+.env*.local
+.claude

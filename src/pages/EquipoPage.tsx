@@ -11,6 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DemoBadge } from "@/components/DemoBadge";
 import { NuevoColaboradorDialog } from "@/components/equipo/NuevoColaboradorDialog";
 import { EditarEspecialidadesDialog } from "@/components/equipo/EditarEspecialidadesDialog";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { aCatalogo } from "@/lib/especialidades";
 import { cargaDeTrabajo, entregablesPorResponsable, nivelCumplimiento, rendimientoSemanal, semana, type CargaTrabajo } from "@/lib/rendimiento";
 import type { EstadoEquipo } from "@/types";
@@ -39,8 +42,13 @@ const BARRA_CUMPLIMIENTO = { bien: "bg-green-500", riesgo: "bg-amber-500", bajo:
 
 export function EquipoPage() {
   const { usuario } = useAuth();
-  const { data: equipoAV = [], isLoading: cargandoEquipo } = useEquipoAV();
-  const { data: colaboradores = [], isLoading: cargandoColaboradores } = useColaboradoresDelEquipo();
+  const { data: equipoAV = [], isLoading: cargandoEquipo, isError: errorEquipo, refetch: refetchEquipo } = useEquipoAV();
+  const {
+    data: colaboradores = [],
+    isLoading: cargandoColaboradores,
+    isError: errorColaboradores,
+    refetch: refetchColaboradores,
+  } = useColaboradoresDelEquipo();
   const { data: entregables = [] } = useEntregables();
   const esLider = puedeGestionarUsuarios(usuario);
 
@@ -58,16 +66,10 @@ export function EquipoPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Equipo</h1>
-          <p className="text-sm text-muted-foreground">Inventario audiovisual y equipo humano del departamento.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <DemoBadge />
-          {puedeGestionarUsuarios(usuario) && <NuevoColaboradorDialog />}
-        </div>
-      </div>
+      <PageHeader title="Equipo" description="Inventario audiovisual y equipo humano del departamento.">
+        <DemoBadge />
+        {puedeGestionarUsuarios(usuario) && <NuevoColaboradorDialog />}
+      </PageHeader>
 
       <Tabs defaultValue="humano">
         <TabsList>
@@ -79,7 +81,9 @@ export function EquipoPage() {
           <Card>
             <CardContent className="p-0">
               {cargandoColaboradores ? (
-                <p className="p-5 text-sm text-muted-foreground">Cargando equipo…</p>
+                <LoadingState label="Cargando equipo…" />
+              ) : errorColaboradores ? (
+                <ErrorState label="No se pudo cargar el equipo." onRetry={() => refetchColaboradores()} />
               ) : (
                 <Table>
                   <TableHeader>
@@ -163,7 +167,9 @@ export function EquipoPage() {
           <Card>
             <CardContent className="p-0">
               {cargandoEquipo ? (
-                <p className="p-5 text-sm text-muted-foreground">Cargando inventario…</p>
+                <LoadingState label="Cargando inventario…" />
+              ) : errorEquipo ? (
+                <ErrorState label="No se pudo cargar el inventario." onRetry={() => refetchEquipo()} />
               ) : (
                 <Table>
                   <TableHeader>

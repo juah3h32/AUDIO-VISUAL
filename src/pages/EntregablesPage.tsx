@@ -24,6 +24,9 @@ import { RevisarEntregableDialog } from "@/components/entregables/RevisarEntrega
 import { NuevoGuionDialog } from "@/components/guiones/NuevoGuionDialog";
 import { RevisarGuionDialog } from "@/components/guiones/RevisarGuionDialog";
 import { MiniaturaVideo } from "@/components/entregables/MiniaturaVideo";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import type { Entregable, EstadoEntregable, EstadoGuion } from "@/types";
 
 /** Fecha real a usar para ordenar/agrupar un entregable — la de cuando paso lo que paso
@@ -101,7 +104,7 @@ const COLUMNAS_GUION: EstadoGuion[] = ["borrador", "en_revision", "correcciones"
 
 export function EntregablesPage() {
   const { usuario } = useAuth();
-  const { data: entregables = [], isLoading } = useEntregables();
+  const { data: entregables = [], isLoading, isError, refetch } = useEntregables();
   const { data: guiones = [] } = useGuiones();
   const { data: proyectos = [] } = useProyectos();
   const { data: usuarios = [] } = useUsuarios();
@@ -132,13 +135,9 @@ export function EntregablesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Postproducción y entregables</h1>
-          <p className="text-sm text-muted-foreground">Guiones y versionado de entregables por proyecto.</p>
-        </div>
+      <PageHeader title="Postproducción y entregables" description="Guiones y versionado de entregables por proyecto.">
         <DemoBadge />
-      </div>
+      </PageHeader>
 
       <Tabs defaultValue="entregables">
         <TabsList>
@@ -206,7 +205,9 @@ export function EntregablesPage() {
             </div>
           </div>
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Cargando entregables…</p>
+            <LoadingState label="Cargando entregables…" />
+          ) : isError ? (
+            <ErrorState label="No se pudieron cargar los entregables." onRetry={() => refetch()} />
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
               {COLUMNAS.map((estado) => {

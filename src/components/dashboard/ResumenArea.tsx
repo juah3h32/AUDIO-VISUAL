@@ -83,7 +83,7 @@ export function AnilloArea({
             </span>
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-[#C1EB1F]">Area Audiovisual</p>
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-accent-dato">Area Audiovisual</p>
             <p className="text-base font-bold leading-tight">Avance general del departamento</p>
             <p className="mt-1 text-xs opacity-80">{explicacion.explicacion}</p>
           </div>

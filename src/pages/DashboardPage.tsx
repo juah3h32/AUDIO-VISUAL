@@ -35,6 +35,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { DemoBadge } from "@/components/DemoBadge";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   ESTADO_REQUISICION_BADGE,
   ESTADO_REQUISICION_LABELS,
@@ -55,12 +58,35 @@ import type { Entregable } from "@/types";
 export function DashboardPage() {
   const g = useTemaGrafica();
   const { usuario } = useAuth();
-  const { data: requisiciones = [] } = useRequisiciones();
-  const { data: proyectos = [] } = useProyectos();
+  const {
+    data: requisiciones = [],
+    isLoading: cargandoRequisiciones,
+    isError: errorRequisiciones,
+    refetch: refetchRequisiciones,
+  } = useRequisiciones();
+  const {
+    data: proyectos = [],
+    isLoading: cargandoProyectos,
+    isError: errorProyectos,
+    refetch: refetchProyectos,
+  } = useProyectos();
   const { data: colaboradores = [] } = useColaboradoresDelEquipo();
-  const { data: entregables = [] } = useEntregables();
+  const {
+    data: entregables = [],
+    isLoading: cargandoEntregables,
+    isError: errorEntregables,
+    refetch: refetchEntregables,
+  } = useEntregables();
   const { data: salidas = [] } = useSalidas();
   const { data: usuarios = [] } = useUsuarios();
+
+  const cargandoDashboard = cargandoRequisiciones || cargandoProyectos || cargandoEntregables;
+  const errorDashboard = errorRequisiciones || errorProyectos || errorEntregables;
+  const reintentarDashboard = () => {
+    refetchRequisiciones();
+    refetchProyectos();
+    refetchEntregables();
+  };
 
   const ahora = new Date();
   const pendientesAprobacion = requisiciones.filter(
@@ -182,20 +208,25 @@ export function DashboardPage() {
     .slice(0, 5);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">¡Hola, {usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!</h1>
-          <p className="text-sm text-muted-foreground">Aquí tienes el resumen del departamento audiovisual.</p>
-        </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
+        description="Aquí tienes el resumen del departamento audiovisual."
+      >
         <DemoBadge />
-      </div>
+      </PageHeader>
 
-      {/* Cada quien reporta aqui su % de avance (antes solo existia en Rendimiento, que es solo del
-          lider — los colaboradores no tenian donde actualizarlo). */}
-      {usuario && <MisAvances usuarioId={usuario.id} nombre={usuario.nombre} puesto={usuario.puesto} />}
+      {cargandoDashboard ? (
+        <LoadingState label="Cargando panel…" />
+      ) : errorDashboard ? (
+        <ErrorState label="No se pudo cargar el panel." onRetry={reintentarDashboard} />
+      ) : (
+        <>
+          {/* Cada quien reporta aqui su % de avance (antes solo existia en Rendimiento, que es solo del
+              lider — los colaboradores no tenian donde actualizarlo). */}
+          {usuario && <MisAvances usuarioId={usuario.id} nombre={usuario.nombre} puesto={usuario.puesto} />}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard icon={FileText} label="Requisiciones" value={requisiciones.length} hint="En total" />
         <StatCard icon={Clock} label="Por aprobar" value={pendientesAprobacion} hint="Requieren revisión" />
         <StatCard icon={Film} label="En postproducción" value={enPostproduccion} hint="Proyectos activos" />
@@ -249,7 +280,7 @@ export function DashboardPage() {
                 <YAxis tickLine={false} axisLine={false} fontSize={12} tick={g.tick} />
                 <Tooltip cursor={g.cursor} {...g.tooltip} />
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="entregados" name="Entregados" fill="#C1EB1F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="entregados" name="Entregados" fill="rgb(var(--av-accent-dato))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="solicitudes" name="Solicitudes" fill={g.barraNeutra} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -313,7 +344,7 @@ export function DashboardPage() {
                   <XAxis dataKey="mes" tickLine={false} axisLine={false} fontSize={12} tick={g.tick} />
                   <YAxis tickLine={false} axisLine={false} fontSize={12} allowDecimals={false} tick={g.tick} />
                   <Tooltip cursor={g.cursor} {...g.tooltip} />
-                  <Bar dataKey="total" name="Cumplidos" fill="#C1EB1F" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name="Cumplidos" fill="rgb(var(--av-accent-dato))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -406,6 +437,8 @@ export function DashboardPage() {
           ))}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   );
 }

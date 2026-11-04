@@ -17,6 +17,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { DemoBadge } from "@/components/DemoBadge";
 import { RevisarEntregableDialog } from "@/components/entregables/RevisarEntregableDialog";
 import { MiniaturaVideo } from "@/components/entregables/MiniaturaVideo";
@@ -167,7 +170,7 @@ function ProyectoEntregableCelda({
 export function ArchivosPage() {
   const { usuario } = useAuth();
   const { data: proyectos = [] } = useProyectos();
-  const { data: entregables = [] } = useEntregables();
+  const { data: entregables = [], isLoading, isError, refetch } = useEntregables();
   const { data: usuarios = [] } = useUsuarios();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [materialAEliminar, setMaterialAEliminar] = useState<Entregable | null>(null);
@@ -224,15 +227,12 @@ export function ArchivosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Archivos</h1>
-          <p className="text-sm text-muted-foreground">
-            Referencias y vinculos a archivos. El almacenamiento binario vive en Google Drive.
-          </p>
-        </div>
+      <PageHeader
+        title="Archivos"
+        description="Referencias y vinculos a archivos. El almacenamiento binario vive en Google Drive."
+      >
         <DemoBadge />
-      </div>
+      </PageHeader>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Input
@@ -290,7 +290,11 @@ export function ArchivosPage() {
         </div>
       </div>
 
-      {vista === "tabla" ? (
+      {isLoading ? (
+        <LoadingState label="Cargando archivos…" />
+      ) : isError ? (
+        <ErrorState label="No se pudieron cargar los archivos." onRetry={() => refetch()} />
+      ) : vista === "tabla" ? (
         <div className="overflow-x-auto rounded-lg border border-border">
           <table className="w-full min-w-[880px] text-sm">
             <thead>

@@ -32,6 +32,9 @@ export default {
           DEFAULT: token("--av-destructive"),
           foreground: token("--av-destructive-foreground"),
         },
+        /** Verde lima de marca — graficas, iconos de KPI, avatares. Antes vivia hardcodeado
+         * como `#C1EB1F` suelto en varios componentes; ahora un solo lugar lo define. */
+        "accent-dato": token("--av-accent-dato"),
       },
       borderRadius: {
         lg: "16px",

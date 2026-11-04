@@ -5,6 +5,7 @@ import { useEntregables, useSalidas } from "@/hooks/useCatalogos";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DemoBadge } from "@/components/DemoBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { FileCheck2, FolderCheck, Timer, Video } from "lucide-react";
 import { useTemaGrafica } from "@/lib/chartTheme";
 
@@ -31,13 +32,9 @@ export function MetricasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Metricas y reportes</h1>
-          <p className="text-sm text-muted-foreground">Indicadores calculados desde la informacion registrada.</p>
-        </div>
+      <PageHeader title="Metricas y reportes" description="Indicadores calculados desde la informacion registrada.">
         <DemoBadge />
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard icon={FileCheck2} label="Requisiciones aprobadas" value={aprobadas} hint={`de ${requisiciones.length} totales`} />
@@ -58,7 +55,7 @@ export function MetricasPage() {
                 <XAxis dataKey="planta" fontSize={12} tickLine={false} axisLine={false} tick={g.tick} />
                 <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} tick={g.tick} />
                 <Tooltip cursor={g.cursor} {...g.tooltip} />
-                <Bar dataKey="jornadas" fill="#C1EB1F" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="jornadas" fill="rgb(var(--av-accent-dato))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (

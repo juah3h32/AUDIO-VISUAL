@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DemoBadge } from "@/components/DemoBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { EditarMetasDialog } from "@/components/estructura/EditarMetasDialog";
 import { SlideEstructura, type DatosEstructura } from "@/components/estructura/SlideEstructura";
 import { VistaPreviaEscalada } from "@/components/reportes/VistaPreviaEscalada";
@@ -185,27 +186,22 @@ export function EstructuraPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Estructura y KPI</h1>
-          <p className="text-sm text-muted-foreground">
-            Quién hace qué, cuánto debe entregar cada quien y cómo vamos contra la meta.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DemoBadge />
-          <Tabs value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoReporte)}>
-            <TabsList>
-              <TabsTrigger value="semana">Esta semana</TabsTrigger>
-              <TabsTrigger value="mes">Este mes</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button onClick={onDescargar} disabled={descargando}>
-            {descargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-            {descargando ? "Generando..." : "Descargar PDF"}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title="Estructura y KPI"
+        description="Quién hace qué, cuánto debe entregar cada quien y cómo vamos contra la meta."
+      >
+        <DemoBadge />
+        <Tabs value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoReporte)}>
+          <TabsList>
+            <TabsTrigger value="semana">Esta semana</TabsTrigger>
+            <TabsTrigger value="mes">Este mes</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Button onClick={onDescargar} disabled={descargando}>
+          {descargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+          {descargando ? "Generando..." : "Descargar PDF"}
+        </Button>
+      </PageHeader>
 
       {/* Metas del area */}
       <Card>

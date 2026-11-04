@@ -15,9 +15,24 @@ function normalizar(s: string) {
  * Tambien se incluyen registros de la coleccion aparte que no correspondan a ninguna cuenta —
  * para freelancers/externos sin login que el lider haya dado de alta a mano.
  */
-export function useColaboradoresDelEquipo(): { data: Colaborador[]; isLoading: boolean } {
-  const { data: usuarios = [], isLoading: cargandoUsuarios } = useUsuarios();
-  const { data: colaboradores = [], isLoading: cargandoColaboradores } = useColaboradores();
+export function useColaboradoresDelEquipo(): {
+  data: Colaborador[];
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+} {
+  const {
+    data: usuarios = [],
+    isLoading: cargandoUsuarios,
+    isError: errorUsuarios,
+    refetch: refetchUsuarios,
+  } = useUsuarios();
+  const {
+    data: colaboradores = [],
+    isLoading: cargandoColaboradores,
+    isError: errorColaboradores,
+    refetch: refetchColaboradores,
+  } = useColaboradores();
 
   const deUsuarios: Colaborador[] = usuarios
     .filter((u) => u.rol === "colaborador_audiovisual" || u.rol === "lider_audiovisual")
@@ -45,5 +60,10 @@ export function useColaboradoresDelEquipo(): { data: Colaborador[]; isLoading: b
   return {
     data: [...deUsuarios, ...soloEnRoster],
     isLoading: cargandoUsuarios || cargandoColaboradores,
+    isError: errorUsuarios || errorColaboradores,
+    refetch: () => {
+      refetchUsuarios();
+      refetchColaboradores();
+    },
   };
 }

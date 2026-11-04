@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DemoBadge } from "@/components/DemoBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { InvitarUsuarioDialog } from "@/components/configuracion/InvitarUsuarioDialog";
 import type { GestorRequisicionesPermisos } from "@/types";
 
@@ -73,16 +74,10 @@ export function ConfiguracionPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Configuracion</h1>
-          <p className="text-sm text-muted-foreground">Usuarios, roles y permisos del sistema.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <DemoBadge />
-          <InvitarUsuarioDialog />
-        </div>
-      </div>
+      <PageHeader title="Configuracion" description="Usuarios, roles y permisos del sistema.">
+        <DemoBadge />
+        <InvitarUsuarioDialog />
+      </PageHeader>
 
       <Card className="border-dashed">
         <CardContent className="p-4 text-xs text-muted-foreground">

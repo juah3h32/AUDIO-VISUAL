@@ -1,41 +1,50 @@
 # AV CONTROL — Status
 
-> Actualizado: 2026-10-14
+> Actualizado: 2026-11-03
 
 ## Fase actual
 
-Fase 5 — Build. Primer build generado: scaffold completo + 11 modulos funcionando en modo demo.
+Fase 8 — Produccion. App en uso real por el equipo (datos reales desde octubre), desplegada en Vercel (`control-go.vercel.app`). Hoy se cerro una ronda de auditoria + feature nueva + infraestructura rota que nunca se habia terminado de configurar.
 
 ## % MVP
 
-~53% ponderado. Ver `MVP_BREAKDOWN.md` para detalle por modulo.
+Ver `MVP_BREAKDOWN.md`. Modulos base completos; hoy se agrego "Marcas" (manuales de identidad).
 
 ## Semaforo
 
-Verde — app corre, compila sin errores, probada en navegador (Playwright) sin errores de consola en las 11 rutas. Pendiente conectar Firebase real.
+Amarillo → verde en progreso. La app funciona, pero hoy se destaparon 2 huecos de infraestructura que llevaban tiempo invisibles (ver "Bugs corregidos hoy"). Falta que el usuario termine de copiar las credenciales de Drive de la cuenta vieja.
 
-## Que existe ahora
+## Que se hizo hoy (2026-11-03)
 
-- Scaffold Vite + React 18 + TypeScript + Tailwind + Firebase SDK, sin errores de tipos (`npx tsc -b` limpio) y build de produccion exitoso.
-- Auth con modo demo (sin Firebase configurado, usuarios de ejemplo) y modo real (Firebase Auth) usando el mismo codigo.
-- Layout (sidebar + header) fiel al mockup recibido, colores/tipografia segun `DESIGN_SYSTEM.md`.
-- Roles y permisos de UI (`lib/roles.ts`) + reglas Firestore borrador (`firestore.rules`) segun `SECURITY.md`.
-- 11 paginas: Dashboard, Requisiciones (tabla/kanban/mis solicitudes/pendientes/gestor), Proyectos, Salidas, Calendario, Equipo, Entregables, Metricas, Archivos, Reportes, Configuracion.
-- Probado con Playwright headless: todas las rutas cargan, 0 errores de consola. Se encontraron y corrigieron 2 bugs reales durante la verificacion (ver abajo).
+### Feature nueva: Marcas
+- `src/types/index.ts`: tipos `Marca`/`AssetMarca`, campo opcional `marcaId` en `Proyecto`/`Entregable`.
+- `src/services/marcasService.ts` + `src/hooks/useMarcas.ts`: CRUD completo, mismo patron que `proyectosService.ts`.
+- `src/pages/MarcasPage.tsx` + `src/components/marcas/NuevaMarcaDialog.tsx`: logos, paleta de colores (swatch copiable), manual PDF — sube todo a Drive via `subirArchivoCentralizado`.
+- Selector de marca agregado a "Nuevo proyecto".
+- Ruta `/marcas` en sidebar y `lib/roles.ts` (visible a cualquier rol autenticado; crear/editar restringido a quien ya puede crear proyectos).
 
-## Bugs encontrados y corregidos hoy
+### Auditoria de bugs + consistencia visual
+- `LoadingState`/`ErrorState` (`src/components/ui/`) cableados en las 8 paginas que listan datos — antes un error de Firestore se tragaba en silencio y la pantalla quedaba vacia sin avisar.
+- `PageHeader` (`src/components/layout/`) reemplaza el header duplicado a mano en las 13 paginas.
+- Color de marca `#C1EB1F` tokenizado como `accent-dato` (`tailwind.config.ts` + `index.css`) — antes hardcodeado en 8 archivos distintos.
+- Credencial de Firebase Admin (`av-control-grupo-ortiz-*.json`) movida fuera del repo a `~/.secrets/av-control/` (seguia el patron del `.gitignore` pero vivia sin cifrar en disco).
 
-1. `formatFecha` interpretaba fechas "YYYY-MM-DD" como UTC, mostrando un dia menos en zonas horarias detras de UTC (afecta Mexico). Corregido parseando como fecha local.
-2. `ConfiguracionPage`: el panel de permisos del gestor de requisiciones nunca aparecia porque el estado se inicializaba antes de que cargaran los datos async. Corregido con `useEffect` de sincronizacion.
-
-## Siguiente paso
-
-1. Crear proyecto Firebase real (Auth + Firestore + Storage), copiar `.env.example` a `.env.local`.
-2. Desplegar `firestore.rules`, probar con Firebase Emulator.
-3. Cloud Functions de notificaciones por correo.
-4. CRUD completo de Proyectos y Entregables (hoy son de lectura + alta basica).
-5. Call sheet PDF / shot list / bitacora en modulo de Salidas.
+### Infraestructura rota — descubierta al revisar los bugs anteriores
+1. **Firestore con las reglas nunca desplegadas**: `firestore.rules` tenia la nota "borrador, validar antes de produccion" desde siempre. Nunca se habia corrido `firebase deploy --only firestore:rules` — Firestore estaba con las reglas de bloqueo total por defecto. Causaba el "Inicio en blanco"/"no se pudo cargar el panel". **Corregido**: reglas desplegadas al proyecto real.
+2. **Proyecto Vercel `control-go` incompleto**: es un proyecto nuevo (se creo esta semana para reemplazar el deploy viejo en otra cuenta) que solo tenia las 6 variables de Firebase, y SOLO en Production. Le faltaban:
+   - Framework mal detectado como Astro (`vercel.json` no tenia `"framework": "vite"` explicito) → `vercel dev` fallaba con `astro: command not found`. **Corregido**.
+   - Las 6 variables de Firebase no existian en Development → `vercel dev` no arrancaba. **Corregido**, agregadas a Development.
+   - `GOOGLE_SERVICE_ACCOUNT_EMAIL`/`_PRIVATE_KEY` no existian en ningun ambiente → causaba el error "Failed to execute json" al subir cualquier archivo (logos de Marcas incluidos). **Corregido**, agregadas a Production + Development (Preview quedo pendiente, el CLI de Vercel pide una rama especifica y no lo acepto en automatico).
+   - `GOOGLE_DRIVE_OWNER_CLIENT_ID`/`_CLIENT_SECRET`/`_REFRESH_TOKEN` (credenciales OAuth de Drive de `pablocorona111@gmail.com`) **siguen faltando** — viven solo en el proyecto Vercel viejo (otra cuenta). **Pendiente**: usuario las va a copiar el mismo.
 
 ## Bloqueos
 
-Ninguno tecnico. Pendiente que el usuario decida: proyecto Firebase a usar, proveedor de correo, y prioridad del siguiente sprint (ver arriba).
+1. Sin las 3 variables de `GOOGLE_DRIVE_OWNER_*`, **ninguna subida de archivo funciona** (videos, fotos, logos, manuales PDF) — ni en local ni en produccion. El usuario tiene acceso al proyecto Vercel viejo para copiarlas.
+2. Las mismas 3 variables no se agregaron a Preview (limitacion del CLI de Vercel, pide `--value` + rama especifica). No urgente — Production y Development ya cubren uso real y desarrollo local.
+
+## Siguiente paso
+
+1. Usuario copia `GOOGLE_DRIVE_OWNER_CLIENT_ID/_CLIENT_SECRET/_REFRESH_TOKEN` del proyecto Vercel viejo a `control-go` (Production + Development).
+2. Probar subida completa de un logo en Marcas con `vercel dev` corriendo.
+3. Deploy a produccion (`git push` → Vercel auto-deploy) una vez confirmado en local.
+4. Agregar las 3 variables de Drive tambien a Preview cuando se tenga tiempo (no bloquea nada hoy).

@@ -8,7 +8,7 @@ export function StatCard({
   value,
   hint,
   trend,
-  iconBg = "bg-[#C1EB1F]/30",
+  iconBg = "bg-accent-dato/30",
 }: {
   icon: LucideIcon;
   label: string;

@@ -27,6 +27,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DemoBadge } from "@/components/DemoBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { fondoSlide, SlideRendimiento, type DatosSlide } from "@/components/reportes/SlideRendimiento";
 import { VistaPreviaEscalada } from "@/components/reportes/VistaPreviaEscalada";
 import { descargarComoPdf } from "@/lib/pdf";
@@ -179,13 +180,9 @@ export function ReportesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Reportes</h1>
-          <p className="text-sm text-muted-foreground">Rendimiento del equipo y del lider, listo para exportar en PDF.</p>
-        </div>
+      <PageHeader title="Reportes" description="Rendimiento del equipo y del lider, listo para exportar en PDF.">
         <DemoBadge />
-      </div>
+      </PageHeader>
 
       <Card>
         <CardHeader className="gap-3 lg:flex-row lg:items-center lg:justify-between">

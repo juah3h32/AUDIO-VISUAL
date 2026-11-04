@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DemoBadge } from "@/components/DemoBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { formatFecha } from "@/lib/utils";
 import {
   etiquetaEstadoEntregable,
@@ -231,15 +232,12 @@ export function CalendarioPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Calendario general</h1>
-          <p className="text-sm text-muted-foreground">
-            Grabaciones, salidas, entregas y fechas de requisiciones — pendientes y ya terminados.
-          </p>
-        </div>
+      <PageHeader
+        title="Calendario general"
+        description="Grabaciones, salidas, entregas y fechas de requisiciones — pendientes y ya terminados."
+      >
         <DemoBadge />
-      </div>
+      </PageHeader>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">

@@ -28,6 +28,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { NuevaRequisicionDialog } from "@/components/requisiciones/NuevaRequisicionDialog";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { DemoBadge } from "@/components/DemoBadge";
 import type { EstadoRequisicion, Requisicion } from "@/types";
 
@@ -265,7 +268,7 @@ function RequisicionDetalleDialog({
 
 export function RequisicionesPage() {
   const { usuario } = useAuth();
-  const { data: requisiciones = [], isLoading } = useRequisiciones();
+  const { data: requisiciones = [], isLoading, isError, refetch } = useRequisiciones();
   const cambiarEstado = useCambiarEstadoRequisicion();
   const [seleccionadaId, setSeleccionadaId] = useState<string | null>(null);
   const seleccionada = requisiciones.find((r) => r.id === seleccionadaId) ?? null;
@@ -363,19 +366,15 @@ export function RequisicionesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Requisiciones</h1>
-          <p className="text-sm text-muted-foreground">Recepción y autorización de solicitudes de contenido.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <DemoBadge />
-          <NuevaRequisicionDialog />
-        </div>
-      </div>
+      <PageHeader title="Requisiciones" description="Recepción y autorización de solicitudes de contenido.">
+        <DemoBadge />
+        <NuevaRequisicionDialog />
+      </PageHeader>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando requisiciones…</p>
+        <LoadingState label="Cargando requisiciones…" />
+      ) : isError ? (
+        <ErrorState label="No se pudieron cargar las requisiciones." onRetry={() => refetch()} />
       ) : (
         <Tabs defaultValue={puedeAprobar ? "tabla" : "mis"}>
           <TabsList>

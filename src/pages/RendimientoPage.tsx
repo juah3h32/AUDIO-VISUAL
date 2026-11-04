@@ -9,6 +9,7 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { DemoBadge } from "@/components/DemoBadge";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { AvanceEntregable } from "@/components/entregables/AvanceEntregable";
 import { MisAvances } from "@/components/entregables/MisAvances";
 import { AnilloArea, DonaResumen } from "@/components/dashboard/ResumenArea";
@@ -140,43 +141,38 @@ export function RendimientoPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Rendimiento del equipo</h1>
-          <p className="text-sm text-muted-foreground">
-            Tareas con fecha compromiso en la semana vs. las que cada colaborador ya entregó.
-          </p>
+      <PageHeader
+        title="Rendimiento del equipo"
+        description="Tareas con fecha compromiso en la semana vs. las que cada colaborador ya entregó."
+      >
+        <DemoBadge />
+        <Button variant="outline" size="icon" onClick={() => setOffset((o) => o - 1)} aria-label="Semana anterior">
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="min-w-[9.5rem] text-center text-sm font-medium">
+          {offset === 0 ? "Esta semana" : offset === -1 ? "Semana pasada" : etiquetaSemana(semanaActual)}
+          {offset >= -1 && <p className="text-[11px] font-normal text-muted-foreground">{etiquetaSemana(semanaActual)}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <DemoBadge />
-          <Button variant="outline" size="icon" onClick={() => setOffset((o) => o - 1)} aria-label="Semana anterior">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <div className="min-w-[9.5rem] text-center text-sm font-medium">
-            {offset === 0 ? "Esta semana" : offset === -1 ? "Semana pasada" : etiquetaSemana(semanaActual)}
-            {offset >= -1 && <p className="text-[11px] font-normal text-muted-foreground">{etiquetaSemana(semanaActual)}</p>}
-          </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setOffset((o) => o + 1)}
-            disabled={offset >= 0}
-            aria-label="Semana siguiente"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          {/* Siempre ocupa su lugar (invisible en "esta semana") para que las flechas no se muevan al hacer clic. */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setOffset(0)}
-            className={cn(offset === 0 && "invisible")}
-            tabIndex={offset === 0 ? -1 : 0}
-          >
-            Hoy
-          </Button>
-        </div>
-      </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setOffset((o) => o + 1)}
+          disabled={offset >= 0}
+          aria-label="Semana siguiente"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+        {/* Siempre ocupa su lugar (invisible en "esta semana") para que las flechas no se muevan al hacer clic. */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setOffset(0)}
+          className={cn(offset === 0 && "invisible")}
+          tabIndex={offset === 0 ? -1 : 0}
+        >
+          Hoy
+        </Button>
+      </PageHeader>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
@@ -326,7 +322,7 @@ export function RendimientoPage() {
                 {...g.tooltip}
                 formatter={(v: number, _n, item) => [`${v}% (${item.payload.asignadas} tareas)`, "Cumplimiento"]}
               />
-              <Bar dataKey="cumplimiento" fill="#C1EB1F" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="cumplimiento" fill="rgb(var(--av-accent-dato))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

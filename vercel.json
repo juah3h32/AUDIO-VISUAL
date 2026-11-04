@@ -1,4 +1,5 @@
 {
+  "framework": "vite",
   "rewrites": [{ "source": "/((?!assets/).*)", "destination": "/index.html" }],
   "functions": {
     "api/drive-video.ts": { "maxDuration": 60 }

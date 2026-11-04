@@ -151,6 +151,7 @@ export const RUTA_ROLES: Record<string, Role[] | null> = {
   "/salidas": ["superadmin", "lider_audiovisual", "colaborador_audiovisual"],
   "/calendario": null,
   "/equipo": ["superadmin", "lider_audiovisual"],
+  "/marcas": null,
   "/entregables": ["superadmin", "lider_audiovisual", "colaborador_audiovisual", "community"],
   "/metricas": ["superadmin", "lider_audiovisual"],
   "/rendimiento": ["superadmin", "lider_audiovisual"],

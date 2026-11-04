@@ -14,6 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { DemoBadge } from "@/components/DemoBadge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { NuevoProyectoDialog } from "@/components/proyectos/NuevoProyectoDialog";
@@ -25,7 +28,7 @@ function iniciales(nombre: string) {
 
 export function ProyectosPage() {
   const { usuario } = useAuth();
-  const { data: proyectos = [], isLoading } = useProyectos();
+  const { data: proyectos = [], isLoading, isError, refetch } = useProyectos();
   const { data: usuarios = [] } = useUsuarios();
   const { data: entregables = [] } = useEntregables();
   const { data: guiones = [] } = useGuiones();
@@ -54,19 +57,15 @@ export function ProyectosPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold">Proyectos</h1>
-          <p className="text-sm text-muted-foreground">Unidades de trabajo nacidas de requisiciones aprobadas.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <DemoBadge />
-          {puedeCrearProyectos(usuario) && <NuevoProyectoDialog />}
-        </div>
-      </div>
+      <PageHeader title="Proyectos" description="Unidades de trabajo nacidas de requisiciones aprobadas.">
+        <DemoBadge />
+        {puedeCrearProyectos(usuario) && <NuevoProyectoDialog />}
+      </PageHeader>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Cargando proyectos…</p>
+        <LoadingState label="Cargando proyectos…" />
+      ) : isError ? (
+        <ErrorState label="No se pudieron cargar los proyectos." onRetry={() => refetch()} />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {proyectos.map((p) => (

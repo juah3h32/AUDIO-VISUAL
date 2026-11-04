@@ -18,6 +18,7 @@ const ProyectosPage = pagina(() => import("@/pages/ProyectosPage"), "ProyectosPa
 const SalidasPage = pagina(() => import("@/pages/SalidasPage"), "SalidasPage");
 const CalendarioPage = pagina(() => import("@/pages/CalendarioPage"), "CalendarioPage");
 const EquipoPage = pagina(() => import("@/pages/EquipoPage"), "EquipoPage");
+const MarcasPage = pagina(() => import("@/pages/MarcasPage"), "MarcasPage");
 const EntregablesPage = pagina(() => import("@/pages/EntregablesPage"), "EntregablesPage");
 const MetricasPage = pagina(() => import("@/pages/MetricasPage"), "MetricasPage");
 const RendimientoPage = pagina(() => import("@/pages/RendimientoPage"), "RendimientoPage");
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/salidas" element={<RutaProtegida><SalidasPage /></RutaProtegida>} />
             <Route path="/calendario" element={<CalendarioPage />} />
             <Route path="/equipo" element={<RutaProtegida><EquipoPage /></RutaProtegida>} />
+            <Route path="/marcas" element={<RutaProtegida><MarcasPage /></RutaProtegida>} />
             <Route path="/entregables" element={<RutaProtegida><EntregablesPage /></RutaProtegida>} />
             <Route path="/metricas" element={<RutaProtegida><MetricasPage /></RutaProtegida>} />
             <Route path="/rendimiento" element={<RutaProtegida><RendimientoPage /></RutaProtegida>} />
