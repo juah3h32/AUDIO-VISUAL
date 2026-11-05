@@ -192,15 +192,19 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
   };
 
   return (
-    <FraseDelDia
-      frase={frase}
-      nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
-      fotoId={configuracion?.foto_frase_dia}
-      puedeEditarFoto={usuario?.rol === "superadmin"}
-      onCambiarFoto={onCambiarFoto}
-      subiendoFoto={subiendoFoto}
-      errorFoto={errorFoto}
-    />
+    // Sticky dentro de <main> (el que hace scroll, ver AppLayout) — pedido explicito: la frase
+    // se queda fija arriba mientras el resto de Inicio se desplaza debajo.
+    <div className="sticky top-0 z-10 bg-bg-app pb-3">
+      <FraseDelDia
+        frase={frase}
+        nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
+        fotoId={configuracion?.foto_frase_dia}
+        puedeEditarFoto={usuario?.rol === "superadmin"}
+        onCambiarFoto={onCambiarFoto}
+        subiendoFoto={subiendoFoto}
+        errorFoto={errorFoto}
+      />
+    </div>
   );
 }
 
