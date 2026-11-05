@@ -107,7 +107,10 @@ export function Header({ onAbrirMenu }: { onAbrirMenu: () => void }) {
   const { usuario, esModoDemo, cambiarUsuarioDemo, logout } = useAuth();
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-3 sm:gap-3 sm:px-6">
+    // min-h (no h fija) + padding-top con env(safe-area-inset-top): instalada en iOS, el status
+    // bar/notch reserva su propio espacio ARRIBA de la fila de iconos en vez de taparla — con
+    // una altura fija el padding solo la encogeria. En navegador normal el inset es 0, sin cambio.
+    <header className="flex min-h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-3 pt-[env(safe-area-inset-top)] sm:gap-3 sm:px-6">
       <button
         type="button"
         onClick={onAbrirMenu}

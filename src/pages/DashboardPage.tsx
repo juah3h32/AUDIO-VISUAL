@@ -36,6 +36,7 @@ import { useEntregables, useSalidas, useUsuarios } from "@/hooks/useCatalogos";
 import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
 import { useGuiones } from "@/hooks/useGuiones";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { TablaRequisiciones } from "@/components/dashboard/TablaRequisiciones";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -222,40 +223,12 @@ export function DashboardPage() {
               <CardHeader>
                 <CardTitle>Mis requisiciones</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-x-auto">
-                {misRequisiciones.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">
-                    Aún no has enviado ninguna requisición.
-                  </p>
-                ) : (
-                  <table className="w-full min-w-[560px] text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                        <th className="py-2 font-medium">Folio</th>
-                        <th className="py-2 font-medium">Título</th>
-                        <th className="py-2 font-medium">Tipo</th>
-                        <th className="py-2 font-medium">Fecha requerida</th>
-                        <th className="py-2 font-medium">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {misRequisiciones
-                        .slice()
-                        .sort((a, b) => (a.creadoEn < b.creadoEn ? 1 : -1))
-                        .map((r) => (
-                          <tr key={r.id} className="border-b border-border last:border-0">
-                            <td className="py-2.5 font-medium">{r.folio}</td>
-                            <td className="py-2.5">{r.titulo}</td>
-                            <td className="py-2.5">{CATEGORIA_CONTENIDO_LABELS[r.tipoContenido]}</td>
-                            <td className="py-2.5 text-muted-foreground">{formatFecha(r.fechaRequerida)}</td>
-                            <td className="py-2.5">
-                              <Badge variant={ESTADO_REQUISICION_BADGE[r.estado]}>{ESTADO_REQUISICION_LABELS[r.estado]}</Badge>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                )}
+              <CardContent>
+                <TablaRequisiciones
+                  requisiciones={misRequisiciones.slice().sort((a, b) => (a.creadoEn < b.creadoEn ? 1 : -1))}
+                  terceraColumna="tipo"
+                  mensajeVacio="Aún no has enviado ninguna requisición."
+                />
               </CardContent>
             </Card>
           </>
@@ -309,35 +282,12 @@ export function DashboardPage() {
               <CardHeader>
                 <CardTitle>{requisicionesPendientes.length > 0 ? "Requisiciones por aprobar" : "Requisiciones recientes"}</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-x-auto">
-                {aMostrar.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">Sin requisiciones registradas.</p>
-                ) : (
-                  <table className="w-full min-w-[560px] text-sm">
-                    <thead>
-                      <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                        <th className="py-2 font-medium">Folio</th>
-                        <th className="py-2 font-medium">Título</th>
-                        <th className="py-2 font-medium">Solicitante</th>
-                        <th className="py-2 font-medium">Fecha requerida</th>
-                        <th className="py-2 font-medium">Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {aMostrar.slice(0, 8).map((r) => (
-                        <tr key={r.id} className="border-b border-border last:border-0">
-                          <td className="py-2.5 font-medium">{r.folio}</td>
-                          <td className="py-2.5">{r.titulo}</td>
-                          <td className="py-2.5 text-muted-foreground">{r.nombreSolicitante}</td>
-                          <td className="py-2.5 text-muted-foreground">{formatFecha(r.fechaRequerida)}</td>
-                          <td className="py-2.5">
-                            <Badge variant={ESTADO_REQUISICION_BADGE[r.estado]}>{ESTADO_REQUISICION_LABELS[r.estado]}</Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+              <CardContent>
+                <TablaRequisiciones
+                  requisiciones={aMostrar.slice(0, 8)}
+                  terceraColumna="solicitante"
+                  mensajeVacio="Sin requisiciones registradas."
+                />
               </CardContent>
             </Card>
 
@@ -788,33 +738,12 @@ export function DashboardPage() {
               <CardHeader className="flex-row items-center justify-between">
                 <CardTitle>Requisiciones recientes</CardTitle>
               </CardHeader>
-              <CardContent className="overflow-x-auto">
-                <table className="w-full min-w-[560px] text-sm">
-                  <thead>
-                    <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                      <th className="py-2 font-medium">Folio</th>
-                      <th className="py-2 font-medium">Título</th>
-                      <th className="py-2 font-medium">Tipo</th>
-                      <th className="py-2 font-medium">Fecha requerida</th>
-                      <th className="py-2 font-medium">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {requisiciones.slice(0, 5).map((r) => (
-                      <tr key={r.id} className="border-b border-border last:border-0">
-                        <td className="py-2.5 font-medium">{r.folio}</td>
-                        <td className="py-2.5">{r.titulo}</td>
-                        <td className="py-2.5">{CATEGORIA_CONTENIDO_LABELS[r.tipoContenido]}</td>
-                        <td className="py-2.5 text-muted-foreground">{formatFecha(r.fechaRequerida)}</td>
-                        <td className="py-2.5">
-                          <Badge variant={ESTADO_REQUISICION_BADGE[r.estado]}>
-                            {ESTADO_REQUISICION_LABELS[r.estado]}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <CardContent>
+                <TablaRequisiciones
+                  requisiciones={requisiciones.slice(0, 5)}
+                  terceraColumna="tipo"
+                  mensajeVacio="Sin requisiciones registradas."
+                />
               </CardContent>
             </Card>
 

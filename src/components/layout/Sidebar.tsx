@@ -120,13 +120,16 @@ export function Sidebar({ abierto, onCerrar }: { abierto: boolean; onCerrar: () 
       <DialogPrimitive.Root open={abierto} onOpenChange={(o) => !o && onCerrar()}>
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="av-overlay fixed inset-0 z-50 lg:hidden" />
+          {/* pt/pb con env(safe-area-inset-*): panel fijo de borde a borde (inset-y-0) — instalada
+              en iOS, sin esto el boton de cerrar quedaria bajo el notch y el ultimo item de nav
+              bajo el home indicator. */}
           <DialogPrimitive.Content
-            className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border bg-card shadow-card lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-border bg-card pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] shadow-card lg:hidden"
             aria-describedby={undefined}
           >
             <DialogPrimitive.Title className="sr-only">Menú de navegación</DialogPrimitive.Title>
             <DialogPrimitive.Close
-              className="absolute right-3 top-5 rounded-md p-1.5 text-text-primary/70 hover:bg-bg-secondary focus:outline-none"
+              className="absolute right-3 top-[calc(1.25rem+env(safe-area-inset-top))] rounded-md p-1.5 text-text-primary/70 hover:bg-bg-secondary focus:outline-none"
               aria-label="Cerrar menú"
             >
               <X className="h-4 w-4" />
