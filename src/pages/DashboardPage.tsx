@@ -62,6 +62,7 @@ import {
 } from "@/lib/metricas";
 import { cargaDeTrabajo, entregablesPorResponsable } from "@/lib/rendimiento";
 import { COLORES_TIPO, useTemaGrafica } from "@/lib/chartTheme";
+import { fraseDelDia } from "@/lib/frases";
 import type { Entregable } from "@/types";
 
 /** Top 5 tipos + "Otros" para que la dona no se deforme con 14 categorias posibles — compartido
@@ -179,6 +180,9 @@ export function DashboardPage() {
 
   const ahora = new Date();
   const hoyIso = ahora.toISOString().slice(0, 10);
+  // Misma frase para todos durante todo el dia (no aleatoria por sesion) — rota sola segun la
+  // fecha, sin guardar nada. Reemplaza las descripciones fijas de abajo en las 4 vistas.
+  const frase = fraseDelDia(ahora);
   const nombreDe = (id: string) => usuarios.find((u) => u.id === id)?.nombre ?? "Usuario eliminado";
   const proyectoDe = (id: string | undefined) => (id ? proyectos.find((p) => p.id === id)?.nombre : undefined);
 
@@ -200,7 +204,7 @@ export function DashboardPage() {
       <div className="space-y-6">
         <PageHeader
           title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-          description="Aquí tienes el estado de tus requisiciones."
+          description={frase}
         >
           <DemoBadge />
           <NuevaRequisicionDialog />
@@ -256,7 +260,7 @@ export function DashboardPage() {
       <div className="space-y-6">
         <PageHeader
           title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-          description="Tu cola de aprobaciones de hoy."
+          description={frase}
         >
           <DemoBadge />
         </PageHeader>
@@ -441,7 +445,7 @@ export function DashboardPage() {
       <div className="space-y-6">
         <PageHeader
           title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-          description="Tu trabajo de hoy: grabaciones, ediciones y correcciones pendientes."
+          description={frase}
         >
           <DemoBadge />
         </PageHeader>
@@ -574,7 +578,7 @@ export function DashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-        description="Aquí tienes el resumen del departamento audiovisual."
+        description={frase}
       >
         <DemoBadge />
       </PageHeader>
