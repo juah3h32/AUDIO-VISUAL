@@ -49,6 +49,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (filaExistente.password_hash) {
         throw new ErrorAuth(409, "Esta cuenta ya tiene contraseña. Inicia sesion normal.");
       }
+      if (!parseBool(filaExistente.activo)) {
+        throw new ErrorAuth(403, "Tu cuenta esta desactivada. Contacta a un administrador.");
+      }
       await db().execute({ sql: "UPDATE usuarios SET password_hash = ? WHERE id = ?", args: [hash, filaExistente.id] });
       const uid = String(filaExistente.id);
       setCookieSesion(res, await firmarSesion(uid));

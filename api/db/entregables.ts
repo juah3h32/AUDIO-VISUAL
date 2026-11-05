@@ -146,7 +146,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === "GET" && id) {
       const fila = await db().execute({ sql: "SELECT * FROM entregables WHERE id = ?", args: [id] });
       if (!fila.rows[0]) throw new ErrorAuth(404, "Entregable no encontrado.");
-      res.status(200).json(filaAEntregable(fila.rows[0] as Record<string, unknown>));
+      const entregable = filaAEntregable(fila.rows[0] as Record<string, unknown>);
+      // Mismo filtro que la lista de abajo: un colaborador_audiovisual solo ve lo suyo. Antes
+      // esta rama (buscar por id) no comparaba nada — cualquiera con sesion valida podia leer
+      // el entregable COMPLETO de otra persona (incluido el fileId de Drive en urlFinal/urlRevision)
+      // con solo conocer su id.
+      const veTodo = esSuperadmin(usuario) || esLiderAudiovisual(usuario) || esGestorRequisiciones(usuario);
+      if (!veTodo && entregable.responsableId !== usuario.id) {
+        throw new ErrorAuth(403, "No tienes permiso para ver este entregable.");
+      }
+      res.status(200).json(entregable);
       return;
     }
 
