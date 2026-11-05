@@ -171,7 +171,9 @@ CREATE TABLE IF NOT EXISTS entregables (
   avance_actualizado_en TEXT,
   fecha_enviado TEXT,
   fecha_entregado TEXT,
-  fecha_aprobado TEXT
+  fecha_aprobado TEXT,
+  url_pagina_web TEXT,
+  archivos_diseno TEXT
 );
 
 CREATE TABLE IF NOT EXISTS entregables_comentarios (

@@ -36,6 +36,7 @@ const POR_CATEGORIA: Record<CategoriaContenido, Especialidad[]> = {
   contenido_redes_sociales: ["Redes sociales", "Edicion de video"],
   entrevistas: ["Grabacion / camara", "Edicion de video"],
   capacitacion: ["Grabacion / camara", "Edicion de video"],
+  pagina_web: ["Paginas web"],
   otros: [],
 };
 

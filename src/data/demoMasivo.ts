@@ -22,9 +22,9 @@ const PERFILES: { id: string; tipos: CategoriaContenido[]; porSemana: [number, n
   // Equipo demo de 3 colaboradores + la lider, para simular un departamento chico.
   { id: "u-luis", tipos: ["video_institucional", "contenido_redes_sociales", "video_producto"], porSemana: [2, 4], cumple: 0.95, tarde: 0.1 },
   { id: "u-mariana", tipos: ["fotografia_producto", "fotografia_industrial", "fotografia"], porSemana: [2, 3], cumple: 0.9, tarde: 0.15 },
-  { id: "u-valeria", tipos: ["otros", "contenido_redes_sociales", "diseno_grafico"], porSemana: [2, 3], cumple: 0.7, tarde: 0.4 },
+  { id: "u-valeria", tipos: ["pagina_web", "contenido_redes_sociales", "diseno_grafico"], porSemana: [2, 3], cumple: 0.7, tarde: 0.4 },
   // La lider tambien produce: cambios de pagina web y diseño (sus "mis avances").
-  { id: "u-ana", tipos: ["otros", "diseno_grafico", "otros"], porSemana: [1, 2], cumple: 0.9, tarde: 0.15 },
+  { id: "u-ana", tipos: ["pagina_web", "diseno_grafico", "pagina_web"], porSemana: [1, 2], cumple: 0.9, tarde: 0.15 },
 ];
 
 const TEMAS: Record<CategoriaContenido, string[]> = {
@@ -41,7 +41,8 @@ const TEMAS: Record<CategoriaContenido, string[]> = {
   contenido_redes_sociales: ["Reel semanal", "Carrusel tips", "Historia producto", "Reel detras de camaras"],
   entrevistas: ["Entrevista gerente planta", "Testimonio cliente"],
   capacitacion: ["Video capacitacion seguridad", "Tutorial montacargas", "Induccion nuevo ingreso"],
-  otros: ["Actualizacion pagina web", "Landing producto", "Levantamiento de contenido planta", "Seccion web sustentabilidad"],
+  pagina_web: ["Actualizacion pagina web", "Landing producto", "Seccion web sustentabilidad"],
+  otros: ["Levantamiento de contenido planta"],
 };
 
 const PROYECTOS_BASE: { nombre: string; depto: string; prioridad: Prioridad; etapa: EtapaProyecto }[] = [

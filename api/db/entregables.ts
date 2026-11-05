@@ -13,12 +13,13 @@ const COLUMNAS: Record<string, string> = {
   urlRevisionAlt: "url_revision_alt", urlFinalAlt: "url_final_alt", carpetaFotosUrl: "carpeta_fotos_url",
   guionId: "guion_id", dialogoTexto: "dialogo_texto", aprobadorId: "aprobador_id", creadoEn: "creado_en",
   fechaEnviado: "fecha_enviado", fechaEntregado: "fecha_entregado",
-  fechaAprobado: "fecha_aprobado",
+  fechaAprobado: "fecha_aprobado", urlPaginaWeb: "url_pagina_web",
 };
 const COLUMNAS_JSON: Record<string, string> = {
   fotos: "fotos",
   fotosParaBorrar: "fotos_para_borrar",
   materialesApoyo: "materiales_apoyo",
+  archivosDiseno: "archivos_diseno",
 };
 
 /** `materiales_apoyo` guarda objetos ({id,nombre,url,fileId,esCarpeta}), no strings sueltos como
@@ -26,6 +27,19 @@ const COLUMNAS_JSON: Record<string, string> = {
 function parseMaterialesApoyo(
   valor: unknown
 ): { id: string; nombre: string; url: string; fileId?: string; esCarpeta?: boolean }[] | undefined {
+  if (typeof valor !== "string" || !valor) return undefined;
+  try {
+    const parsed = JSON.parse(valor);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+type ArchivoDisenoFila = { id: string; nombre: string; url: string; fileId?: string; subtipo: "editable" | "pdf_final" | "logo" };
+
+/** Mismo patron que `parseMaterialesApoyo` — objetos etiquetados, no strings sueltos. */
+function parseArchivosDiseno(valor: unknown): ArchivoDisenoFila[] | undefined {
   if (typeof valor !== "string" || !valor) return undefined;
   try {
     const parsed = JSON.parse(valor);
@@ -62,6 +76,8 @@ function filaAEntregable(f: Record<string, unknown>) {
     guionId: f.guion_id ? String(f.guion_id) : undefined,
     dialogoTexto: f.dialogo_texto ? String(f.dialogo_texto) : undefined,
     materialesApoyo: parseMaterialesApoyo(f.materiales_apoyo),
+    urlPaginaWeb: f.url_pagina_web ? String(f.url_pagina_web) : undefined,
+    archivosDiseno: parseArchivosDiseno(f.archivos_diseno),
     aprobadorId: f.aprobador_id ? String(f.aprobador_id) : undefined,
     creadoEn: String(f.creado_en),
     fechaEnviado: f.fecha_enviado ? String(f.fecha_enviado) : undefined,
@@ -184,8 +200,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       await db().execute({
         sql: `INSERT INTO entregables (id, proyecto_id, marca_id, nombre, prioridad, tipo, formato, orientacion_video, resolucion,
                 duracion, responsable_id, fecha_compromiso, version, estado, url_final, guion_id, aprobador_id,
-                creado_en, fecha_aprobado, fecha_entregado)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'v1', ?, ?, ?, ?, ?, ?, ?)`,
+                creado_en, fecha_aprobado, fecha_entregado, url_pagina_web)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'v1', ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           nuevoEntregableId, data.proyectoId ?? null, data.marcaId ?? null, data.nombre, data.prioridad ?? "media",
           data.tipo, data.formato ?? null,
@@ -193,6 +209,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           data.fechaCompromiso, opciones ? opciones.estadoFinal : "pendiente", opciones?.urlFinal ?? null,
           data.guionId ?? null, opciones?.aprobadorId ?? null, ahora,
           opciones ? opciones.fecha : null, opciones?.estadoFinal === "entregado" ? opciones.fecha : null,
+          data.urlPaginaWeb ?? null,
         ] as any[],
       });
       const fila = await db().execute({ sql: "SELECT * FROM entregables WHERE id = ?", args: [nuevoEntregableId] });
@@ -203,12 +220,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!id) throw new ErrorAuth(400, "Falta el id del entregable.");
 
     if (req.method === "PATCH") {
-      const actualRes = await db().execute({ sql: "SELECT estado, responsable_id FROM entregables WHERE id = ?", args: [id] });
+      const actualRes = await db().execute({
+        sql: "SELECT estado, responsable_id, tipo, archivos_diseno FROM entregables WHERE id = ?",
+        args: [id],
+      });
       const actual = actualRes.rows[0];
       if (!actual) throw new ErrorAuth(404, "Entregable no encontrado.");
       const body = cuerpoJson<Record<string, unknown>>(req);
       if (!puedeActualizar(usuario, { estado: String(actual.estado), responsableId: String(actual.responsable_id) }, body)) {
         throw new ErrorAuth(403, "No tienes permiso para editar este entregable.");
+      }
+
+      // Un diseño no puede aprobarse/entregarse sin el editable Y el PDF final cargados — evita
+      // que se publique/cierre un trabajo a medias por olvido. Si este mismo PATCH ya trae
+      // `archivosDiseno` actualizado (ej. se subio el ultimo archivo y se aprueba de un jalon) se
+      // revisa ESE valor, no el viejo de la base.
+      const nuevoEstado = typeof body.estado === "string" ? body.estado : undefined;
+      if (String(actual.tipo) === "diseno_grafico" && (nuevoEstado === "aprobado" || nuevoEstado === "entregado")) {
+        const archivos = Array.isArray(body.archivosDiseno)
+          ? (body.archivosDiseno as ArchivoDisenoFila[])
+          : (parseArchivosDiseno(actual.archivos_diseno) ?? []);
+        const tieneEditable = archivos.some((a) => a?.subtipo === "editable");
+        const tienePdf = archivos.some((a) => a?.subtipo === "pdf_final");
+        if (!tieneEditable || !tienePdf) {
+          throw new ErrorAuth(400, "Falta subir el editable y/o el PDF final antes de aprobar este diseño.");
+        }
       }
 
       const campos: string[] = [];

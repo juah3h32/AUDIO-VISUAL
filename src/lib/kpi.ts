@@ -30,6 +30,7 @@ const GRUPO_DE: Record<CategoriaContenido, GrupoKpi> = {
   diseno_grafico: "diseno",
   animacion_2d_3d: "animacion",
   motion_graphics: "animacion",
+  pagina_web: "web",
   otros: "web",
 };
 

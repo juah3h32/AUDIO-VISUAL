@@ -1,7 +1,7 @@
 import { esModoDemo } from "@/lib/modoDemo";
 import { apiFetch } from "@/lib/apiClient";
 import { DEMO_ENTREGABLES } from "@/data/demoData";
-import type { CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo, Prioridad } from "@/types";
+import type { ArchivoDiseno, CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo, Prioridad } from "@/types";
 
 let demoStore: Entregable[] = [...DEMO_ENTREGABLES];
 const demoComentarios: Record<string, ComentarioEntregable[]> = {};
@@ -90,6 +90,16 @@ export async function actualizarMaterialesApoyo(id: string, materialesApoyo: Mat
     return;
   }
   await actualizarEntregable(id, { materialesApoyo } as Partial<Entregable>);
+}
+
+/** Archivos finales de un entregable de diseño, etiquetados (editable/PDF final/logo) — ver
+ * `ArchivoDiseno`. Se manda la lista entera, igual que `materialesApoyo`. */
+export async function actualizarArchivosDiseno(id: string, archivosDiseno: ArchivoDiseno[]): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, archivosDiseno } : e));
+    return;
+  }
+  await actualizarEntregable(id, { archivosDiseno } as Partial<Entregable>);
 }
 
 export async function renombrarEntregable(id: string, nombre: string): Promise<void> {

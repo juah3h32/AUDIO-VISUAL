@@ -72,7 +72,7 @@ const CARPETA_RAIZ = "AV Control";
  * (.exe, .zip, .sh...) antes de gastar una sesion de subida en Drive. */
 const EXTENSIONES_PERMITIDAS = new Set([
   "mp4", "mov", "avi", "mkv", "webm", "m4v",
-  "jpg", "jpeg", "png", "webp", "gif", "heic",
+  "jpg", "jpeg", "png", "webp", "gif", "heic", "svg",
   "pdf", "ai", "psd", "fig", "sketch", "eps",
   "ttf", "otf", "woff", "woff2",
 ]);

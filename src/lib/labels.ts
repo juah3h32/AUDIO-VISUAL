@@ -1,4 +1,5 @@
 import type {
+  ArchivoDisenoSubtipo,
   CategoriaContenido,
   EstadoAutorizacionSalida,
   EstadoEntregable,
@@ -44,6 +45,7 @@ export const CATEGORIA_CONTENIDO_LABELS: Record<CategoriaContenido, string> = {
   contenido_redes_sociales: "Contenido para redes sociales",
   entrevistas: "Entrevistas",
   capacitacion: "Capacitación",
+  pagina_web: "Cambios en página web",
   otros: "Otros",
 };
 
@@ -63,6 +65,7 @@ export const ACCION_ENTREGA_LABELS: Record<CategoriaContenido, string> = {
   fotografia_industrial: "fotografiado",
   diseno_grafico: "diseñado",
   contenido_redes_sociales: "entregado",
+  pagina_web: "actualizado",
   otros: "entregado",
 };
 
@@ -71,6 +74,12 @@ export const ACCION_ENTREGA_LABELS: Record<CategoriaContenido, string> = {
 export function esCategoriaFotografia(tipo: CategoriaContenido): boolean {
   return tipo.startsWith("fotografia");
 }
+
+export const DISENO_SUBTIPO_LABELS: Record<ArchivoDisenoSubtipo, string> = {
+  editable: "Editable",
+  pdf_final: "PDF final",
+  logo: "Logo",
+};
 
 export const PRIORIDAD_LABELS: Record<Prioridad, string> = {
   baja: "Baja",

@@ -10,6 +10,8 @@ import {
   Copy,
   Download,
   ExternalLink,
+  FileCode2,
+  FileText,
   Image as ImageIcon,
   Link2,
   Loader2,
@@ -29,6 +31,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useUploadQueue } from "@/context/UploadQueueContext";
 import { puedeAprobarEntregables, puedeAsignarEntregables, puedeSubirVideos, esGestorRequisiciones, gestorTienePermiso } from "@/lib/roles";
 import {
+  useActualizarArchivosDiseno,
   useActualizarDialogoTexto,
   useActualizarMaterialesApoyo,
   useActualizarPrioridad,
@@ -76,6 +79,7 @@ import {
   esCategoriaFotografia,
   etiquetaEstadoEntregable,
   CATEGORIA_CONTENIDO_LABELS,
+  DISENO_SUBTIPO_LABELS,
   PRIORIDAD_LABELS,
   PRIORIDAD_BADGE,
 } from "@/lib/labels";
@@ -87,7 +91,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Entregable, Prioridad } from "@/types";
+import type { ArchivoDiseno, ArchivoDisenoSubtipo, Entregable, Prioridad } from "@/types";
 
 const SIN_PROYECTO_VALOR = "sin-proyecto";
 
@@ -183,6 +187,15 @@ export function RevisarEntregableDialog({
   const [editandoNombre, setEditandoNombre] = useState(false);
   const [nombreEditado, setNombreEditado] = useState("");
   const inputArchivoRef = useRef<HTMLInputElement>(null);
+  // Archivos finales de DISEÑO, etiquetados (editable/PDF final/logo) — independiente del slot
+  // principal de arriba (ese sigue siendo la vista previa). Un ref de archivo por subtipo; solo
+  // uno sube a la vez (`subiendoSubtipo` guarda CUAL para deshabilitar los otros 2 mientras tanto).
+  const inputEditableRef = useRef<HTMLInputElement>(null);
+  const inputPdfRef = useRef<HTMLInputElement>(null);
+  const inputLogoRef = useRef<HTMLInputElement>(null);
+  const [subiendoSubtipo, setSubiendoSubtipo] = useState<ArchivoDisenoSubtipo | null>(null);
+  const [errorDiseno, setErrorDiseno] = useState<string | null>(null);
+  const actualizarArchivosDiseno = useActualizarArchivosDiseno();
   // Para saltar al minuto exacto de una observacion con un clic (ver bloqueObservaciones).
   const videoPlayerRef = useRef<DriveVideoPlayerHandle>(null);
   const renombrar = useRenombrarEntregable();
@@ -334,13 +347,21 @@ export function RevisarEntregableDialog({
   // usa directo el iframe de vista previa de Drive (si hay link) — Drive previsualiza imagenes,
   // PDFs y la mayoria de formatos de diseño sin necesitar un visor a la medida.
   const esDiseno = entregable.tipo === "diseno_grafico";
+  // Cambios en pagina web: el "material" es UNA captura de pantalla (imagen), igual que diseño
+  // en mecanica de subida/visor — nunca video, nunca galeria. Lleva ademas el link de la pagina
+  // (`entregable.urlPaginaWeb`), mostrado aparte (ver mas abajo).
+  const esPaginaWeb = entregable.tipo === "pagina_web";
   // Fotografia (generica, producto o industrial) usa galeria ordenada de imagenes, no un solo
   // archivo de video — nada de orientacion horizontal/vertical ni reproductor de video aplica
   // aqui (ver bloqueGaleriaFotos mas abajo, que reemplaza a bloqueVideo para este tipo).
   const esFoto = esCategoriaFotografia(entregable.tipo);
+  // Diseño y pagina web comparten la misma mecanica de "una sola imagen, sin video, sin
+  // orientacion, sin version alterna" — se agrupan aqui para no repetir `esDiseno || esPaginaWeb`
+  // en cada condicion mecanica de abajo. El TEXTO (etiquetas, titulos) si distingue cada uno.
+  const esImagenUnica = esDiseno || esPaginaWeb;
   // Para notificaciones/mensajes genericos — "tu video" no tiene sentido en un entregable que es
-  // una foto o un diseño.
-  const sustantivoMaterial = esFoto ? "fotografia" : esDiseno ? "diseño" : "video";
+  // una foto, un diseño o un cambio de pagina web.
+  const sustantivoMaterial = esFoto ? "fotografia" : esDiseno ? "diseño" : esPaginaWeb ? "captura" : "video";
   // En video, las observaciones se leen mejor en el orden en que pasan EN el video, no en el
   // orden en que se escribieron — las sin minuto reconocible (o las de una galeria de fotos,
   // "Foto 3") se quedan al final, sin reordenar entre ellas.
@@ -360,7 +381,7 @@ export function RevisarEntregableDialog({
   const galeriaFotos = entregable.fotos ?? (linkPrincipal ? [linkPrincipal] : []);
   // El reproductor propio pide el video a `/api/drive-video` con una cuenta de servicio fija,
   // autenticado con la cookie de sesion — no hace falta ningun token aparte.
-  const usaPlayerPropio = Boolean(fileIdActual && !errorPlayerPropio && !esDiseno && !esFoto);
+  const usaPlayerPropio = Boolean(fileIdActual && !errorPlayerPropio && !esImagenUnica && !esFoto);
   const modoVisor: "player" | "preview" | "link" | "vacio" = usaPlayerPropio
     ? "player"
     : preview
@@ -406,13 +427,15 @@ export function RevisarEntregableDialog({
     setProgreso(0);
     // Tarea en la cola GLOBAL (ver UploadQueueContext) — sigue corriendo y mostrando su progreso
     // aunque la persona cierre este dialogo antes de que termine.
-    const tareaId = iniciarTarea(`${esDiseno ? "Diseño" : "Video"}: ${entregable.nombre}`);
+    const tareaId = iniciarTarea(
+      `${esDiseno ? "Diseño" : esPaginaWeb ? "Captura" : "Video"}: ${entregable.nombre}`
+    );
     try {
       const fileIdExistente = linkPrincipal ? extraerFileIdDrive(linkPrincipal) ?? undefined : undefined;
       const subido = await subirArchivoCentralizado(file, {
         nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre}`,
         nombreCarpeta: nombreProyecto ?? "Sin proyecto",
-        subcarpeta: esDiseno ? "Diseños" : "Videos",
+        subcarpeta: esDiseno ? "Diseños" : esPaginaWeb ? "Capturas de pagina" : "Videos",
         fileIdExistente,
         onProgress: (pct) => {
           setProgreso(pct);
@@ -426,13 +449,13 @@ export function RevisarEntregableDialog({
         await adjuntarMaterialHistorico.mutateAsync({
           id: entregable.id,
           urlFinal: subido.previewUrl,
-          ...(esDiseno ? {} : { orientacionVideo: orientacionAEnviar }),
+          ...(esImagenUnica ? {} : { orientacionVideo: orientacionAEnviar }),
         });
       } else {
         await enviarARevision.mutateAsync({
           id: entregable.id,
           urlRevision: subido.previewUrl,
-          ...(esDiseno ? {} : { orientacionVideo: orientacionAEnviar }),
+          ...(esImagenUnica ? {} : { orientacionVideo: orientacionAEnviar }),
         });
         // Quien sube ya corrigio lo que se le pidio — las observaciones pendientes quedan
         // marcadas "corregido" para que el aprobador vea de una cuales ya se atendieron al
@@ -460,6 +483,61 @@ export function RevisarEntregableDialog({
     } finally {
       setSubiendo(false);
     }
+  };
+
+  // Archivos finales de DISEÑO etiquetados — independiente del slot principal (ese sigue siendo
+  // la vista previa). Subir un subtipo que ya existia REEMPLAZA ese archivo (mismo fileId de
+  // Drive), no acumula copias — igual que el slot principal de video.
+  const ACCEPT_POR_SUBTIPO: Record<ArchivoDisenoSubtipo, string> = {
+    editable: ".ai,.psd,.fig,.sketch,.eps,.svg",
+    pdf_final: ".pdf",
+    logo: ".svg,.png,.ai,.eps",
+  };
+
+  const onSeleccionarArchivoDiseno = (subtipo: ArchivoDisenoSubtipo) => async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setErrorDiseno(null);
+    setSubiendoSubtipo(subtipo);
+    const tareaId = iniciarTarea(`${DISENO_SUBTIPO_LABELS[subtipo]}: ${entregable.nombre}`);
+    try {
+      const existente = (entregable.archivosDiseno ?? []).find((a) => a.subtipo === subtipo);
+      const subido = await subirArchivoCentralizado(file, {
+        nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre} - ${DISENO_SUBTIPO_LABELS[subtipo]}`,
+        nombreCarpeta: nombreProyecto ?? "Sin proyecto",
+        subcarpeta: "Diseños",
+        fileIdExistente: existente?.fileId,
+        onProgress: (pct) => actualizarProgreso(tareaId, pct),
+      });
+      const sinEsteSubtipo = (entregable.archivosDiseno ?? []).filter((a) => a.subtipo !== subtipo);
+      const nuevo: ArchivoDiseno = { id: subido.id, nombre: file.name, url: subido.viewUrl, fileId: subido.id, subtipo };
+      await actualizarArchivosDiseno.mutateAsync({ id: entregable.id, archivosDiseno: [...sinEsteSubtipo, nuevo] });
+      marcarLista(tareaId);
+    } catch (err) {
+      const mensaje = mensajeErrorAuth(err);
+      setErrorDiseno(mensaje);
+      marcarError(tareaId, mensaje);
+    } finally {
+      setSubiendoSubtipo(null);
+    }
+  };
+
+  const onEliminarArchivoDiseno = async (subtipo: ArchivoDisenoSubtipo) => {
+    const archivo = (entregable.archivosDiseno ?? []).find((a) => a.subtipo === subtipo);
+    if (!archivo) return;
+    if (archivo.fileId) {
+      try {
+        await moverABasuraDrive(archivo.fileId);
+      } catch {
+        // Si falla borrar en Drive, igual se quita de la lista — no bloquea al usuario por un
+        // problema de Drive, puede volver a subir encima despues.
+      }
+    }
+    await actualizarArchivosDiseno.mutateAsync({
+      id: entregable.id,
+      archivosDiseno: (entregable.archivosDiseno ?? []).filter((a) => a.subtipo !== subtipo),
+    });
   };
 
   // Version ALTERNA: la misma pieza en la otra orientacion (ej. "Saco" vertical Y horizontal).
@@ -697,6 +775,15 @@ export function RevisarEntregableDialog({
     }
   };
 
+  // El backend ya bloquea esto (ver api/db/entregables.ts) — aqui es solo para no dejar clicar
+  // un boton que de todos modos va a fallar, con el mensaje de que falta exactamente.
+  const disenoIncompleto =
+    esDiseno &&
+    !(
+      entregable.archivosDiseno?.some((a) => a.subtipo === "editable") &&
+      entregable.archivosDiseno?.some((a) => a.subtipo === "pdf_final")
+    );
+
   const onAprobar = async () => {
     // Siempre aprueba la PRINCIPAL sin importar que pestaña se este viendo — "Aprobar" decide
     // sobre el entregable completo, no sobre una version puntual. Si la alterna tenia una
@@ -905,7 +992,7 @@ export function RevisarEntregableDialog({
   // foto o un diseño grafico no llevan dialogo). Cambiar el vinculo es mas permisivo que editar
   // el material en si (es solo una referencia, no el archivo): tanto quien sube el video como
   // quien lo aprueba pueden ajustarlo.
-  const puedeVincularGuion = !esFoto && !esDiseno && (puedeEditarMaterial || puedeComentar);
+  const puedeVincularGuion = !esFoto && !esImagenUnica && (puedeEditarMaterial || puedeComentar);
   // `===` ya cubre el caso huerfano (ambos `undefined` son iguales): un entregable sin proyecto
   // solo debe ofrecer guiones TAMBIEN huerfanos, no "cualquier guion aprobado de cualquier
   // proyecto" (lo que pasaba con `!entregable.proyectoId || ...`, que colapsaba a `true`).
@@ -916,9 +1003,9 @@ export function RevisarEntregableDialog({
   // La version alterna solo aplica a video (un diseño grafico o una foto no tienen
   // "orientacion") y solo tiene sentido ofrecerla cuando ya existe la principal — primero se sube esa.
   const puedeAgregarAlt =
-    puedeEditarMaterial && puedeSubirVideos(usuario) && !esDiseno && !esFoto && Boolean(linkPrincipal);
+    puedeEditarMaterial && puedeSubirVideos(usuario) && !esImagenUnica && !esFoto && Boolean(linkPrincipal);
 
-  const selectorDeVersion = (tieneAlt || puedeAgregarAlt) && !esDiseno && !esFoto && (
+  const selectorDeVersion = (tieneAlt || puedeAgregarAlt) && !esImagenUnica && !esFoto && (
     <div className="flex shrink-0 items-center gap-1.5">
       {([
         { slot: "principal" as const, orientacion: entregable.orientacionVideo, disponible: Boolean(linkPrincipal) },
@@ -990,10 +1077,11 @@ export function RevisarEntregableDialog({
         // real y definida (la que sobra del dialogo) — de ahi el video deriva su ancho solo con
         // aspect-ratio. Se adapta a cualquier pantalla porque usa el espacio real, no un numero fijo.
         layoutLado && "w-full lg:w-auto lg:min-w-[160px]",
-        // `esDiseno` queda fuera: su caja de preview (imagen/PDF) si quiere ocupar toda la altura
-        // disponible (lg:h-full sin aspect-ratio fijo) — este fix es solo para video, que SI tiene
-        // una proporcion fija y por eso puede sobrarle espacio al estirarlo de mas.
-        layoutLado && !esDiseno && !esVideoVertical && "lg:self-start"
+        // `esImagenUnica` (diseño/pagina web) queda fuera: su caja de preview (imagen/PDF) si
+        // quiere ocupar toda la altura disponible (lg:h-full sin aspect-ratio fijo) — este fix es
+        // solo para video, que SI tiene una proporcion fija y por eso puede sobrarle espacio al
+        // estirarlo de mas.
+        layoutLado && !esImagenUnica && !esVideoVertical && "lg:self-start"
       )}
     >
       {selectorDeVersion}
@@ -1018,13 +1106,13 @@ export function RevisarEntregableDialog({
         // dependia de flex-1 para su alto; sin una altura externa forzada de donde crecer,
         // colapsaba o se desbordaba del dialogo sin aviso) tambien vivia aqui, en el visor de
         // respaldo (modoVisor "preview"), sin que se hubiera tocado la primera vez.
-        <div className={cn("flex w-full flex-col gap-2", esDiseno && "lg:h-full")}>
+        <div className={cn("flex w-full flex-col gap-2", esImagenUnica && "lg:h-full")}>
           {/* Si se llega aqui para un VIDEO es porque el reproductor propio ya diagnostico el
               motivo real del fallo (sin acceso, archivo borrado, u otra cosa) y no lo pudo
               reparar solo. Este es el visor de Drive de respaldo, y NO puede detectar el minuto
-              al pausar (es un iframe de otro dominio). Para diseño grafico este es el visor
-              normal (no hay reproductor propio que reintentar), asi que no aplica el aviso. */}
-          {!esDiseno && (
+              al pausar (es un iframe de otro dominio). Para diseño grafico o pagina web este es
+              el visor normal (no hay reproductor propio que reintentar), asi que no aplica el aviso. */}
+          {!esImagenUnica && (
             <div className="flex w-full shrink-0 items-center justify-between gap-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-[11px] text-amber-800 ring-1 ring-amber-200 dark:bg-amber-400/10 dark:text-amber-200 dark:ring-amber-400/30">
               <span>{MENSAJE_ERROR_PLAYER[errorPlayerPropio ?? "desconocido"]}</span>
               <Button
@@ -1041,17 +1129,17 @@ export function RevisarEntregableDialog({
           <div
             className={cn(
               "w-full overflow-hidden rounded-lg ring-1 ring-black/10 dark:ring-white/10",
-              esDiseno
+              esImagenUnica
                 ? "h-[60vh] bg-white lg:h-full lg:w-[70vw] lg:max-w-2xl"
                 : "min-h-[180px] max-h-[65vh] bg-black lg:max-h-[70vh] lg:max-w-4xl"
             )}
-            style={esDiseno ? undefined : { aspectRatio: String(ratioVisor) }}
+            style={esImagenUnica ? undefined : { aspectRatio: String(ratioVisor) }}
           >
             <iframe
               src={preview}
               className="h-full w-full"
               allow="autoplay; fullscreen"
-              title={esDiseno ? "Vista previa del diseño" : "Vista previa del video"}
+              title={esDiseno ? "Vista previa del diseño" : esPaginaWeb ? "Vista previa de la captura" : "Vista previa del video"}
             />
           </div>
         </div>
@@ -1064,13 +1152,13 @@ export function RevisarEntregableDialog({
           rel="noreferrer"
           className="flex items-center gap-2 rounded-md border border-border bg-bg-secondary p-3 text-sm font-medium transition-colors hover:bg-border/60"
         >
-          <ExternalLink className="h-4 w-4" /> {esDiseno ? "Abrir diseño en Drive" : "Abrir video en Drive"}
+          <ExternalLink className="h-4 w-4" /> {esDiseno ? "Abrir diseño en Drive" : esPaginaWeb ? "Abrir captura en Drive" : "Abrir video en Drive"}
         </a>
       )}
 
       {modoVisor === "vacio" && (
         <p className="rounded-md border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
-          {esDiseno ? "Sin diseño cargado todavia." : "Sin video cargado todavia."}
+          {esDiseno ? "Sin diseño cargado todavia." : esPaginaWeb ? "Sin captura cargada todavia." : "Sin video cargado todavia."}
         </p>
       )}
     </div>
@@ -1341,10 +1429,10 @@ export function RevisarEntregableDialog({
 
   const bloqueSubirVideo = puedeEditarMaterial && puedeSubirVideos(usuario) && !esFoto && (
     <div className="space-y-2 rounded-md border border-border p-3">
-      <Label>{esDiseno ? "Subir diseño" : "Subir video"}</Label>
+      <Label>{esDiseno ? "Subir diseño" : esPaginaWeb ? "Subir captura" : "Subir video"}</Label>
       {/* Solo se pregunta la orientacion la primera vez — en una correccion/reemplazo ya se
           sabe (se detecto sola al reproducir el primer video), no hace falta repetirla. */}
-      {!esDiseno && !entregable.orientacionVideo && (
+      {!esImagenUnica && !entregable.orientacionVideo && (
         <div className="flex gap-1.5">
           {(["horizontal", "vertical"] as const).map((o) => (
             <button
@@ -1366,7 +1454,7 @@ export function RevisarEntregableDialog({
       <input
         ref={inputArchivoRef}
         type="file"
-        accept={esDiseno ? "image/*,.pdf,.ai,.psd,.fig,.sketch,.eps" : "video/*"}
+        accept={esDiseno ? "image/*,.pdf,.ai,.psd,.fig,.sketch,.eps" : esPaginaWeb ? "image/*" : "video/*"}
         className="hidden"
         onChange={onSeleccionarArchivo}
       />
@@ -1377,9 +1465,97 @@ export function RevisarEntregableDialog({
         disabled={subiendo}
       >
         <Upload className="h-4 w-4" />
-        {subiendo ? `Subiendo... ${progreso}%` : esDiseno ? "Subir diseño a Drive" : "Subir video a Drive"}
+        {subiendo
+          ? `Subiendo... ${progreso}%`
+          : esDiseno
+            ? "Subir diseño a Drive"
+            : esPaginaWeb
+              ? "Subir captura a Drive"
+              : "Subir video a Drive"}
       </Button>
       {errorSubida && <p className="text-xs text-destructive">{errorSubida}</p>}
+    </div>
+  );
+
+  const ICONO_SUBTIPO: Record<ArchivoDisenoSubtipo, typeof FileCode2> = {
+    editable: FileCode2,
+    pdf_final: FileText,
+    logo: ImageIcon,
+  };
+
+  // Archivos finales de diseño etiquetados — ADEMAS del slot principal (vista previa) de arriba,
+  // no en su lugar. Solo para entregables de diseño; el aprobador ve esto aunque no pueda editar
+  // material, para saber que falta antes de aprobar (ver el aviso junto al boton Aprobar).
+  const bloqueArchivosDiseno = esDiseno && (puedeEditarMaterial || puedeComentar) && (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <Label>Archivos finales (editable / PDF / logo)</Label>
+      <div className="space-y-1.5">
+        {(["editable", "pdf_final", "logo"] as const).map((subtipo) => {
+          const archivo = entregable.archivosDiseno?.find((a) => a.subtipo === subtipo);
+          const Icono = ICONO_SUBTIPO[subtipo];
+          const inputRef = subtipo === "editable" ? inputEditableRef : subtipo === "pdf_final" ? inputPdfRef : inputLogoRef;
+          return (
+            <div key={subtipo} className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-xs">
+              <Icono className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="w-16 shrink-0 font-medium">{DISENO_SUBTIPO_LABELS[subtipo]}</span>
+              {archivo ? (
+                <>
+                  <a
+                    href={archivo.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="min-w-0 flex-1 truncate text-accent hover:underline"
+                    title={archivo.nombre}
+                  >
+                    {archivo.nombre}
+                  </a>
+                  {puedeEditarMaterial && (
+                    <button
+                      type="button"
+                      onClick={() => onEliminarArchivoDiseno(subtipo)}
+                      disabled={subiendoSubtipo !== null}
+                      className="shrink-0 rounded p-1 text-muted-foreground hover:bg-bg-secondary hover:text-destructive"
+                      aria-label={`Quitar ${DISENO_SUBTIPO_LABELS[subtipo]}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </>
+              ) : (
+                <span className="min-w-0 flex-1 truncate text-muted-foreground">Sin subir</span>
+              )}
+              {puedeEditarMaterial && (
+                <>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept={ACCEPT_POR_SUBTIPO[subtipo]}
+                    className="hidden"
+                    onChange={onSeleccionarArchivoDiseno(subtipo)}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 shrink-0 px-2 text-[11px]"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={subiendoSubtipo !== null}
+                  >
+                    {subiendoSubtipo === subtipo ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : archivo ? (
+                      "Reemplazar"
+                    ) : (
+                      "Subir"
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {errorDiseno && <p className="text-xs text-destructive">{errorDiseno}</p>}
     </div>
   );
 
@@ -1841,10 +2017,20 @@ export function RevisarEntregableDialog({
           >
             <RotateCcw className="h-4 w-4" /> Solicitar cambios
           </Button>
-          <Button type="button" onClick={onAprobar} disabled={aprobar.isPending}>
+          <Button
+            type="button"
+            onClick={onAprobar}
+            disabled={aprobar.isPending || disenoIncompleto}
+            title={disenoIncompleto ? "Falta subir el editable y/o el PDF final antes de aprobar." : undefined}
+          >
             <CheckCircle2 className="h-4 w-4" /> Aprobar
           </Button>
         </div>
+      )}
+      {disenoIncompleto && (entregable.estado === "en_revision" || entregable.estado === "correcciones") && (
+        <p className="text-right text-xs text-amber-600 dark:text-amber-400">
+          Falta subir el editable y/o el PDF final (ver abajo) antes de poder aprobar.
+        </p>
       )}
 
       {esAprobador && entregable.estado === "aprobado" && (
@@ -1858,6 +2044,7 @@ export function RevisarEntregableDialog({
 
       {bloqueSubirMaterial}
       {bloqueSubirVideo}
+      {bloqueArchivosDiseno}
     </div>
   );
 
@@ -1956,6 +2143,18 @@ export function RevisarEntregableDialog({
               <Badge variant={PRIORIDAD_BADGE[entregable.prioridad ?? "media"]}>
                 {PRIORIDAD_LABELS[entregable.prioridad ?? "media"]}
               </Badge>
+            )}
+            {esPaginaWeb && entregable.urlPaginaWeb && (
+              <a
+                href={entregable.urlPaginaWeb}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1 truncate rounded-md border border-border bg-bg-secondary px-2 py-1 text-xs font-medium text-text-primary hover:bg-border/60"
+                title={entregable.urlPaginaWeb}
+              >
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{entregable.urlPaginaWeb}</span>
+              </a>
             )}
             {fileIdActual && (
               <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">

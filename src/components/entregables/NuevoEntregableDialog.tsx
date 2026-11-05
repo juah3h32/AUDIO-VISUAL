@@ -32,15 +32,23 @@ import type { CategoriaContenido, Prioridad } from "@/types";
 const SIN_PROYECTO = "sin-proyecto";
 const SIN_GUION = "sin-guion";
 
-const schema = z.object({
-  nombre: z.string().min(3, "Escribe al menos 3 caracteres"),
-  proyectoId: z.string().min(1, "Elige un proyecto o “Sin proyecto”"),
-  responsableId: z.string().min(1, "Elige a quién se asigna"),
-  tipo: z.custom<CategoriaContenido>((v) => typeof v === "string" && v.length > 0, "Elige el tipo de trabajo"),
-  fechaCompromiso: z.string().min(1, "Elige la fecha de entrega"),
-  prioridad: z.custom<Prioridad>((v) => typeof v === "string" && v.length > 0, "Elige la prioridad"),
-  guionId: z.string().optional(),
-});
+const schema = z
+  .object({
+    nombre: z.string().min(3, "Escribe al menos 3 caracteres"),
+    proyectoId: z.string().min(1, "Elige un proyecto o “Sin proyecto”"),
+    responsableId: z.string().min(1, "Elige a quién se asigna"),
+    tipo: z.custom<CategoriaContenido>((v) => typeof v === "string" && v.length > 0, "Elige el tipo de trabajo"),
+    fechaCompromiso: z.string().min(1, "Elige la fecha de entrega"),
+    prioridad: z.custom<Prioridad>((v) => typeof v === "string" && v.length > 0, "Elige la prioridad"),
+    guionId: z.string().optional(),
+    urlPaginaWeb: z.string().optional(),
+  })
+  // Solo "Cambios en pagina web" pide el link — las demas categorias ni muestran el campo.
+  .superRefine((values, ctx) => {
+    if (values.tipo === "pagina_web" && !values.urlPaginaWeb?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["urlPaginaWeb"], message: "Pega el link de la página" });
+    }
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -71,7 +79,8 @@ export function NuevoEntregableDialog() {
   // Solo tiene sentido en video (fotografia/diseño no llevan dialogo) — mismo criterio que
   // RevisarEntregableDialog.tsx. Un guion aprobado "suelto" (sin proyecto) solo aplica cuando
   // tampoco se eligio proyecto aqui.
-  const puedeVincularGuion = Boolean(tipo) && tipo !== "diseno_grafico" && !esCategoriaFotografia(tipo);
+  const puedeVincularGuion =
+    Boolean(tipo) && tipo !== "diseno_grafico" && tipo !== "pagina_web" && !esCategoriaFotografia(tipo);
   const proyectoParaGuion = proyectoId && proyectoId !== SIN_PROYECTO ? proyectoId : undefined;
   const guionesAprobados = useMemo(
     () => guiones.filter((g) => g.estado === "aprobado" && g.proyectoId === proyectoParaGuion),
@@ -105,6 +114,7 @@ export function NuevoEntregableDialog() {
         fechaCompromiso: values.fechaCompromiso,
         prioridad: values.prioridad,
         ...(values.guionId && values.guionId !== SIN_GUION ? { guionId: values.guionId } : {}),
+        ...(values.tipo === "pagina_web" && values.urlPaginaWeb ? { urlPaginaWeb: values.urlPaginaWeb.trim() } : {}),
       });
       reset({ proyectoId: SIN_PROYECTO, guionId: SIN_GUION, prioridad: "media" });
       setOpen(false);
@@ -246,6 +256,14 @@ export function NuevoEntregableDialog() {
               {errors.prioridad && <p className="text-xs text-destructive">{errors.prioridad.message}</p>}
             </div>
           </div>
+
+          {tipo === "pagina_web" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="urlPaginaWeb">Link de la página *</Label>
+              <Input id="urlPaginaWeb" {...register("urlPaginaWeb")} placeholder="https://grupo-ortiz.com/..." />
+              {errors.urlPaginaWeb && <p className="text-xs text-destructive">{errors.urlPaginaWeb.message}</p>}
+            </div>
+          )}
 
           {puedeVincularGuion && guionesAprobados.length > 0 && (
             <div className="space-y-1.5">

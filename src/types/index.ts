@@ -58,6 +58,7 @@ export type CategoriaContenido =
   | "contenido_redes_sociales"
   | "entrevistas"
   | "capacitacion"
+  | "pagina_web"
   | "otros";
 
 export type Prioridad = "baja" | "media" | "alta" | "critica";
@@ -184,6 +185,21 @@ export interface MaterialApoyo {
   esCarpeta?: boolean;
 }
 
+/** Subtipo de un archivo de diseño final — distinto de `MaterialApoyo` (eso es insumo/referencia,
+ * esto SI es parte del entregable). Un entregable de diseño puede necesitar las 3 versiones del
+ * mismo trabajo a la vez (el editable para retocar despues, el PDF para mandar a imprenta/revisar,
+ * el logo/export suelto para usar en otro lado) — por eso es una lista etiquetada y no un solo
+ * campo de archivo como en video. */
+export type ArchivoDisenoSubtipo = "editable" | "pdf_final" | "logo";
+
+export interface ArchivoDiseno {
+  id: string;
+  nombre: string;
+  url: string;
+  fileId?: string;
+  subtipo: ArchivoDisenoSubtipo;
+}
+
 export interface Entregable {
   id: string;
   /** Sin valor cuando el lider lo crea directo, sin requisicion/proyecto previo (ej. un cambio
@@ -235,6 +251,13 @@ export interface Entregable {
    * y no existe (ni va a existir) un Guion formal que vincular. Independiente de `guionId`. */
   dialogoTexto?: string;
   materialesApoyo?: MaterialApoyo[];
+  /** Solo aplica a `tipo: "pagina_web"` — el link de la pagina que cambio, para que quien revisa
+   * pueda entrar a verla en vivo ademas de ver la captura. */
+  urlPaginaWeb?: string;
+  /** Solo aplica a `tipo: "diseno_grafico"` — archivos finales etiquetados (editable/PDF/logo),
+   * ver `ArchivoDiseno`. Independiente de `urlFinal`/`urlRevision` (esos siguen siendo la vista
+   * previa principal que se ve en el visor). */
+  archivosDiseno?: ArchivoDiseno[];
   aprobadorId?: string;
   creadoEn: string;
   /** Cuando se subio el material POR PRIMERA VEZ (envio a revision). Es la fecha que cuenta para
