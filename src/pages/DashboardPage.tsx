@@ -1,4 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import { MisAvances } from "@/components/entregables/MisAvances";
 import {
   BarChart,
@@ -25,6 +27,12 @@ import {
   ScrollText,
   Wrench,
   MapPin,
+  Target,
+  BarChart3,
+  PieChart as PieChartIcon,
+  TrendingUp,
+  FolderKanban,
+  Activity,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -143,6 +151,17 @@ function DonaTipoEntregables({ datos, g }: { datos: ReturnType<typeof tipoEntreg
   );
 }
 
+/** Icono chico antes del texto en cada CardTitle de Inicio — mismo lenguaje visual en toda la
+ * pagina (antes cada seccion era solo texto plano, sin referencia visual rapida). */
+function TituloSeccion({ icon: Icon, children }: { icon: LucideIcon; children: ReactNode }) {
+  return (
+    <CardTitle className="flex items-center gap-1.5">
+      <Icon className="h-4 w-4 shrink-0 text-accent-dato" />
+      {children}
+    </CardTitle>
+  );
+}
+
 export function DashboardPage() {
   const g = useTemaGrafica();
   const navigate = useNavigate();
@@ -228,7 +247,7 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Mis requisiciones</CardTitle>
+                <TituloSeccion icon={FileText}>Mis requisiciones</TituloSeccion>
               </CardHeader>
               <CardContent>
                 <TablaRequisiciones
@@ -286,7 +305,7 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>{requisicionesPendientes.length > 0 ? "Requisiciones por aprobar" : "Requisiciones recientes"}</CardTitle>
+                <TituloSeccion icon={FileText}>{requisicionesPendientes.length > 0 ? "Requisiciones por aprobar" : "Requisiciones recientes"}</TituloSeccion>
               </CardHeader>
               <CardContent>
                 <TablaRequisiciones
@@ -300,7 +319,7 @@ export function DashboardPage() {
             {esCommunity && entregablesEnRevision.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Videos listos para tu aprobación</CardTitle>
+                  <TituloSeccion icon={Film}>Videos listos para tu aprobación</TituloSeccion>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {entregablesEnRevision.slice(0, 6).map((e) => (
@@ -471,7 +490,7 @@ export function DashboardPage() {
               {misCorrecciones.length > 0 && (
                 <Card className="lg:col-span-2">
                   <CardHeader>
-                    <CardTitle>Correcciones pendientes</CardTitle>
+                    <TituloSeccion icon={Wrench}>Correcciones pendientes</TituloSeccion>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {misCorrecciones.map((e) => (
@@ -494,7 +513,7 @@ export function DashboardPage() {
 
               <Card className={misCorrecciones.length > 0 ? undefined : "lg:col-span-3"}>
                 <CardHeader>
-                  <CardTitle>Mis próximas salidas</CardTitle>
+                  <TituloSeccion icon={MapPin}>Mis próximas salidas</TituloSeccion>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {misProximasSalidas.length === 0 && (
@@ -518,7 +537,7 @@ export function DashboardPage() {
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <Card className="flex flex-col lg:col-span-2">
                 <CardHeader>
-                  <CardTitle>Mi producción semanal</CardTitle>
+                  <TituloSeccion icon={BarChart3}>Mi producción semanal</TituloSeccion>
                 </CardHeader>
                 <CardContent className="min-h-56 flex-1">
                   <ResponsiveContainer width="100%" height="100%">
@@ -535,7 +554,7 @@ export function DashboardPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Mis entregables (mes)</CardTitle>
+                  <TituloSeccion icon={PieChartIcon}>Mis entregables (mes)</TituloSeccion>
                 </CardHeader>
                 <CardContent>
                   <DonaTipoEntregables datos={miTipoEntregables} g={g} />
@@ -545,7 +564,7 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Mi carga de trabajo</CardTitle>
+                <TituloSeccion icon={Users}>Mi carga de trabajo</TituloSeccion>
               </CardHeader>
               <CardContent className="space-y-3">
                 {colaboradores
@@ -610,7 +629,7 @@ export function DashboardPage() {
               {salidasPorAutorizar.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Salidas por autorizar</CardTitle>
+                    <TituloSeccion icon={Camera}>Salidas por autorizar</TituloSeccion>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {salidasPorAutorizar.slice(0, 5).map((s) => (
@@ -633,7 +652,7 @@ export function DashboardPage() {
               {proyectosSinAsignar.length > 0 && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Proyectos sin colaborador asignado</CardTitle>
+                    <TituloSeccion icon={FolderKanban}>Proyectos sin colaborador asignado</TituloSeccion>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {proyectosSinAsignar.slice(0, 5).map((p) => (
@@ -656,7 +675,9 @@ export function DashboardPage() {
           <Card>
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold">Cumplimiento semanal</p>
+                <p className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Target className="h-4 w-4 shrink-0 text-accent-dato" /> Cumplimiento semanal
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Lunes a sábado · {cumplidosEstaSemana} de {entregablesDeEstaSemana.length || 0} con fecha compromiso
                   esta semana
@@ -686,7 +707,7 @@ export function DashboardPage() {
             {/* flex-col + flex-1: la grafica llena la altura de la fila en vez de dejar hueco abajo. */}
             <Card className="flex flex-col lg:col-span-2">
               <CardHeader>
-                <CardTitle>Producción semanal</CardTitle>
+                <TituloSeccion icon={BarChart3}>Producción semanal</TituloSeccion>
               </CardHeader>
               <CardContent className="min-h-56 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
@@ -705,7 +726,7 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Tipo de entregables (mes)</CardTitle>
+                <TituloSeccion icon={PieChartIcon}>Tipo de entregables (mes)</TituloSeccion>
               </CardHeader>
               <CardContent>
                 <DonaTipoEntregables datos={tipoEntregables} g={g} />
@@ -716,7 +737,7 @@ export function DashboardPage() {
           {puedeVerMetricasGlobales(usuario) && (
             <Card>
               <CardHeader>
-                <CardTitle>Trabajos cumplidos por mes</CardTitle>
+                <TituloSeccion icon={TrendingUp}>Trabajos cumplidos por mes</TituloSeccion>
               </CardHeader>
               <CardContent className="h-48">
                 {entregadosPorMes.length === 0 ? (
@@ -741,7 +762,7 @@ export function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader className="flex-row items-center justify-between">
-                <CardTitle>Requisiciones recientes</CardTitle>
+                <TituloSeccion icon={FileText}>Requisiciones recientes</TituloSeccion>
               </CardHeader>
               <CardContent>
                 <TablaRequisiciones
@@ -754,7 +775,7 @@ export function DashboardPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Carga de trabajo del equipo</CardTitle>
+                <TituloSeccion icon={Users}>Carga de trabajo del equipo</TituloSeccion>
               </CardHeader>
               <CardContent className="space-y-3">
                 {cargaPorColaborador.length === 0 && (
@@ -830,7 +851,7 @@ export function DashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Actividad reciente</CardTitle>
+              <TituloSeccion icon={Activity}>Actividad reciente</TituloSeccion>
             </CardHeader>
             <CardContent className="space-y-4">
               {actividadReciente.length === 0 && (
