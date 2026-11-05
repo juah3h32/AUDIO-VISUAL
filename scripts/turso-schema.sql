@@ -266,6 +266,12 @@ CREATE TABLE IF NOT EXISTS metas (
   actualizado_en TEXT
 );
 
+CREATE TABLE IF NOT EXISTS configuracion (
+  clave TEXT PRIMARY KEY,
+  valor TEXT NOT NULL,
+  actualizado_en TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_requisiciones_solicitante ON requisiciones(solicitante_id);
 CREATE INDEX IF NOT EXISTS idx_requisiciones_responsable_venta ON requisiciones(responsable_venta_id);
 CREATE INDEX IF NOT EXISTS idx_entregables_proyecto ON entregables(proyecto_id);

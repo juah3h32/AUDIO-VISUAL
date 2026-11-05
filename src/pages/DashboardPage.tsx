@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { MisAvances } from "@/components/entregables/MisAvances";
@@ -43,6 +44,9 @@ import { useProyectos } from "@/hooks/useProyectos";
 import { useEntregables, useSalidas, useUsuarios } from "@/hooks/useCatalogos";
 import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
 import { useGuiones } from "@/hooks/useGuiones";
+import { useConfiguracion, useActualizarConfiguracion } from "@/hooks/useConfiguracion";
+import { subirArchivoCentralizado } from "@/services/driveService";
+import { mensajeErrorAuth } from "@/lib/authErrors";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TablaRequisiciones } from "@/components/dashboard/TablaRequisiciones";
 import { FraseDelDia } from "@/components/dashboard/FraseDelDia";
@@ -162,6 +166,44 @@ function TituloSeccion({ icon: Icon, children }: { icon: LucideIcon; children: R
   );
 }
 
+/** Banner "Frase del dia" de Inicio — siempre fijo con el nombre de quien entra, igual para los
+ * 4 roles (por eso vive una sola vez aqui en vez de repetir la logica de subir foto 4 veces).
+ * La foto del banner es configuracion GLOBAL (una sola, para toda la app) — solo superadmin
+ * puede cambiarla, se sube a Drive igual que un logo de marca y el fileId queda en la tabla
+ * `configuracion` (clave `foto_frase_dia`). */
+function FraseDelDiaSeccion({ frase }: { frase: string }) {
+  const { usuario } = useAuth();
+  const { data: configuracion } = useConfiguracion();
+  const actualizarConfiguracion = useActualizarConfiguracion();
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState<string | null>(null);
+
+  const onCambiarFoto = async (file: File) => {
+    setErrorFoto(null);
+    setSubiendoFoto(true);
+    try {
+      const subido = await subirArchivoCentralizado(file, { nombre: "Foto frase del dia", nombreCarpeta: "Sistema" });
+      await actualizarConfiguracion.mutateAsync({ clave: "foto_frase_dia", valor: subido.id });
+    } catch (err) {
+      setErrorFoto(mensajeErrorAuth(err));
+    } finally {
+      setSubiendoFoto(false);
+    }
+  };
+
+  return (
+    <FraseDelDia
+      frase={frase}
+      nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
+      fotoId={configuracion?.foto_frase_dia}
+      puedeEditarFoto={usuario?.rol === "superadmin"}
+      onCambiarFoto={onCambiarFoto}
+      subiendoFoto={subiendoFoto}
+      errorFoto={errorFoto}
+    />
+  );
+}
+
 export function DashboardPage() {
   const g = useTemaGrafica();
   const navigate = useNavigate();
@@ -225,12 +267,12 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
+        <PageHeader title="Inicio">
           <DemoBadge />
           <NuevaRequisicionDialog />
         </PageHeader>
 
-        <FraseDelDia frase={frase} />
+        <FraseDelDiaSeccion frase={frase} />
 
         {cargandoRequisiciones ? (
           <LoadingState label="Cargando tus requisiciones…" />
@@ -280,11 +322,11 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
+        <PageHeader title="Inicio">
           <DemoBadge />
         </PageHeader>
 
-        <FraseDelDia frase={frase} />
+        <FraseDelDiaSeccion frase={frase} />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -465,11 +507,11 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
+        <PageHeader title="Inicio">
           <DemoBadge />
         </PageHeader>
 
-        <FraseDelDia frase={frase} />
+        <FraseDelDiaSeccion frase={frase} />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -597,11 +639,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
+      <PageHeader title="Inicio">
         <DemoBadge />
       </PageHeader>
 
-      <FraseDelDia frase={frase} />
+      <FraseDelDiaSeccion frase={frase} />
 
       {cargandoDashboard ? (
         <LoadingState label="Cargando panel…" />
