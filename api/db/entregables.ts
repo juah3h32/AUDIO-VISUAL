@@ -6,7 +6,7 @@ import { ErrorAuth } from "../_shared/session.js";
 import { nuevoId } from "../_shared/ids.js";
 
 const COLUMNAS: Record<string, string> = {
-  proyectoId: "proyecto_id", marcaId: "marca_id", nombre: "nombre", tipo: "tipo", formato: "formato",
+  proyectoId: "proyecto_id", marcaId: "marca_id", nombre: "nombre", prioridad: "prioridad", tipo: "tipo", formato: "formato",
   orientacionVideo: "orientacion_video", resolucion: "resolucion", duracion: "duracion",
   responsableId: "responsable_id", fechaCompromiso: "fecha_compromiso", version: "version", estado: "estado",
   urlRevision: "url_revision", urlFinal: "url_final", orientacionVideoAlt: "orientacion_video_alt",
@@ -41,6 +41,7 @@ function filaAEntregable(f: Record<string, unknown>) {
     proyectoId: f.proyecto_id ? String(f.proyecto_id) : undefined,
     marcaId: f.marca_id ? String(f.marca_id) : undefined,
     nombre: String(f.nombre),
+    prioridad: f.prioridad ? String(f.prioridad) : undefined,
     tipo: String(f.tipo),
     formato: f.formato ? String(f.formato) : undefined,
     orientacionVideo: f.orientacion_video ? String(f.orientacion_video) : undefined,
@@ -83,6 +84,9 @@ function filaAComentario(f: Record<string, unknown>) {
 
 /** Portado 1:1 de la regla `entregables.update` de firestore.rules. */
 function puedeActualizar(usuario: UsuarioFila, actual: { estado: string; responsableId: string }, cambios: Record<string, unknown>): boolean {
+  // La prioridad (urgencia) la define quien asigna el trabajo — ni el responsable ni community
+  // (que solo aprueba) pueden cambiarla, aunque si puedan editar otros campos del mismo PATCH.
+  if ("prioridad" in cambios && !esSuperadmin(usuario) && !esLiderAudiovisual(usuario)) return false;
   if (esSuperadmin(usuario) || esGestorRequisiciones(usuario)) return true;
   const nuevoEstado = typeof cambios.estado === "string" ? cambios.estado : actual.estado;
   if (esLiderAudiovisual(usuario)) return nuevoEstado === actual.estado;
@@ -169,12 +173,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const ahora = opciones?.fecha ?? new Date().toISOString();
 
       await db().execute({
-        sql: `INSERT INTO entregables (id, proyecto_id, marca_id, nombre, tipo, formato, orientacion_video, resolucion,
+        sql: `INSERT INTO entregables (id, proyecto_id, marca_id, nombre, prioridad, tipo, formato, orientacion_video, resolucion,
                 duracion, responsable_id, fecha_compromiso, version, estado, url_final, guion_id, aprobador_id,
                 creado_en, fecha_aprobado, fecha_entregado)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'v1', ?, ?, ?, ?, ?, ?, ?)`,
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'v1', ?, ?, ?, ?, ?, ?, ?)`,
         args: [
-          nuevoEntregableId, data.proyectoId ?? null, data.marcaId ?? null, data.nombre, data.tipo, data.formato ?? null,
+          nuevoEntregableId, data.proyectoId ?? null, data.marcaId ?? null, data.nombre, data.prioridad ?? "media",
+          data.tipo, data.formato ?? null,
           data.orientacionVideo ?? null, data.resolucion ?? null, data.duracion ?? null, data.responsableId,
           data.fechaCompromiso, opciones ? opciones.estadoFinal : "pendiente", opciones?.urlFinal ?? null,
           data.guionId ?? null, opciones?.aprobadorId ?? null, ahora,

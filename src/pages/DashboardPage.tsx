@@ -51,6 +51,9 @@ import {
   ESTADO_REQUISICION_LABELS,
   CATEGORIA_CONTENIDO_LABELS,
   ACCION_ENTREGA_LABELS,
+  PRIORIDAD_LABELS,
+  PRIORIDAD_BADGE,
+  compararPorPrioridad,
 } from "@/lib/labels";
 import { formatFecha } from "@/lib/utils";
 import { aFecha, inicioDeSemana } from "@/lib/periodo";
@@ -340,13 +343,14 @@ export function DashboardPage() {
     const fecha = aFecha(e.fechaEntregado ?? e.fechaAprobado ?? e.creadoEn);
     return fecha.getFullYear() === ahora.getFullYear() && fecha.getMonth() === ahora.getMonth();
   }).length;
-  // Lista completa (no solo el conteo) para el widget "Tareas atrasadas" del lider — ordenada
-  // por la mas vieja primero (la que lleva mas tiempo atrasada es la mas urgente). `estaAtrasado`
-  // (no comparar la fecha directo) evita marcar como atrasada una tarea con compromiso HOY mismo
-  // antes de que el dia termine.
-  const tareasAtrasadas = entregables
-    .filter((e) => estaAtrasado(e, ahora))
-    .sort((a, b) => aFecha(a.fechaCompromiso).getTime() - aFecha(b.fechaCompromiso).getTime());
+  // Lista completa (no solo el conteo) para el widget "Tareas atrasadas" del lider — ordenada por
+  // prioridad primero (critica antes que baja) y, dentro de la misma prioridad, por la mas vieja
+  // primero (mas tiempo atrasada = mas urgente). `estaAtrasado` (no comparar la fecha directo)
+  // evita marcar como atrasada una tarea con compromiso HOY mismo antes de que el dia termine.
+  const tareasAtrasadas = entregables.filter((e) => estaAtrasado(e, ahora)).sort((a, b) => {
+    const porPrioridad = compararPorPrioridad(a.prioridad, b.prioridad);
+    return porPrioridad !== 0 ? porPrioridad : aFecha(a.fechaCompromiso).getTime() - aFecha(b.fechaCompromiso).getTime();
+  });
   const entregasAtrasadas = tareasAtrasadas.length;
   // "Colaboradores" se cuenta de las cuentas reales (usuarios) por rol — la coleccion aparte
   // "colaboradores" (carga de trabajo/disponibilidad en Equipo) casi nunca esta poblada todavía.
@@ -799,7 +803,12 @@ export function DashboardPage() {
                     className="flex w-full items-center justify-between gap-2 rounded-md bg-card/70 px-3 py-2 text-left text-sm hover:bg-card"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{e.nombre}</p>
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant={PRIORIDAD_BADGE[e.prioridad ?? "media"]} className="shrink-0 text-[10px]">
+                          {PRIORIDAD_LABELS[e.prioridad ?? "media"]}
+                        </Badge>
+                        <p className="truncate font-medium">{e.nombre}</p>
+                      </div>
                       <p className="truncate text-xs text-muted-foreground">
                         {nombreDe(e.responsableId)}
                         {proyectoDe(e.proyectoId) ? ` · ${proyectoDe(e.proyectoId)}` : ""}

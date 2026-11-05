@@ -193,6 +193,10 @@ export interface Entregable {
    * el entregable se crea sin proyecto (ver `proyectoId`). */
   marcaId?: string;
   nombre: string;
+  /** Para que colaborador/lider sepan que atender primero cuando hay varias tareas encima — solo
+   * superadmin/lider la asignan o la cambian (ver puedeAsignarEntregables). Sin valor = "media"
+   * (entregables historicos de antes de este campo). */
+  prioridad?: Prioridad;
   tipo: CategoriaContenido;
   formato?: string;
   /** Orientacion del video — se guarda al subirlo para abrir el visor sin parpadeo. */

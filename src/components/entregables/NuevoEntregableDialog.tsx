@@ -10,7 +10,7 @@ import { useGuiones } from "@/hooks/useGuiones";
 import { especialidadesPara } from "@/lib/especialidades";
 import { cargaDeTrabajo, entregablesPorResponsable } from "@/lib/rendimiento";
 import { useCrearEntregable } from "@/hooks/useEntregables";
-import { CATEGORIA_CONTENIDO_LABELS, esCategoriaFotografia } from "@/lib/labels";
+import { CATEGORIA_CONTENIDO_LABELS, esCategoriaFotografia, PRIORIDAD_LABELS } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-import type { CategoriaContenido } from "@/types";
+import type { CategoriaContenido, Prioridad } from "@/types";
 
 /** Sentinel del Select — Radix no acepta value="" en un SelectItem. Se convierte a
  * `undefined` (sin proyecto/requisicion) justo antes de crear el entregable. */
@@ -38,6 +38,7 @@ const schema = z.object({
   responsableId: z.string().min(1, "Elige a quién se asigna"),
   tipo: z.custom<CategoriaContenido>((v) => typeof v === "string" && v.length > 0, "Elige el tipo de trabajo"),
   fechaCompromiso: z.string().min(1, "Elige la fecha de entrega"),
+  prioridad: z.custom<Prioridad>((v) => typeof v === "string" && v.length > 0, "Elige la prioridad"),
   guionId: z.string().optional(),
 });
 
@@ -56,7 +57,10 @@ export function NuevoEntregableDialog() {
     control,
     reset,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { proyectoId: SIN_PROYECTO, guionId: SIN_GUION } });
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { proyectoId: SIN_PROYECTO, guionId: SIN_GUION, prioridad: "media" },
+  });
 
   const { data: equipo = [] } = useColaboradoresDelEquipo();
   const { data: entregables = [] } = useEntregables();
@@ -99,9 +103,10 @@ export function NuevoEntregableDialog() {
         responsableId: values.responsableId,
         tipo: values.tipo,
         fechaCompromiso: values.fechaCompromiso,
+        prioridad: values.prioridad,
         ...(values.guionId && values.guionId !== SIN_GUION ? { guionId: values.guionId } : {}),
       });
-      reset({ proyectoId: SIN_PROYECTO, guionId: SIN_GUION });
+      reset({ proyectoId: SIN_PROYECTO, guionId: SIN_GUION, prioridad: "media" });
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear el entregable.");
@@ -208,14 +213,38 @@ export function NuevoEntregableDialog() {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Fecha compromiso *</Label>
-            <Controller
-              control={control}
-              name="fechaCompromiso"
-              render={({ field }) => <DatePicker value={field.value} onChange={field.onChange} />}
-            />
-            {errors.fechaCompromiso && <p className="text-xs text-destructive">{errors.fechaCompromiso.message}</p>}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label>Fecha compromiso *</Label>
+              <Controller
+                control={control}
+                name="fechaCompromiso"
+                render={({ field }) => <DatePicker value={field.value} onChange={field.onChange} />}
+              />
+              {errors.fechaCompromiso && <p className="text-xs text-destructive">{errors.fechaCompromiso.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label>Prioridad *</Label>
+              <Controller
+                control={control}
+                name="prioridad"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(PRIORIDAD_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.prioridad && <p className="text-xs text-destructive">{errors.prioridad.message}</p>}
+            </div>
           </div>
 
           {puedeVincularGuion && guionesAprobados.length > 0 && (

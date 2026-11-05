@@ -86,6 +86,14 @@ export const PRIORIDAD_BADGE: Record<Prioridad, BadgeVariant> = {
   critica: "danger",
 };
 
+/** Mas alto = mas urgente — para ordenar listas de trabajo (criticas primero). Sin valor
+ * asignado (entregables de antes de este campo) cuenta como "media". */
+const PESO_PRIORIDAD: Record<Prioridad, number> = { critica: 3, alta: 2, media: 1, baja: 0 };
+
+export function compararPorPrioridad(a: Prioridad | undefined, b: Prioridad | undefined): number {
+  return PESO_PRIORIDAD[b ?? "media"] - PESO_PRIORIDAD[a ?? "media"];
+}
+
 export const ETAPA_PROYECTO_LABELS: Record<EtapaProyecto, string> = {
   planeacion: "Planeación",
   preproduccion: "Preproducción",

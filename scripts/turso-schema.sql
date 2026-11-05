@@ -144,6 +144,7 @@ CREATE TABLE IF NOT EXISTS entregables (
   proyecto_id TEXT,
   marca_id TEXT,
   nombre TEXT NOT NULL,
+  prioridad TEXT,
   tipo TEXT NOT NULL,
   formato TEXT,
   orientacion_video TEXT,

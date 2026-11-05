@@ -31,6 +31,7 @@ import { puedeAprobarEntregables, puedeAsignarEntregables, puedeSubirVideos, esG
 import {
   useActualizarDialogoTexto,
   useActualizarMaterialesApoyo,
+  useActualizarPrioridad,
   useAdjuntarMaterialHistorico,
   useAgregarComentario,
   useAgregarVersionAlterna,
@@ -75,6 +76,8 @@ import {
   esCategoriaFotografia,
   etiquetaEstadoEntregable,
   CATEGORIA_CONTENIDO_LABELS,
+  PRIORIDAD_LABELS,
+  PRIORIDAD_BADGE,
 } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +87,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { Entregable } from "@/types";
+import type { Entregable, Prioridad } from "@/types";
 
 const SIN_PROYECTO_VALOR = "sin-proyecto";
 
@@ -151,6 +154,7 @@ export function RevisarEntregableDialog({
   // Material de apoyo (footage crudo, brief, fotos de referencia...) que el lider sube a Drive
   // para que el responsable lo descargue — NO es el material final del entregable.
   const actualizarMateriales = useActualizarMaterialesApoyo();
+  const actualizarPrioridad = useActualizarPrioridad();
   const [subiendoApoyo, setSubiendoApoyo] = useState(false);
   const inputApoyoRef = useRef<HTMLInputElement>(null);
   const [pegandoLinkApoyo, setPegandoLinkApoyo] = useState(false);
@@ -1928,6 +1932,31 @@ export function RevisarEntregableDialog({
             <Badge variant={ESTADO_ENTREGABLE_BADGE[entregable.estado]}>
               {etiquetaEstadoEntregable(entregable)}
             </Badge>
+            {/* Solo superadmin/lider pueden CAMBIAR la prioridad (define el orden en que se debe
+                atender el trabajo, ver api/db/entregables.ts) — cualquiera mas solo la ve. */}
+            {puedeAsignarEntregables(usuario) ? (
+              <Select
+                value={entregable.prioridad ?? "media"}
+                onValueChange={(v) => actualizarPrioridad.mutate({ id: entregable.id, prioridad: v as Prioridad })}
+              >
+                <SelectTrigger className="h-7 w-auto gap-1 border-none bg-transparent px-1.5 py-0 text-xs font-medium shadow-none hover:bg-bg-secondary">
+                  <Badge variant={PRIORIDAD_BADGE[entregable.prioridad ?? "media"]}>
+                    {PRIORIDAD_LABELS[entregable.prioridad ?? "media"]}
+                  </Badge>
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PRIORIDAD_LABELS).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Badge variant={PRIORIDAD_BADGE[entregable.prioridad ?? "media"]}>
+                {PRIORIDAD_LABELS[entregable.prioridad ?? "media"]}
+              </Badge>
+            )}
             {fileIdActual && (
               <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
                 {/* Copiar el link NO espera a que este aprobado — en revision tambien sirve

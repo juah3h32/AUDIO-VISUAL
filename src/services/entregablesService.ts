@@ -1,7 +1,7 @@
 import { esModoDemo } from "@/lib/modoDemo";
 import { apiFetch } from "@/lib/apiClient";
 import { DEMO_ENTREGABLES } from "@/data/demoData";
-import type { CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo } from "@/types";
+import type { CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo, Prioridad } from "@/types";
 
 let demoStore: Entregable[] = [...DEMO_ENTREGABLES];
 const demoComentarios: Record<string, ComentarioEntregable[]> = {};
@@ -70,6 +70,16 @@ export async function actualizarDialogoTexto(id: string, dialogoTexto: string | 
     return;
   }
   await actualizarEntregable(id, { dialogoTexto: dialogoTexto ?? null } as Partial<Entregable>);
+}
+
+/** Solo superadmin/lider pueden cambiar esto (el backend lo vuelve a validar, ver
+ * puedeActualizar() en api/db/entregables.ts) — define el orden en que se debe atender el trabajo. */
+export async function actualizarPrioridad(id: string, prioridad: Prioridad): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, prioridad } : e));
+    return;
+  }
+  await actualizarEntregable(id, { prioridad });
 }
 
 /** Lista completa de materiales de apoyo (footage crudo, brief, fotos de referencia...) — se

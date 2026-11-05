@@ -11,6 +11,9 @@ import {
   CATEGORIA_CONTENIDO_LABELS,
   ESTADO_ENTREGABLE_LABELS,
   ESTADO_GUION_LABELS,
+  PRIORIDAD_BADGE,
+  PRIORIDAD_LABELS,
+  compararPorPrioridad,
 } from "@/lib/labels";
 import { formatFecha } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -212,9 +215,11 @@ export function EntregablesPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
               {COLUMNAS.map((estado) => {
                 const esHistorico = estado === "aprobado" || estado === "entregado";
-                const items = entregables.filter(
-                  (e) => e.estado === estado && (!esHistorico || coincideFiltroPeriodo(e, filtroPeriodo, ahora))
-                );
+                // Dentro de cada columna, prioridad primero (critica arriba) — para que se sepa
+                // de un vistazo que atender primero sin tener que abrir cada tarjeta.
+                const items = entregables
+                  .filter((e) => e.estado === estado && (!esHistorico || coincideFiltroPeriodo(e, filtroPeriodo, ahora)))
+                  .sort((a, b) => compararPorPrioridad(a.prioridad, b.prioridad));
                 return (
                   <Card key={estado} className="min-w-0">
                     <CardHeader className="pb-2">
@@ -247,7 +252,12 @@ export function EntregablesPage() {
                                   className="h-20 w-20 shrink-0 rounded"
                                 />
                                 <div className="min-w-0 flex-1 overflow-hidden">
-                                  <p className="truncate font-medium text-text-primary">{e.nombre}</p>
+                                  <div className="flex items-center gap-1">
+                                    <Badge variant={PRIORIDAD_BADGE[e.prioridad ?? "media"]} className="shrink-0 text-[9px]">
+                                      {PRIORIDAD_LABELS[e.prioridad ?? "media"]}
+                                    </Badge>
+                                    <p className="truncate font-medium text-text-primary">{e.nombre}</p>
+                                  </div>
                                   <p className="truncate text-muted-foreground">{proyectoDe(e.proyectoId)}</p>
                                   <div className="mt-0.5 flex items-center justify-between gap-1">
                                     <span className="truncate text-muted-foreground">{nombreDe(e.responsableId)}</span>
