@@ -528,13 +528,43 @@ export function DashboardPage() {
           <ErrorState label="No se pudo cargar el panel." onRetry={reintentarDashboard} />
         ) : (
           <>
-            <MisAvances usuarioId={usuario.id} nombre={usuario.nombre} puesto={usuario.puesto} />
-
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <StatCard icon={Film} label="En proceso" value={misEnProceso} hint="Mis entregables activos" />
               <StatCard icon={Wrench} label="Correcciones" value={misCorrecciones.length} hint="Pendientes de resubir" iconBg="bg-amber-100 dark:bg-amber-400/20" />
               <StatCard icon={CheckCircle2} label="Entregados" value={misEntregadosEsteMes} hint="Este mes" />
               <StatCard icon={AlertTriangle} label="Atrasados" value={misAtrasados} hint="Requieren atención" iconBg="bg-red-100 dark:bg-red-400/20" />
+            </div>
+
+            {/* "Mis avances" compacta junto con produccion y tipo de entregables — antes cada una
+                ocupaba su propia fila completa, mucho scroll para ver las 3. */}
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+              <MisAvances usuarioId={usuario.id} nombre={usuario.nombre} puesto={usuario.puesto} compacto />
+
+              <Card className="flex flex-col">
+                <CardHeader>
+                  <TituloSeccion icon={BarChart3}>Mi producción semanal</TituloSeccion>
+                </CardHeader>
+                <CardContent className="min-h-56 flex-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={misProduccionSemanal}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={g.grid} vertical={false} />
+                      <XAxis dataKey="dia" tickLine={false} axisLine={false} fontSize={12} tick={g.tick} />
+                      <YAxis tickLine={false} axisLine={false} fontSize={12} tick={g.tick} />
+                      <Tooltip cursor={g.cursor} {...g.tooltip} />
+                      <Bar dataKey="entregados" name="Entregados" fill="rgb(var(--av-accent-dato))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <TituloSeccion icon={PieChartIcon}>Mis entregables (mes)</TituloSeccion>
+                </CardHeader>
+                <CardContent>
+                  <DonaTipoEntregables datos={miTipoEntregables} g={g} />
+                </CardContent>
+              </Card>
             </div>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -581,34 +611,6 @@ export function DashboardPage() {
                       </div>
                     </div>
                   ))}
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              <Card className="flex flex-col lg:col-span-2">
-                <CardHeader>
-                  <TituloSeccion icon={BarChart3}>Mi producción semanal</TituloSeccion>
-                </CardHeader>
-                <CardContent className="min-h-56 flex-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={misProduccionSemanal}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={g.grid} vertical={false} />
-                      <XAxis dataKey="dia" tickLine={false} axisLine={false} fontSize={12} tick={g.tick} />
-                      <YAxis tickLine={false} axisLine={false} fontSize={12} tick={g.tick} />
-                      <Tooltip cursor={g.cursor} {...g.tooltip} />
-                      <Bar dataKey="entregados" name="Entregados" fill="rgb(var(--av-accent-dato))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <TituloSeccion icon={PieChartIcon}>Mis entregables (mes)</TituloSeccion>
-                </CardHeader>
-                <CardContent>
-                  <DonaTipoEntregables datos={miTipoEntregables} g={g} />
                 </CardContent>
               </Card>
             </div>
