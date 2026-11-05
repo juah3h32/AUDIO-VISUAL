@@ -193,11 +193,13 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
 
   return (
     // Sticky dentro de <main> (el que hace scroll, ver AppLayout) — pedido explicito: la frase
-    // se queda fija arriba mientras el resto de Inicio se desplaza debajo. `isolate` +
-    // `will-change-transform` fuerzan su propia capa de composicion — sin esto, Safari/Chrome en
-    // movil a veces "parpadean" y dejan ver un frame del contenido de abajo por encima del
-    // sticky durante el scroll. La sombra inferior remarca que lo de abajo entra POR DETRAS.
-    <div className="sticky top-0 isolate z-20 bg-bg-app pb-3 will-change-transform">
+    // se queda fija arriba mientras el resto de Inicio se desplaza debajo. Es a proposito el
+    // PRIMER elemento de la pagina (antes del PageHeader) para poder cancelar el padding propio
+    // de <main> con margen negativo — si no, quedaba una rendija del padding de <main> arriba del
+    // sticky por la que se alcanzaba a ver el contenido de abajo asomando. `isolate` +
+    // `will-change-transform` fuerzan su propia capa de composicion (evita el parpadeo de
+    // Safari/Chrome movil que deja ver un frame de lo de abajo durante el scroll).
+    <div className="sticky top-0 isolate z-20 -mx-4 -mt-4 bg-bg-app px-4 pb-3 pt-4 will-change-transform sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6">
       <FraseDelDia
         frase={frase}
         nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
@@ -274,12 +276,12 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
+        <FraseDelDiaSeccion frase={frase} />
+
         <PageHeader title="Inicio">
           <DemoBadge />
           <NuevaRequisicionDialog />
         </PageHeader>
-
-        <FraseDelDiaSeccion frase={frase} />
 
         {cargandoRequisiciones ? (
           <LoadingState label="Cargando tus requisiciones…" />
@@ -329,11 +331,11 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
+        <FraseDelDiaSeccion frase={frase} />
+
         <PageHeader title="Inicio">
           <DemoBadge />
         </PageHeader>
-
-        <FraseDelDiaSeccion frase={frase} />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -514,11 +516,11 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
+        <FraseDelDiaSeccion frase={frase} />
+
         <PageHeader title="Inicio">
           <DemoBadge />
         </PageHeader>
-
-        <FraseDelDiaSeccion frase={frase} />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -646,11 +648,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <FraseDelDiaSeccion frase={frase} />
+
       <PageHeader title="Inicio">
         <DemoBadge />
       </PageHeader>
-
-      <FraseDelDiaSeccion frase={frase} />
 
       {cargandoDashboard ? (
         <LoadingState label="Cargando panel…" />
