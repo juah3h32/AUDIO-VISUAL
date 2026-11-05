@@ -254,6 +254,17 @@ export async function guardarFotos(
   } as Partial<Entregable>);
 }
 
+/** Galeria aparte de versiones SIN FONDO (PNG transparente) — a diferencia de `guardarFotos`, no
+ * toca la portada (`urlRevision`/`urlFinal`) ni el `estado`: es material adicional, no el
+ * entregable principal. */
+export async function guardarFotosSinFondo(id: string, fotosSinFondo: string[]): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, fotosSinFondo } : e));
+    return;
+  }
+  await actualizarEntregable(id, { fotosSinFondo } as Partial<Entregable>);
+}
+
 export async function etiquetarOrientacion(id: string, orientacionVideo: "vertical" | "horizontal"): Promise<void> {
   await actualizarEntregable(id, { orientacionVideo });
 }

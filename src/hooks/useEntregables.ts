@@ -23,6 +23,7 @@ import {
   etiquetarOrientacion,
   etiquetarOrientacionAlt,
   guardarFotos,
+  guardarFotosSinFondo,
   listarComentarios,
   marcarComentariosCorregidos,
   marcarFotosParaBorrar,
@@ -274,6 +275,15 @@ export function useGuardarFotos() {
       comoHistorico: boolean;
       carpetaFotosUrl?: string;
     }) => guardarFotos(id, fotos, { comoHistorico, carpetaFotosUrl }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
+export function useGuardarFotosSinFondo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, fotosSinFondo }: { id: string; fotosSinFondo: string[] }) =>
+      guardarFotosSinFondo(id, fotosSinFondo),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
   });
 }

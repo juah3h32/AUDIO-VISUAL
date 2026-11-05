@@ -46,6 +46,7 @@ import {
   useEtiquetarOrientacionAlt,
   useActualizarCarpetaFotos,
   useGuardarFotos,
+  useGuardarFotosSinFondo,
   useMarcarComentariosCorregidos,
   useMarcarFotosParaBorrar,
   useMarcarEntregado,
@@ -239,6 +240,11 @@ export function RevisarEntregableDialog({
   const [progresoFotos, setProgresoFotos] = useState<{ actual: number; total: number; pct: number } | null>(null);
   const [errorFotos, setErrorFotos] = useState<string | null>(null);
   const guardarFotos = useGuardarFotos();
+  // Galeria APARTE de versiones sin fondo (PNG transparente) — ver `fotosSinFondo` en types.
+  const inputSinFondoRef = useRef<HTMLInputElement>(null);
+  const [subiendoSinFondo, setSubiendoSinFondo] = useState(false);
+  const [errorSinFondo, setErrorSinFondo] = useState<string | null>(null);
+  const guardarFotosSinFondo = useGuardarFotosSinFondo();
   // Se detiene DESPUES de que termine de subir la foto en curso (no a la mitad) — evita dejar un
   // archivo a medio subir en Drive.
   const cancelarFotosRef = useRef(false);
@@ -668,6 +674,51 @@ export function RevisarEntregableDialog({
 
   const onDetenerSubidaFotos = () => {
     cancelarFotosRef.current = true;
+  };
+
+  // Galeria aparte de versiones SIN FONDO (PNG transparente) — no toca `fotos`/portada/estado,
+  // es material adicional. Solo PNG: un JPG no puede tener transparencia real, aceptarlo
+  // igual confundiria (se veria "sin fondo" pero con fondo blanco solido adentro del archivo).
+  const onSeleccionarFotosSinFondo = async (e: ChangeEvent<HTMLInputElement>) => {
+    const archivos = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (archivos.length === 0) return;
+
+    setErrorSinFondo(null);
+    setSubiendoSinFondo(true);
+    const tareaId = iniciarTarea(
+      `${archivos.length > 1 ? `${archivos.length} fotos sin fondo` : "Foto sin fondo"}: ${entregable.nombre}`
+    );
+    try {
+      const nuevas: string[] = [];
+      for (let i = 0; i < archivos.length; i++) {
+        const subida = await subirArchivoCentralizado(archivos[i], {
+          nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre} (sin fondo ${(entregable.fotosSinFondo?.length ?? 0) + nuevas.length + 1})`,
+          nombreCarpeta: nombreProyecto ?? "Sin proyecto",
+          subcarpeta: "Fotografias sin fondo",
+          onProgress: (pct) => actualizarProgreso(tareaId, Math.round(((i + pct / 100) / archivos.length) * 100)),
+        });
+        nuevas.push(subida.previewUrl);
+      }
+      await guardarFotosSinFondo.mutateAsync({
+        id: entregable.id,
+        fotosSinFondo: [...(entregable.fotosSinFondo ?? []), ...nuevas],
+      });
+      marcarLista(tareaId);
+    } catch (err) {
+      const mensaje = mensajeErrorAuth(err);
+      setErrorSinFondo(mensaje);
+      marcarError(tareaId, mensaje);
+    } finally {
+      setSubiendoSinFondo(false);
+    }
+  };
+
+  const onEliminarFotoSinFondo = async (url: string) => {
+    await guardarFotosSinFondo.mutateAsync({
+      id: entregable.id,
+      fotosSinFondo: (entregable.fotosSinFondo ?? []).filter((f) => f !== url),
+    });
   };
 
   const onEliminarFoto = async (url: string) => {
@@ -1245,7 +1296,7 @@ export function RevisarEntregableDialog({
           Sin fotos cargadas todavia.
         </p>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {/* Con al menos una foto ya marcada, un clic en CUALQUIER otra foto la suma a la
               seleccion (ya no hace falta acertarle al iconito cada vez) — en vez de abrir la
               vista ampliada, que es lo que hace un clic normal cuando no hay nada marcado
@@ -1342,14 +1393,14 @@ export function RevisarEntregableDialog({
                     )
                   }
                   className={cn(
-                    "absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-sm transition-colors",
+                    "absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full backdrop-blur-sm transition-colors",
                     seleccionada
                       ? "bg-accent text-accent-foreground"
                       : "bg-black/50 text-white hover:bg-black/75"
                   )}
                   title="Marcar esta foto para comentar (toca varias para amarrar la misma observacion a todas)"
                 >
-                  <MessageSquarePlus className="h-5 w-5" />
+                  <MessageSquarePlus className="h-4 w-4" />
                 </button>
               )}
               {puedeEditarMaterial && (
@@ -1424,6 +1475,63 @@ export function RevisarEntregableDialog({
         )}
       </div>
       {errorFotos && <p className="text-xs text-destructive">{errorFotos}</p>}
+    </div>
+  );
+
+  // Aparte del slot principal de arriba — a veces de producto piden las dos versiones (con fondo
+  // para catalogo, transparente para usar encima de otro diseño/fondo). Solo PNG: un JPG no
+  // puede tener transparencia real.
+  const bloqueFotosSinFondo = esFoto && (puedeEditarMaterial || puedeComentar) && (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <Label>Fotos sin fondo (PNG transparente)</Label>
+      {(entregable.fotosSinFondo?.length ?? 0) > 0 && (
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+          {entregable.fotosSinFondo!.map((url) => (
+            <div
+              key={url}
+              className="group relative overflow-hidden rounded-lg ring-1 ring-border"
+              style={{ backgroundImage: "repeating-conic-gradient(#d4d4d4 0% 25%, transparent 0% 50%)", backgroundSize: "10px 10px" }}
+            >
+              <a href={url} target="_blank" rel="noreferrer" className="block aspect-square">
+                <img src={url} alt="" className="h-full w-full object-contain" />
+              </a>
+              {puedeEditarMaterial && (
+                <button
+                  type="button"
+                  onClick={() => onEliminarFotoSinFondo(url)}
+                  className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-destructive group-hover:opacity-100"
+                  title="Quitar"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {puedeEditarMaterial && (
+        <>
+          <input
+            ref={inputSinFondoRef}
+            type="file"
+            accept="image/png"
+            multiple
+            className="hidden"
+            onChange={onSeleccionarFotosSinFondo}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => inputSinFondoRef.current?.click()}
+            disabled={subiendoSinFondo}
+          >
+            <Upload className="h-4 w-4" />
+            {subiendoSinFondo ? "Subiendo..." : "Subir sin fondo (PNG)"}
+          </Button>
+        </>
+      )}
+      {errorSinFondo && <p className="text-xs text-destructive">{errorSinFondo}</p>}
     </div>
   );
 
@@ -2043,6 +2151,7 @@ export function RevisarEntregableDialog({
       )}
 
       {bloqueSubirMaterial}
+      {bloqueFotosSinFondo}
       {bloqueSubirVideo}
       {bloqueArchivosDiseno}
     </div>

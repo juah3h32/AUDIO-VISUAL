@@ -20,6 +20,7 @@ const COLUMNAS_JSON: Record<string, string> = {
   fotosParaBorrar: "fotos_para_borrar",
   materialesApoyo: "materiales_apoyo",
   archivosDiseno: "archivos_diseno",
+  fotosSinFondo: "fotos_sin_fondo",
 };
 
 /** `materiales_apoyo` guarda objetos ({id,nombre,url,fileId,esCarpeta}), no strings sueltos como
@@ -73,6 +74,7 @@ function filaAEntregable(f: Record<string, unknown>) {
     fotos: f.fotos ? parseJsonArray(f.fotos) : undefined,
     carpetaFotosUrl: f.carpeta_fotos_url ? String(f.carpeta_fotos_url) : undefined,
     fotosParaBorrar: f.fotos_para_borrar ? parseJsonArray(f.fotos_para_borrar) : undefined,
+    fotosSinFondo: f.fotos_sin_fondo ? parseJsonArray(f.fotos_sin_fondo) : undefined,
     guionId: f.guion_id ? String(f.guion_id) : undefined,
     dialogoTexto: f.dialogo_texto ? String(f.dialogo_texto) : undefined,
     materialesApoyo: parseMaterialesApoyo(f.materiales_apoyo),

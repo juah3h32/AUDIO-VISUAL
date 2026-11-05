@@ -242,6 +242,11 @@ export interface Entregable {
   /** Fotos de `fotos` marcadas para borrar (triage rapido antes de confirmar) — no se eliminan
    * solas al marcarlas, esperan a que alguien confirme con el boton "Eliminar N marcadas". */
   fotosParaBorrar?: string[];
+  /** Version SIN FONDO (PNG transparente) de alguna(s) foto(s) de `fotos` — galeria aparte, no
+   * reemplaza a la foto con fondo (de producto suelen pedirse las dos: la normal para catalogo,
+   * la transparente para usar encima de otro diseño/fondo). Sin relacion de indice con `fotos`
+   * (no es "la foto 1 sin fondo"), solo material adicional disponible cuando haga falta. */
+  fotosSinFondo?: string[];
   /** Guion (dialogo/subtitulos) ya APROBADO del que sale este video — para poder copiar texto
    * del guion directo desde el dialogo de revision, sin tener que ir a buscarlo a la pestaña de
    * Guiones. Solo tiene sentido en video (no en fotografia/diseño, que no llevan dialogo). */
