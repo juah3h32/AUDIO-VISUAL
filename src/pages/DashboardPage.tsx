@@ -193,8 +193,11 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
 
   return (
     // Sticky dentro de <main> (el que hace scroll, ver AppLayout) — pedido explicito: la frase
-    // se queda fija arriba mientras el resto de Inicio se desplaza debajo.
-    <div className="sticky top-0 z-10 bg-bg-app pb-3">
+    // se queda fija arriba mientras el resto de Inicio se desplaza debajo. `isolate` +
+    // `will-change-transform` fuerzan su propia capa de composicion — sin esto, Safari/Chrome en
+    // movil a veces "parpadean" y dejan ver un frame del contenido de abajo por encima del
+    // sticky durante el scroll. La sombra inferior remarca que lo de abajo entra POR DETRAS.
+    <div className="sticky top-0 isolate z-20 bg-bg-app pb-3 will-change-transform">
       <FraseDelDia
         frase={frase}
         nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
