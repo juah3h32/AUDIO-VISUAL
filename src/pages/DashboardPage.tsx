@@ -196,7 +196,7 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
     // sticky por la que se alcanzaba a ver el contenido de abajo asomando. `isolate` +
     // `will-change-transform` fuerzan su propia capa de composicion (evita el parpadeo de
     // Safari/Chrome movil que deja ver un frame de lo de abajo durante el scroll).
-    <div className="sticky top-0 isolate z-20 -mx-4 -mt-4 bg-bg-app px-4 pb-5 pt-4 will-change-transform sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6 sm:pb-6">
+    <div className="sticky top-0 isolate z-20 -mx-4 -mt-4 bg-bg-app px-4 pb-3 pt-4 will-change-transform sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6">
       <FraseDelDia
         frase={frase}
         nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
@@ -535,7 +535,7 @@ export function DashboardPage() {
                 <CardHeader>
                   <TituloSeccion icon={BarChart3}>Mi producción semanal</TituloSeccion>
                 </CardHeader>
-                <CardContent className="min-h-40 flex-1">
+                <CardContent className="min-h-56 flex-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={misProduccionSemanal}>
                       <CartesianGrid strokeDasharray="3 3" stroke={g.grid} vertical={false} />
@@ -709,7 +709,7 @@ export function DashboardPage() {
               <CardHeader>
                 <TituloSeccion icon={BarChart3}>Producción semanal</TituloSeccion>
               </CardHeader>
-              <CardContent className="min-h-40 flex-1">
+              <CardContent className="min-h-56 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={produccionSemanal}>
                     <CartesianGrid strokeDasharray="3 3" stroke={g.grid} vertical={false} />
