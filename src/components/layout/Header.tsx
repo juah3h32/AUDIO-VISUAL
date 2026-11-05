@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Bell, ChevronDown, LogOut, UserCog, Sun, Moon, Clapperboard } from "lucide-react";
+import { Bell, ChevronDown, LogOut, UserCog, Sun, Moon, Clapperboard, Gauge } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNotificaciones } from "@/hooks/useNotificaciones";
+import { useEntregables } from "@/hooks/useCatalogos";
 import { useTema } from "@/hooks/useTema";
 import { ROLE_LABELS } from "@/lib/roles";
+import { cargaDeTrabajo, entregablesPorResponsable } from "@/lib/rendimiento";
 import { DEMO_USUARIOS } from "@/data/demoData";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 function iniciales(nombre: string) {
   return nombre
@@ -103,6 +106,37 @@ function TemaToggle() {
   );
 }
 
+/** Carga de trabajo del colaborador, fija en el Header en vez de hasta abajo de Inicio — se ve
+ * en cualquier seccion, no solo en Inicio. Mismo calculo en vivo que Inicio/Equipo
+ * (`cargaDeTrabajo`), nunca el campo manual `colaboradores.cargaReal`. Solo colaborador
+ * audiovisual (lider/superadmin ya ven la carga de todo el equipo en Inicio/Equipo). */
+function MiCargaTrabajo() {
+  const { usuario } = useAuth();
+  const { data: entregables = [] } = useEntregables();
+  const navigate = useNavigate();
+
+  if (usuario?.rol !== "colaborador_audiovisual") return null;
+
+  const porResponsable = entregablesPorResponsable(entregables);
+  const carga = cargaDeTrabajo(porResponsable.get(usuario.id) ?? []);
+  const color = carga.nivel === "saturado" ? "bg-destructive" : carga.nivel === "ocupado" ? "bg-amber-500" : "bg-accent-dato";
+
+  return (
+    <button
+      type="button"
+      onClick={() => navigate("/entregables")}
+      className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-2 py-1.5 hover:bg-bg-secondary focus:outline-none sm:gap-2 sm:px-3"
+      title={`Mi carga de trabajo: ${carga.activas} activas, ${carga.atrasadas} atrasadas`}
+    >
+      <Gauge className="h-4 w-4 shrink-0 text-text-primary/70" />
+      <span className="text-xs font-bold">{carga.porcentaje}%</span>
+      <div className="hidden h-1.5 w-12 overflow-hidden rounded-full bg-bg-secondary sm:block">
+        <div className={cn("h-full rounded-full transition-all", color)} style={{ width: `${Math.min(100, carga.porcentaje)}%` }} />
+      </div>
+    </button>
+  );
+}
+
 export function Header() {
   const { usuario, esModoDemo, cambiarUsuarioDemo, logout } = useAuth();
 
@@ -127,6 +161,8 @@ export function Header() {
           Modo demo
         </Badge>
       )}
+
+      <MiCargaTrabajo />
 
       <TemaToggle />
 

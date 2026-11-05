@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { BottomNav } from "./BottomNav";
+import { TopLoadingBar } from "./TopLoadingBar";
 import { CargandoPagina } from "@/components/CargandoPagina";
 
 export function AppLayout() {
@@ -10,6 +11,7 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen bg-bg-app">
+      <TopLoadingBar />
       <Sidebar abierto={menuAbierto} onCerrar={() => setMenuAbierto(false)} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header />

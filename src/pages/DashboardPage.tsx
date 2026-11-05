@@ -42,7 +42,6 @@ import { esGestorRequisiciones, puedeVerMetricasGlobales } from "@/lib/roles";
 import { useRequisiciones } from "@/hooks/useRequisiciones";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useEntregables, useSalidas, useUsuarios } from "@/hooks/useCatalogos";
-import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
 import { useGuiones } from "@/hooks/useGuiones";
 import { useConfiguracion, useActualizarConfiguracion } from "@/hooks/useConfiguracion";
 import { subirArchivoCentralizado } from "@/services/driveService";
@@ -229,7 +228,6 @@ export function DashboardPage() {
     isError: errorProyectos,
     refetch: refetchProyectos,
   } = useProyectos();
-  const { data: colaboradores = [] } = useColaboradoresDelEquipo();
   const {
     data: entregables = [],
     isLoading: cargandoEntregables,
@@ -614,25 +612,6 @@ export function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
-
-            <Card>
-              <CardHeader>
-                <TituloSeccion icon={Users}>Mi carga de trabajo</TituloSeccion>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {colaboradores
-                  .filter((c) => c.id === usuario.id)
-                  .map((c) => (
-                    <div key={c.id} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium">{c.nombre}</span>
-                        <span className="text-muted-foreground">{c.cargaReal}%</span>
-                      </div>
-                      <Progress value={c.cargaReal} />
-                    </div>
-                  ))}
-              </CardContent>
-            </Card>
           </>
         )}
       </div>
