@@ -37,6 +37,7 @@ import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
 import { useGuiones } from "@/hooks/useGuiones";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { TablaRequisiciones } from "@/components/dashboard/TablaRequisiciones";
+import { FraseDelDia } from "@/components/dashboard/FraseDelDia";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -202,13 +203,12 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <PageHeader
-          title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-          description={frase}
-        >
+        <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
           <DemoBadge />
           <NuevaRequisicionDialog />
         </PageHeader>
+
+        <FraseDelDia frase={frase} />
 
         {cargandoRequisiciones ? (
           <LoadingState label="Cargando tus requisiciones…" />
@@ -258,12 +258,11 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <PageHeader
-          title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-          description={frase}
-        >
+        <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
           <DemoBadge />
         </PageHeader>
+
+        <FraseDelDia frase={frase} />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -443,12 +442,11 @@ export function DashboardPage() {
 
     return (
       <div className="space-y-6">
-        <PageHeader
-          title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-          description={frase}
-        >
+        <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
           <DemoBadge />
         </PageHeader>
+
+        <FraseDelDia frase={frase} />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -576,12 +574,11 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}
-        description={frase}
-      >
+      <PageHeader title={`¡Hola, ${usuario?.nombre?.split(" ")[0] ?? "de nuevo"}!`}>
         <DemoBadge />
       </PageHeader>
+
+      <FraseDelDia frase={frase} />
 
       {cargandoDashboard ? (
         <LoadingState label="Cargando panel…" />
