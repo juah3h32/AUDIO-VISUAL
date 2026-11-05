@@ -30,17 +30,14 @@ function Encabezado({ kicker, titulo, generado }: { kicker: string; titulo: stri
         <img src="/logo-go.png" alt="GO" className="h-11 w-11 shrink-0 object-contain" />
         <div className="h-9 w-px shrink-0" style={{ backgroundColor: C.borde }} />
         <div className="min-w-0">
+          {/* Tailwind resetea el margin de <p>/<h2> a 0 (preflight) — sin un espacio EXPLICITO
+              entre las dos lineas, el titulo grande (24px) quedaba pegado directo contra la
+              linea chica de arriba y sus letras altas se montaban encima de ella. `mt-1.5` da
+              una separacion real que no depende de a que line-height decida el navegador. */}
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: C.suave }}>
             {kicker}
           </p>
-          {/* `leading-[1.15]` (no leading-tight de Tailwind, que en algunos navegadores calcula
-              distinto a 1.1 real) y padding-bottom propio: con texto largo ("Paso N — Titulo
-              largo") la descendente de letras como "p"/"g" se alcanzaba a recortar contra el
-              borde inferior del encabezado — este es el bug que se veia como "el texto choca
-              con el titulo". */}
-          <h2 className="truncate pb-0.5 text-[24px] font-bold tracking-tight" style={{ lineHeight: 1.15 }}>
-            {titulo}
-          </h2>
+          <h2 className="mt-1.5 truncate text-[24px] font-bold leading-snug tracking-tight">{titulo}</h2>
         </div>
       </div>
       <div className="shrink-0 text-right text-[11px]" style={{ color: C.suave }}>
@@ -233,9 +230,15 @@ export const PASOS_GUIA: PasoGuia[] = [
         </p>
         <LinkDestacado etiqueta="Carpeta del logo de cierre (Drive)" url="https://drive.google.com/drive/folders/1Ch4GikaERtHlDquAc_n3C2A70eYkOlhs" />
         <p className="text-[13px] leading-snug">
-          Terminado el montaje (voz, música, subtítulos y cortinilla ya integrados), el video se entrega a{" "}
-          <b>Community</b>, quien lo usa/publica. Con esto se cierra el ciclo completo de la cápsula.
+          Terminado el montaje, el video se entrega a <b>Community</b>, quien lo usa/publica. Con esto se cierra
+          el ciclo completo de la cápsula.
         </p>
+        <div className="grid grid-cols-4 gap-2.5">
+          <Dato label="Voz" valor="Integrada (ElevenLabs)" />
+          <Dato label="Música" valor="Integrada (3 clásicas)" />
+          <Dato label="Subtítulos" valor="ES mayúsculas + EN minúsculas" />
+          <Dato label="Cortinilla" valor="Al final del video" />
+        </div>
       </>
     ),
   },
