@@ -48,6 +48,13 @@ export default defineConfig(({ mode }) => {
                     globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
                     navigateFallback: "/index.html",
                     navigateFallbackDenylist: [/^\/api\//],
+                    // Sin esto, un deploy nuevo se queda "esperando" en segundo plano hasta que
+                    // se cierren TODAS las pestañas viejas — quien prueba un cambio recien
+                    // publicado en una pestaña que ya tenia abierta sigue viendo la version
+                    // vieja. Con esto, la pestaña abierta toma el bundle nuevo en el siguiente
+                    // refresh (no hace falta cerrarla).
+                    skipWaiting: true,
+                    clientsClaim: true,
                 },
             }),
         ],
