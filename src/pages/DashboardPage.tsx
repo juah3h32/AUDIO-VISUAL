@@ -196,7 +196,7 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
     // sticky por la que se alcanzaba a ver el contenido de abajo asomando. `isolate` +
     // `will-change-transform` fuerzan su propia capa de composicion (evita el parpadeo de
     // Safari/Chrome movil que deja ver un frame de lo de abajo durante el scroll).
-    <div className="sticky top-0 isolate z-20 -mx-4 -mt-4 bg-bg-app px-4 pb-4 pt-4 will-change-transform sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6 sm:pb-5">
+    <div className="sticky top-0 isolate z-20 -mx-4 -mt-4 bg-bg-app px-4 pb-5 pt-4 will-change-transform sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6 sm:pb-6">
       <FraseDelDia
         frase={frase}
         nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
@@ -271,7 +271,7 @@ export function DashboardPage() {
     const rechazadas = misRequisiciones.filter((r) => r.estado === "rechazada").length;
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <FraseDelDiaSeccion frase={frase} />
 
         {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
@@ -327,7 +327,7 @@ export function DashboardPage() {
     const aMostrar = requisicionesPendientes.length > 0 ? requisicionesPendientes : requisiciones.slice(0, 5);
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <FraseDelDiaSeccion frase={frase} />
 
         {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
@@ -507,7 +507,7 @@ export function DashboardPage() {
     const miTipoEntregables = tipoEntregablesDelMes(misEntregables, ahora, g);
 
     return (
-      <div className="space-y-5">
+      <div className="space-y-6">
         <FraseDelDiaSeccion frase={frase} />
 
         {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
@@ -597,7 +597,7 @@ export function DashboardPage() {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <FraseDelDiaSeccion frase={frase} />
 
       {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
