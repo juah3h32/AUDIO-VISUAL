@@ -27,7 +27,6 @@ import {
   Film,
   ScrollText,
   Wrench,
-  MapPin,
   Target,
   BarChart3,
   PieChart as PieChartIcon,
@@ -55,7 +54,6 @@ import { Progress } from "@/components/ui/progress";
 import { DemoBadge } from "@/components/DemoBadge";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { NuevaRequisicionDialog } from "@/components/requisiciones/NuevaRequisicionDialog";
 import {
   ESTADO_REQUISICION_BADGE,
@@ -193,7 +191,7 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
   return (
     // Sticky dentro de <main> (el que hace scroll, ver AppLayout) — pedido explicito: la frase
     // se queda fija arriba mientras el resto de Inicio se desplaza debajo. Es a proposito el
-    // PRIMER elemento de la pagina (antes del PageHeader) para poder cancelar el padding propio
+    // PRIMER elemento de la pagina para poder cancelar el padding propio
     // de <main> con margen negativo — si no, quedaba una rendija del padding de <main> arriba del
     // sticky por la que se alcanzaba a ver el contenido de abajo asomando. `isolate` +
     // `will-change-transform` fuerzan su propia capa de composicion (evita el parpadeo de
@@ -273,13 +271,14 @@ export function DashboardPage() {
     const rechazadas = misRequisiciones.filter((r) => r.estado === "rechazada").length;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <FraseDelDiaSeccion frase={frase} />
 
-        <PageHeader title="Inicio">
+        {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <DemoBadge />
           <NuevaRequisicionDialog />
-        </PageHeader>
+        </div>
 
         {cargandoRequisiciones ? (
           <LoadingState label="Cargando tus requisiciones…" />
@@ -328,12 +327,11 @@ export function DashboardPage() {
     const aMostrar = requisicionesPendientes.length > 0 ? requisicionesPendientes : requisiciones.slice(0, 5);
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <FraseDelDiaSeccion frase={frase} />
 
-        <PageHeader title="Inicio">
-          <DemoBadge />
-        </PageHeader>
+        {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
+        <DemoBadge />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -507,18 +505,13 @@ export function DashboardPage() {
       : 0;
     const misProduccionSemanal = calcularProduccionSemanal(misEntregables, [], ahora);
     const miTipoEntregables = tipoEntregablesDelMes(misEntregables, ahora, g);
-    const misProximasSalidas = salidas
-      .filter((s) => s.personalAsignado.includes(usuario.id) && s.fecha >= hoyIso)
-      .sort((a, b) => (a.fecha < b.fecha ? -1 : 1))
-      .slice(0, 5);
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <FraseDelDiaSeccion frase={frase} />
 
-        <PageHeader title="Inicio">
-          <DemoBadge />
-        </PageHeader>
+        {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
+        <DemoBadge />
 
         {cargandoDashboard ? (
           <LoadingState label="Cargando panel…" />
@@ -542,7 +535,7 @@ export function DashboardPage() {
                 <CardHeader>
                   <TituloSeccion icon={BarChart3}>Mi producción semanal</TituloSeccion>
                 </CardHeader>
-                <CardContent className="min-h-56 flex-1">
+                <CardContent className="min-h-40 flex-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={misProduccionSemanal}>
                       <CartesianGrid strokeDasharray="3 3" stroke={g.grid} vertical={false} />
@@ -565,53 +558,29 @@ export function DashboardPage() {
               </Card>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {misCorrecciones.length > 0 && (
-                <Card className="lg:col-span-2">
-                  <CardHeader>
-                    <TituloSeccion icon={Wrench}>Correcciones pendientes</TituloSeccion>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {misCorrecciones.map((e) => (
-                      <div key={e.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium">{e.nombre}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {CATEGORIA_CONTENIDO_LABELS[e.tipo]}
-                            {proyectoDe(e.proyectoId) ? ` · ${proyectoDe(e.proyectoId)}` : ""}
-                          </p>
-                        </div>
-                        <Badge variant="warning" className="shrink-0 text-[10px]">
-                          Corregir
-                        </Badge>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              )}
-
-              <Card className={misCorrecciones.length > 0 ? undefined : "lg:col-span-3"}>
+            {misCorrecciones.length > 0 && (
+              <Card>
                 <CardHeader>
-                  <TituloSeccion icon={MapPin}>Mis próximas salidas</TituloSeccion>
+                  <TituloSeccion icon={Wrench}>Correcciones pendientes</TituloSeccion>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {misProximasSalidas.length === 0 && (
-                    <p className="py-6 text-center text-sm text-muted-foreground">Sin salidas próximas asignadas.</p>
-                  )}
-                  {misProximasSalidas.map((s) => (
-                    <div key={s.id} className="flex items-start gap-2 text-sm">
-                      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium">{s.planta}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatFecha(s.fecha)} · {s.horaSalida}
+                  {misCorrecciones.map((e) => (
+                    <div key={e.id} className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-2 text-sm">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{e.nombre}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {CATEGORIA_CONTENIDO_LABELS[e.tipo]}
+                          {proyectoDe(e.proyectoId) ? ` · ${proyectoDe(e.proyectoId)}` : ""}
                         </p>
                       </div>
+                      <Badge variant="warning" className="shrink-0 text-[10px]">
+                        Corregir
+                      </Badge>
                     </div>
                   ))}
                 </CardContent>
               </Card>
-            </div>
+            )}
           </>
         )}
       </div>
@@ -628,12 +597,11 @@ export function DashboardPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <FraseDelDiaSeccion frase={frase} />
 
-      <PageHeader title="Inicio">
-        <DemoBadge />
-      </PageHeader>
+      {/* Sin titulo "Inicio" — ya esta el mismo texto en el item activo del menu izquierdo. */}
+      <DemoBadge />
 
       {cargandoDashboard ? (
         <LoadingState label="Cargando panel…" />
@@ -741,7 +709,7 @@ export function DashboardPage() {
               <CardHeader>
                 <TituloSeccion icon={BarChart3}>Producción semanal</TituloSeccion>
               </CardHeader>
-              <CardContent className="min-h-56 flex-1">
+              <CardContent className="min-h-40 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={produccionSemanal}>
                     <CartesianGrid strokeDasharray="3 3" stroke={g.grid} vertical={false} />

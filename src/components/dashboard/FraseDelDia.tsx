@@ -35,7 +35,7 @@ export function FraseDelDia({
   const foto = fotoId ? `/api/drive-thumbnail?id=${encodeURIComponent(fotoId)}&size=1200` : FOTO_PORTADA_DEFECTO;
 
   return (
-    <Card className="relative min-h-[14rem] overflow-hidden border-none bg-[#111827] shadow-[0_12px_20px_-10px_rgba(0,0,0,0.45)] sm:min-h-[17rem]">
+    <Card className="relative min-h-[9rem] overflow-hidden border-none bg-[#111827] shadow-[0_12px_20px_-10px_rgba(0,0,0,0.45)] sm:min-h-[11rem]">
       {!(!fotoId && fotoPortadaCayo) && (
         <img
           key={foto}
@@ -49,7 +49,7 @@ export function FraseDelDia({
           que tan clara u ocupada venga la foto que suba superadmin. */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/10" />
 
-      <div className="relative flex min-h-[14rem] flex-col justify-end gap-3 p-5 sm:min-h-[17rem] sm:p-7">
+      <div className="relative flex min-h-[9rem] flex-col justify-end gap-2 p-4 sm:min-h-[11rem] sm:gap-3 sm:p-5">
         <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur-sm">
           <Quote className="h-3.5 w-3.5 text-accent-dato" /> Frase del día
         </span>
