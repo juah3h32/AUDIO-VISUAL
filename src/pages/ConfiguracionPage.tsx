@@ -19,14 +19,14 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { InvitarUsuarioDialog } from "@/components/configuracion/InvitarUsuarioDialog";
-import { DOC_H, DOC_W, GuiaProduccionDoc } from "@/components/configuracion/GuiaProduccionDoc";
-import { descargarNodoComoPdf } from "@/lib/pdf";
+import { PASOS_GUIA, SLIDE_GUIA_H, SLIDE_GUIA_W, SlideCapsula, SlidePortada } from "@/components/configuracion/GuiaProduccionDoc";
+import { descargarMultiplesNodosComoPdf } from "@/lib/pdf";
 import { formatFecha } from "@/lib/utils";
 import type { GestorRequisicionesPermisos } from "@/types";
 
-/** Vista previa a escala del documento (tamaño fijo DOC_W x DOC_H) dentro de la tarjeta — mismo
- * truco que VistaPreviaEscalada.tsx (reportes), pero generico en ancho/alto en vez de atado al
- * slide 16:9: aqui el documento es vertical y mas alto que ancho. */
+/** Vista previa a escala de UNA diapositiva (tamaño fijo) dentro de la tarjeta — mismo truco que
+ * VistaPreviaEscalada.tsx (reportes), pero generico en ancho/alto para reusarlo con miniaturas
+ * chicas (varias diapositivas en fila) en vez de una sola vista previa grande. */
 function VistaPreviaDoc({ ancho, alto, children }: { ancho: number; alto: number; children: React.ReactNode }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const [escala, setEscala] = useState(1);
@@ -82,16 +82,30 @@ export function ConfiguracionPage() {
   const [confirmarReset, setConfirmarReset] = useState(false);
   const [reseteando, setReseteando] = useState(false);
   const [errorReset, setErrorReset] = useState<string | null>(null);
-  const guiaRef = useRef<HTMLDivElement>(null);
+  // Un ref por diapositiva (portada + un paso por cada capsula) — se llenan con callback refs
+  // en el render (cantidad fija, no hace falta un hook por cada una).
+  const slidesRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [descargandoGuia, setDescargandoGuia] = useState(false);
   const [errorGuia, setErrorGuia] = useState<string | null>(null);
+  // El MD de tono vive en public/ de este mismo sitio — se arma el link absoluto con el origen
+  // actual (funciona igual en produccion, preview o si el dominio cambia algun dia).
+  const urlMd = `${window.location.origin}/Prompt_Maestro_Guiones_Grupo_Ortiz.md`;
 
   const onDescargarGuia = async () => {
-    if (!guiaRef.current) return;
+    const nodos = slidesRefs.current.filter((n): n is HTMLDivElement => n !== null);
+    if (nodos.length === 0) return;
     setDescargandoGuia(true);
     setErrorGuia(null);
     try {
-      await descargarNodoComoPdf(guiaRef.current, "guia-proceso-produccion-capsulas.pdf", "#FFFFFF", DOC_W, DOC_H, "portrait");
+      await descargarMultiplesNodosComoPdf(
+        nodos,
+        "guia-proceso-produccion-capsulas.pdf",
+        "#FFFFFF",
+        SLIDE_GUIA_W,
+        SLIDE_GUIA_H,
+        "landscape",
+        3 // maxima calidad pedida — pixelRatio 3 en vez del 2 normal de Reportes
+      );
     } catch (e) {
       setErrorGuia(e instanceof Error ? e.message : "No se pudo generar el PDF.");
     } finally {
@@ -270,14 +284,38 @@ export function ConfiguracionPage() {
               <BookOpen className="h-5 w-5" /> Guía del proceso de producción (cápsulas)
             </CardTitle>
             <CardDescription>
-              Documento de referencia para quien se incorpora al equipo: guion y tono, aprobación,
-              voz y música, montaje/subtítulos, y cierre/entrega. Exportable en PDF.
+              Presentación de referencia para quien se incorpora al equipo: una diapositiva por paso
+              (guion y tono, aprobación, voz y música, montaje/subtítulos, cierre/entrega). Exportable
+              en PDF horizontal, máxima calidad.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <VistaPreviaDoc ancho={DOC_W} alto={DOC_H}>
-              <GuiaProduccionDoc ref={guiaRef} generado={formatFecha(new Date().toISOString())} />
-            </VistaPreviaDoc>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              <div className="shrink-0" style={{ width: 220 }}>
+                <VistaPreviaDoc ancho={SLIDE_GUIA_W} alto={SLIDE_GUIA_H}>
+                  <SlidePortada
+                    ref={(el) => {
+                      slidesRefs.current[0] = el;
+                    }}
+                    generado={formatFecha(new Date().toISOString())}
+                  />
+                </VistaPreviaDoc>
+              </div>
+              {PASOS_GUIA.map((paso, i) => (
+                <div key={paso.numero} className="shrink-0" style={{ width: 220 }}>
+                  <VistaPreviaDoc ancho={SLIDE_GUIA_W} alto={SLIDE_GUIA_H}>
+                    <SlideCapsula
+                      ref={(el) => {
+                        slidesRefs.current[i + 1] = el;
+                      }}
+                      paso={paso}
+                      generado={formatFecha(new Date().toISOString())}
+                      urlMd={urlMd}
+                    />
+                  </VistaPreviaDoc>
+                </div>
+              ))}
+            </div>
           </CardContent>
           <CardFooter className="flex-col items-start gap-2">
             <Button onClick={onDescargarGuia} disabled={descargandoGuia}>
