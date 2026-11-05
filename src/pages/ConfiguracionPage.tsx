@@ -20,7 +20,7 @@ import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { InvitarUsuarioDialog } from "@/components/configuracion/InvitarUsuarioDialog";
 import { PASOS_GUIA, SLIDE_GUIA_H, SLIDE_GUIA_W, SlideCapsula, SlidePortada } from "@/components/configuracion/GuiaProduccionDoc";
-import { descargarMultiplesNodosComoPdf } from "@/lib/pdf";
+import { descargarNodoComoPdf } from "@/lib/pdf";
 import { formatFecha } from "@/lib/utils";
 import type { GestorRequisicionesPermisos } from "@/types";
 
@@ -85,21 +85,24 @@ export function ConfiguracionPage() {
   // Un ref por diapositiva (portada + un paso por cada capsula) — se llenan con callback refs
   // en el render (cantidad fija, no hace falta un hook por cada una).
   const slidesRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const [descargandoGuia, setDescargandoGuia] = useState(false);
-  const [errorGuia, setErrorGuia] = useState<string | null>(null);
-  // El MD de tono vive en public/ de este mismo sitio — se arma el link absoluto con el origen
-  // actual (funciona igual en produccion, preview o si el dominio cambia algun dia).
-  const urlMd = `${window.location.origin}/Prompt_Maestro_Guiones_Grupo_Ortiz.md`;
+  // Descarga INDIVIDUAL por diapositiva (no una sola combinada) — estado propio por indice.
+  const [descargandoIdx, setDescargandoIdx] = useState<number | null>(null);
+  const [errorGuiaIdx, setErrorGuiaIdx] = useState<{ idx: number; mensaje: string } | null>(null);
+  // Carpeta de Drive con el prompt maestro de tono — la persona puede abrirla directo, no solo
+  // leer el nombre del archivo.
+  const urlMd = "https://drive.google.com/drive/folders/1ci_PuRjcsSbQE78mI0d4kkmOx2NR7rk7";
 
-  const onDescargarGuia = async () => {
-    const nodos = slidesRefs.current.filter((n): n is HTMLDivElement => n !== null);
-    if (nodos.length === 0) return;
-    setDescargandoGuia(true);
-    setErrorGuia(null);
+  const nombresSlides = ["portada", ...PASOS_GUIA.map((p) => `paso-${p.numero}`)];
+
+  const onDescargarSlide = async (idx: number) => {
+    const nodo = slidesRefs.current[idx];
+    if (!nodo) return;
+    setDescargandoIdx(idx);
+    setErrorGuiaIdx(null);
     try {
-      await descargarMultiplesNodosComoPdf(
-        nodos,
-        "guia-proceso-produccion-capsulas.pdf",
+      await descargarNodoComoPdf(
+        nodo,
+        `guia-produccion-${nombresSlides[idx]}.pdf`,
         "#FFFFFF",
         SLIDE_GUIA_W,
         SLIDE_GUIA_H,
@@ -107,9 +110,9 @@ export function ConfiguracionPage() {
         3 // maxima calidad pedida — pixelRatio 3 en vez del 2 normal de Reportes
       );
     } catch (e) {
-      setErrorGuia(e instanceof Error ? e.message : "No se pudo generar el PDF.");
+      setErrorGuiaIdx({ idx, mensaje: e instanceof Error ? e.message : "No se pudo generar el PDF." });
     } finally {
-      setDescargandoGuia(false);
+      setDescargandoIdx(null);
     }
   };
 
@@ -291,7 +294,7 @@ export function ConfiguracionPage() {
           </CardHeader>
           <CardContent>
             <div className="flex gap-3 overflow-x-auto pb-1">
-              <div className="shrink-0" style={{ width: 220 }}>
+              <div className="shrink-0 space-y-2" style={{ width: 220 }}>
                 <VistaPreviaDoc ancho={SLIDE_GUIA_W} alto={SLIDE_GUIA_H}>
                   <SlidePortada
                     ref={(el) => {
@@ -300,9 +303,22 @@ export function ConfiguracionPage() {
                     generado={formatFecha(new Date().toISOString())}
                   />
                 </VistaPreviaDoc>
+                <p className="truncate text-xs font-medium">Portada</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full gap-1.5 text-xs"
+                  onClick={() => onDescargarSlide(0)}
+                  disabled={descargandoIdx !== null}
+                >
+                  {descargandoIdx === 0 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                  {descargandoIdx === 0 ? "Generando..." : "Descargar PDF"}
+                </Button>
+                {errorGuiaIdx?.idx === 0 && <p className="text-[11px] text-destructive">{errorGuiaIdx.mensaje}</p>}
               </div>
               {PASOS_GUIA.map((paso, i) => (
-                <div key={paso.numero} className="shrink-0" style={{ width: 220 }}>
+                <div key={paso.numero} className="shrink-0 space-y-2" style={{ width: 220 }}>
                   <VistaPreviaDoc ancho={SLIDE_GUIA_W} alto={SLIDE_GUIA_H}>
                     <SlideCapsula
                       ref={(el) => {
@@ -313,17 +329,25 @@ export function ConfiguracionPage() {
                       urlMd={urlMd}
                     />
                   </VistaPreviaDoc>
+                  <p className="truncate text-xs font-medium">
+                    Paso {paso.numero} — {paso.titulo}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-1.5 text-xs"
+                    onClick={() => onDescargarSlide(i + 1)}
+                    disabled={descargandoIdx !== null}
+                  >
+                    {descargandoIdx === i + 1 ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                    {descargandoIdx === i + 1 ? "Generando..." : "Descargar PDF"}
+                  </Button>
+                  {errorGuiaIdx?.idx === i + 1 && <p className="text-[11px] text-destructive">{errorGuiaIdx.mensaje}</p>}
                 </div>
               ))}
             </div>
           </CardContent>
-          <CardFooter className="flex-col items-start gap-2">
-            <Button onClick={onDescargarGuia} disabled={descargandoGuia}>
-              {descargandoGuia ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
-              {descargandoGuia ? "Generando..." : "Descargar PDF"}
-            </Button>
-            {errorGuia && <p className="text-xs text-destructive">{errorGuia}</p>}
-          </CardFooter>
         </Card>
       )}
 
