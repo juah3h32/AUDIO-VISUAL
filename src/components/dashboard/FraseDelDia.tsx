@@ -1,6 +1,10 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Camera, Clapperboard, Loader2, Quote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+
+/** Foto de portada de fabrica (public/portada-inicio.jpg) — se ve hasta que superadmin suba una
+ * propia a Drive (`fotoId`). Si esa carga a Drive algun dia falla, cae al icono de clapperboard. */
+const FOTO_PORTADA_DEFECTO = "/portada-inicio.jpg";
 
 /** Banner fijo de Inicio — nombre + frase del dia (`fraseDelDia()` en lib/frases.ts) + foto a la
  * derecha. La foto es un fileId de Drive guardado en la tabla `configuracion` (clave
@@ -23,6 +27,7 @@ export function FraseDelDia({
   errorFoto?: string | null;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [fotoPortadaCayo, setFotoPortadaCayo] = useState(false);
 
   return (
     <Card className="relative overflow-hidden border-none bg-gradient-to-br from-accent-dato/15 via-accent-dato/5 to-transparent">
@@ -45,6 +50,13 @@ export function FraseDelDia({
               src={`/api/drive-thumbnail?id=${encodeURIComponent(fotoId)}&size=600`}
               alt=""
               className="h-full w-full object-cover"
+            />
+          ) : !fotoPortadaCayo ? (
+            <img
+              src={FOTO_PORTADA_DEFECTO}
+              alt=""
+              className="h-full w-full object-cover"
+              onError={() => setFotoPortadaCayo(true)}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
