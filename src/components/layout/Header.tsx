@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { Bell, ChevronDown, LogOut, UserCog, Sun, Moon, Menu, Clapperboard } from "lucide-react";
+import { Bell, ChevronDown, LogOut, UserCog, Sun, Moon, Clapperboard } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useNotificaciones } from "@/hooks/useNotificaciones";
 import { useTema } from "@/hooks/useTema";
@@ -103,23 +103,16 @@ function TemaToggle() {
   );
 }
 
-export function Header({ onAbrirMenu }: { onAbrirMenu: () => void }) {
+export function Header() {
   const { usuario, esModoDemo, cambiarUsuarioDemo, logout } = useAuth();
 
   return (
     // min-h (no h fija) + padding-top con env(safe-area-inset-top): instalada en iOS, el status
     // bar/notch reserva su propio espacio ARRIBA de la fila de iconos en vez de taparla — con
     // una altura fija el padding solo la encogeria. En navegador normal el inset es 0, sin cambio.
+    // Sin boton de hamburguesa: en movil la navegacion vive en BottomNav.tsx (abajo), que abre el
+    // mismo cajon que antes disparaba este boton.
     <header className="flex min-h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-3 pt-[env(safe-area-inset-top)] sm:gap-3 sm:px-6">
-      <button
-        type="button"
-        onClick={onAbrirMenu}
-        className="shrink-0 rounded-md p-2 hover:bg-bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent lg:hidden"
-        aria-label="Abrir menú"
-      >
-        <Menu className="h-5 w-5 text-text-primary/70" />
-      </button>
-
       <div className="flex min-w-0 flex-1 items-center gap-2 lg:hidden">
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent">
           <Clapperboard className="h-4 w-4 text-accent-foreground" />
