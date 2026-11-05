@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, KeyRound, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, BookOpen, FileDown, KeyRound, Loader2, Trash2 } from "lucide-react";
 import {
   useActualizarGestorRequisiciones,
   useActualizarRolUsuario,
@@ -19,7 +19,32 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { InvitarUsuarioDialog } from "@/components/configuracion/InvitarUsuarioDialog";
+import { DOC_H, DOC_W, GuiaProduccionDoc } from "@/components/configuracion/GuiaProduccionDoc";
+import { descargarNodoComoPdf } from "@/lib/pdf";
+import { formatFecha } from "@/lib/utils";
 import type { GestorRequisicionesPermisos } from "@/types";
+
+/** Vista previa a escala del documento (tamaño fijo DOC_W x DOC_H) dentro de la tarjeta — mismo
+ * truco que VistaPreviaEscalada.tsx (reportes), pero generico en ancho/alto en vez de atado al
+ * slide 16:9: aqui el documento es vertical y mas alto que ancho. */
+function VistaPreviaDoc({ ancho, alto, children }: { ancho: number; alto: number; children: React.ReactNode }) {
+  const contenedor = useRef<HTMLDivElement>(null);
+  const [escala, setEscala] = useState(1);
+
+  useEffect(() => {
+    const el = contenedor.current;
+    if (!el) return;
+    const obs = new ResizeObserver(([entrada]) => setEscala(Math.min(1, entrada.contentRect.width / ancho)));
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [ancho]);
+
+  return (
+    <div ref={contenedor} className="w-full overflow-hidden rounded-lg border border-border" style={{ height: alto * escala }}>
+      <div style={{ transform: `scale(${escala})`, transformOrigin: "top left", width: ancho }}>{children}</div>
+    </div>
+  );
+}
 
 const PERMISO_LABELS: Record<keyof Omit<GestorRequisicionesPermisos, "activo">, string> = {
   crearEnNombreDeTerceros: "Crear requisiciones en nombre de terceros",
@@ -57,6 +82,22 @@ export function ConfiguracionPage() {
   const [confirmarReset, setConfirmarReset] = useState(false);
   const [reseteando, setReseteando] = useState(false);
   const [errorReset, setErrorReset] = useState<string | null>(null);
+  const guiaRef = useRef<HTMLDivElement>(null);
+  const [descargandoGuia, setDescargandoGuia] = useState(false);
+  const [errorGuia, setErrorGuia] = useState<string | null>(null);
+
+  const onDescargarGuia = async () => {
+    if (!guiaRef.current) return;
+    setDescargandoGuia(true);
+    setErrorGuia(null);
+    try {
+      await descargarNodoComoPdf(guiaRef.current, "guia-proceso-produccion-capsulas.pdf", "#FFFFFF", DOC_W, DOC_H, "portrait");
+    } catch (e) {
+      setErrorGuia(e instanceof Error ? e.message : "No se pudo generar el PDF.");
+    } finally {
+      setDescargandoGuia(false);
+    }
+  };
 
   const onVaciarTodo = async () => {
     setReseteando(true);
@@ -218,6 +259,32 @@ export function ConfiguracionPage() {
             <Button onClick={guardarPermisos} disabled={actualizarGestor.isPending}>
               {actualizarGestor.isPending ? "Guardando..." : "Guardar cambios"}
             </Button>
+          </CardFooter>
+        </Card>
+      )}
+
+      {usuarioActual?.rol === "superadmin" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" /> Guía del proceso de producción (cápsulas)
+            </CardTitle>
+            <CardDescription>
+              Documento de referencia para quien se incorpora al equipo: guion y tono, aprobación,
+              voz y música, montaje/subtítulos, y cierre/entrega. Exportable en PDF.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VistaPreviaDoc ancho={DOC_W} alto={DOC_H}>
+              <GuiaProduccionDoc ref={guiaRef} generado={formatFecha(new Date().toISOString())} />
+            </VistaPreviaDoc>
+          </CardContent>
+          <CardFooter className="flex-col items-start gap-2">
+            <Button onClick={onDescargarGuia} disabled={descargandoGuia}>
+              {descargandoGuia ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              {descargandoGuia ? "Generando..." : "Descargar PDF"}
+            </Button>
+            {errorGuia && <p className="text-xs text-destructive">{errorGuia}</p>}
           </CardFooter>
         </Card>
       )}
