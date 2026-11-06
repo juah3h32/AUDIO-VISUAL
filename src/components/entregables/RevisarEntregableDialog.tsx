@@ -520,6 +520,13 @@ export function RevisarEntregableDialog({
       const sinEsteSubtipo = (entregable.archivosDiseno ?? []).filter((a) => a.subtipo !== subtipo);
       const nuevo: ArchivoDiseno = { id: subido.id, nombre: file.name, url: subido.viewUrl, fileId: subido.id, subtipo };
       await actualizarArchivosDiseno.mutateAsync({ id: entregable.id, archivosDiseno: [...sinEsteSubtipo, nuevo] });
+      // Si nadie subio nada arriba en "Subir diseño a Drive" (vista previa principal), este
+      // archivo final YA ES el material — sin esto, alguien cargaba los tres archivos finales
+      // y el entregable se quedaba "Pendiente" para siempre, porque el estado nunca se movia.
+      if (!entregable.urlRevision && !entregable.urlFinal && !completandoHistorico) {
+        await enviarARevision.mutateAsync({ id: entregable.id, urlRevision: subido.previewUrl });
+        notificarRevisores(`${nombreResponsable} agrego el diseño de "${entregable.nombre}".`);
+      }
       marcarLista(tareaId);
     } catch (err) {
       const mensaje = mensajeErrorAuth(err);
