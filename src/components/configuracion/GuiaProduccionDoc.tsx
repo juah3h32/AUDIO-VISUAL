@@ -183,11 +183,17 @@ export const PASOS_GUIA: PasoGuia[] = [
           Este envío-revisión-ajuste se repite las veces que haga falta hasta que Community quede conforme. Una
           vez <b>aprobado</b>, el guion pasa a la etapa de generación de voz — no antes.
         </p>
+        <p className="text-[14px] leading-relaxed">
+          Lo mismo aplica en locación: antes de grabar, se hace un levantamiento de contenido con el modelo y
+          se le dirige toma por toma siguiendo ese guion — pero ninguna toma se graba sin el guion/diálogo ya
+          aprobado.
+        </p>
         <ListaReglas
           titulo="Por qué importa"
           items={[
             "Ninguna cápsula debe generarse en ElevenLabs sin esta aprobación previa.",
-            "Evita rehacer voz y música por un cambio de texto que se pudo resolver antes.",
+            "Tampoco se graban tomas en locación sin que el guion/diálogo ya esté aprobado.",
+            "Evita rehacer voz, música y hasta la grabación misma por un cambio de texto que se pudo resolver antes.",
           ]}
         />
       </>
@@ -271,17 +277,17 @@ export const PASOS_GUIA: PasoGuia[] = [
         </p>
         <div className="grid grid-cols-2 gap-3">
           <Dato label="Fuente" valor="Morganite Medium, tamaño 82" />
-          <Dato label="Posición" valor="X 550.000 · Y 525.000 · Interlineado 0" />
+          <Dato label="Posición" valor="X 550.000 · Y 525.000 · Interlineado 0 — inglés pegado justo debajo del español, sin espacio de más entre los dos" />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Dato label="Subtítulo principal (español)" valor="SIEMPRE EN MAYÚSCULAS — dorado o blanco según la marca/identidad" />
-          <Dato label="Subtítulo en inglés (debajo)" valor="siempre en minúsculas — dorado o naranja según la marca/identidad" />
+          <Dato label="Subtítulo principal (español)" valor="SIEMPRE EN MAYÚSCULAS — dorado, blanco o verde según la marca/identidad" />
+          <Dato label="Subtítulo en inglés (debajo)" valor="siempre en minúsculas — dorado, naranja o verde según la marca/identidad" />
         </div>
         <ListaReglas
           titulo="Reglas clave"
           items={[
-            "El español va siempre arriba (principal); el inglés va debajo, en menor jerarquía visual.",
-            "El color (dorado, blanco o naranja) depende de la marca/identidad del video, nunca al azar.",
+            "El español va siempre arriba (principal); el inglés va justo debajo, pegado, en menor jerarquía visual.",
+            "El color (dorado, blanco, naranja o verde) depende de la marca/identidad del video, nunca al azar.",
             "Mayúsculas en español y minúsculas en inglés son fijas, sin excepción.",
           ]}
         />
