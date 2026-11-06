@@ -143,7 +143,7 @@ function RequisicionDetalleDialog({
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <p className="text-xs text-muted-foreground">Solicitado por</p>
               {veSolicitante ? <p className="font-medium">{r.nombreSolicitante}</p> : <SinPermiso />}
@@ -297,8 +297,69 @@ export function RequisicionesPage() {
     [requisiciones, usuario]
   );
 
+  // Vista de tarjetas para movil (<640px) — la tabla de 7-8 columnas + columna de Acciones no
+  // cabe en una pantalla de telefono sin scroll horizontal. Mismo contenido, mismos clicks
+  // (abrir detalle, aprobar/rechazar), solo apilado.
+  const renderTarjetas = (lista: Requisicion[]) => (
+    <div className="space-y-2 sm:hidden">
+      {lista.length === 0 && (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Aún no hay solicitudes aquí. Usa “Nueva requisición” para pedir un video, foto o diseño.
+        </p>
+      )}
+      {lista.map((r) => (
+        <div
+          key={r.id}
+          className="cursor-pointer rounded-md border border-border p-3 text-sm"
+          onClick={() => setSeleccionadaId(r.id)}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate font-medium">{r.titulo}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {r.folio} · {CATEGORIA_CONTENIDO_LABELS[r.tipoContenido]}
+              </p>
+            </div>
+            <Badge variant={ESTADO_REQUISICION_BADGE[r.estado]} className="shrink-0 text-[10px]">
+              {ESTADO_REQUISICION_LABELS[r.estado]}
+            </Badge>
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+            {veSolicitante && <span>{r.departamentoSolicitante}</span>}
+            <Badge variant={PRIORIDAD_BADGE[r.prioridad]} className="text-[10px]">
+              {PRIORIDAD_LABELS[r.prioridad]}
+            </Badge>
+            {veProduccion && <span>Entrega: {formatFecha(r.fechaRequerida)}</span>}
+          </div>
+          {puedeAprobar && esPendienteDeAprobar(r.estado) && (
+            <div className="mt-2.5 flex gap-2" onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 gap-1.5 text-green-600 dark:text-green-400"
+                onClick={() => cambiarEstado.mutate({ id: r.id, estado: "aprobada" })}
+              >
+                <Check className="h-4 w-4" /> Aprobar
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 gap-1.5 text-destructive"
+                onClick={() => cambiarEstado.mutate({ id: r.id, estado: "rechazada" })}
+              >
+                <X className="h-4 w-4" /> Rechazar
+              </Button>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+
   const renderTabla = (lista: Requisicion[]) => (
-    <Table>
+    <>
+    {renderTarjetas(lista)}
+    <Table className="hidden sm:table">
       <TableHeader>
         <TableRow>
           <TableHead>Folio</TableHead>
@@ -362,6 +423,7 @@ export function RequisicionesPage() {
         )}
       </TableBody>
     </Table>
+    </>
   );
 
   return (

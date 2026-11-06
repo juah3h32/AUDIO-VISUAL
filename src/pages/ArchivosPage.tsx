@@ -181,7 +181,9 @@ export function ArchivosPage() {
   const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodo>("todos");
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
   const [carpetaCopiadaId, setCarpetaCopiadaId] = useState<string | null>(null);
-  const [vista, setVista] = useState<"cuadricula" | "tabla">("tabla");
+  // Tabla de 6+ columnas es ilegible en un telefono — arrancar en cuadricula ahi (el usuario
+  // sigue pudiendo cambiar a tabla a mano). Solo se checa una vez al montar, no en cada resize.
+  const [vista, setVista] = useState<"cuadricula" | "tabla">(() => (window.innerWidth < 640 ? "cuadricula" : "tabla"));
 
   /** Todos los archivos de Drive ligados a un entregable — principal, alterna y cada foto de la
    * galeria, si tenia. Para borrarlos de Drive junto con quitar la referencia (ver
@@ -391,7 +393,7 @@ export function ArchivosPage() {
                             type="button"
                             onClick={() => setMaterialAEliminar(e)}
                             title="Eliminar material (deja el entregable, solo quita el archivo)"
-                            className="flex items-center gap-1 rounded-md border border-border px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:border-destructive hover:text-destructive"
+                            className="flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-md border border-border px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:border-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -401,7 +403,7 @@ export function ArchivosPage() {
                             type="button"
                             onClick={() => setEntregableAEliminar(e)}
                             title="Eliminar este entregable por completo"
-                            className="flex items-center gap-1 rounded-md border border-border px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:border-destructive hover:text-destructive"
+                            className="flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-md border border-border px-1.5 py-1 text-[11px] font-medium text-muted-foreground hover:border-destructive hover:text-destructive"
                           >
                             <Trash className="h-3 w-3" />
                           </button>

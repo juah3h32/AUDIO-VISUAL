@@ -66,7 +66,7 @@ export function EditarMetasDialog({
   return (
     <Dialog open={open} onOpenChange={abrir}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-7 gap-1 px-2 text-xs">
+        <Button variant="outline" size="sm" className="h-9 gap-1 px-2.5 text-xs">
           <Pencil className="h-3.5 w-3.5" /> Metas
         </Button>
       </DialogTrigger>

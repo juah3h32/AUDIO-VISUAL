@@ -133,8 +133,8 @@ export function InvitarUsuarioDialog() {
               El rol Community ya incluye enviar requisiciones, ver todos los guiones/videos y aprobarlos.
             </p>
           ) : (
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" {...register("gestorRequisiciones")} className="h-4 w-4 rounded border-border" />
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" {...register("gestorRequisiciones")} className="mt-0.5 h-4 w-4 shrink-0 rounded border-border" />
               Permiso especial: Gestor de requisiciones (dar el mismo poder de Community a otro rol)
             </label>
           )}

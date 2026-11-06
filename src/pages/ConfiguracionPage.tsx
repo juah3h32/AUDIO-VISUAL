@@ -213,7 +213,7 @@ export function ConfiguracionPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 gap-1 px-2 text-xs"
+                          className="h-9 gap-1 px-2.5 text-xs"
                           title="Reiniciar contraseña — la persona crea una nueva al entrar"
                           onClick={() => setUsuarioAReiniciar({ id: u.id, nombre: u.nombre })}
                         >
@@ -225,7 +225,7 @@ export function ConfiguracionPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                            className="h-9 gap-1 px-2.5 text-xs text-destructive hover:bg-destructive/10"
                             title="Eliminar usuario"
                             onClick={() => setUsuarioAEliminar({ id: u.id, nombre: u.nombre })}
                           >

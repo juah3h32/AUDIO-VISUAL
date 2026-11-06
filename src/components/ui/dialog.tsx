@@ -45,9 +45,11 @@ export const DialogContent = forwardRef<
       {...props}
     >
       {children}
+      {/* h-11 w-11 (44px): area de toque minima recomendada — antes era p-2 (~32px totales),
+          afecta a TODOS los dialogos de la app (este boton es compartido). */}
       <DialogPrimitive.Close
         aria-label="Cerrar"
-        className="absolute right-2 top-2 rounded-md p-2 opacity-60 hover:bg-bg-secondary hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:right-3 sm:top-3"
+        className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-md opacity-60 hover:bg-bg-secondary hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent sm:right-2 sm:top-2"
       >
         <X className="h-4 w-4" />
       </DialogPrimitive.Close>
@@ -57,7 +59,7 @@ export const DialogContent = forwardRef<
 DialogContent.displayName = "DialogContent";
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mb-4 flex flex-col gap-1 pr-8", className)} {...props} />;
+  return <div className={cn("mb-4 flex flex-col gap-1 pr-10", className)} {...props} />;
 }
 
 export const DialogTitle = forwardRef<
