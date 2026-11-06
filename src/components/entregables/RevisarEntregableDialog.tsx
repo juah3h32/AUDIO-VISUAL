@@ -1172,9 +1172,17 @@ export function RevisarEntregableDialog({
           Drive (esto nunca vivio en Drive). "Ver como quedo" es abrir el link real de la pagina. */}
       {esPaginaWeb ? (
         <div className="flex w-full flex-col items-center gap-3">
-          {preview ? (
-            <div className="h-[60vh] w-full overflow-hidden rounded-lg bg-white ring-1 ring-black/10 dark:ring-white/10 lg:h-full lg:w-[70vw] lg:max-w-2xl">
-              <iframe src={preview} className="h-full w-full" title="Captura de la página" />
+          {fileIdActual ? (
+            // Imagen directa (como la galeria de fotos), no el iframe generico de Drive
+            // (`/preview`): ese trae su propia UI de zoom y deja franjas negras a los lados
+            // cuando la captura no coincide con el ratio del visor — aqui la caja se ajusta al
+            // tamaño real de la imagen en vez de forzar una proporcion fija.
+            <div className="flex max-h-[70vh] w-full items-center justify-center overflow-hidden rounded-lg bg-bg-secondary ring-1 ring-black/10 dark:ring-white/10">
+              <img
+                src={`/api/drive-thumbnail?id=${encodeURIComponent(fileIdActual)}&size=1600`}
+                alt="Captura de la página"
+                className="max-h-[70vh] w-auto max-w-full object-contain"
+              />
             </div>
           ) : (
             <div className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-bg-secondary p-8 text-center">
