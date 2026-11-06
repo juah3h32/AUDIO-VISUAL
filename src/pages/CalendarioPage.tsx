@@ -297,6 +297,9 @@ export function CalendarioPage() {
                 // Caben 2 chips; si hay mas, 1 chip + "+N mas" para no desbordar la celda.
                 const visibles = eventosDia.length > 2 ? 1 : 2;
                 const ocultos = eventosDia.length - visibles;
+                // Movil: caben 3 puntos; si hay mas, 2 puntos + "+N" (antes se truncaba a 4 sin avisar).
+                const visiblesMobile = eventosDia.length > 3 ? 2 : 3;
+                const ocultosMobile = eventosDia.length - visiblesMobile;
                 return (
                   <button
                     key={i}
@@ -318,10 +321,11 @@ export function CalendarioPage() {
                       {dia.getDate()}
                     </span>
                     {/* Movil: puntos. sm+: hasta 2 chips con titulo y "+N" si hay mas. */}
-                    <div className="flex flex-wrap justify-center gap-0.5 sm:hidden">
-                      {eventosDia.slice(0, 4).map((e, idx) => (
+                    <div className="flex flex-wrap items-center justify-center gap-0.5 sm:hidden">
+                      {eventosDia.slice(0, visiblesMobile).map((e, idx) => (
                         <PuntoEvento key={idx} tipo={e.tipo} terminado={e.terminado} titulo={`${e.titulo} — ${e.estadoLabel}`} />
                       ))}
+                      {ocultosMobile > 0 && <span className="text-[9px] leading-none text-muted-foreground">+{ocultosMobile}</span>}
                     </div>
                     <div className="hidden min-w-0 flex-col gap-0.5 sm:flex">
                       {eventosDia.slice(0, visibles).map((e, idx) => (

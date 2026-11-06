@@ -24,7 +24,7 @@ export function StatCard({
           <Icon className="h-5 w-5 text-text-primary sm:h-6 sm:w-6" />
         </div>
         <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="truncate text-xs text-muted-foreground" title={label}>{label}</p>
           <div className="flex items-baseline gap-2">
             <p className="text-2xl font-bold leading-tight">{value}</p>
             {trend && (

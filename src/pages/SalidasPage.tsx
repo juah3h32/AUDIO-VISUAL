@@ -140,6 +140,11 @@ export function SalidasPage() {
             // paso, ya se fue/visito — no tiene caso seguir mostrandola como si fuera a futuro.
             const yaPaso = s.fecha < hoyIso;
             const yaRealizada = s.estadoAutorizacion === "autorizada" && yaPaso;
+            // Pendiente cuya fecha ya paso sin que nadie decidiera: ya no tiene caso Autorizar/
+            // Rechazar (la jornada ya sucedio o se perdio), pero si merece una alerta distinta a
+            // "Ya se realizó" — nadie la aprobo a tiempo. Rechazada no entra aqui: si se rechazo,
+            // no se hizo, sin importar la fecha.
+            const yaPasoSinAutorizar = s.estadoAutorizacion === "pendiente" && yaPaso;
             return (
             <Card
               key={s.id}
@@ -163,6 +168,10 @@ export function SalidasPage() {
                   {yaRealizada ? (
                     <Badge variant="accent" className="shrink-0 text-[10px]">
                       Ya se realizó
+                    </Badge>
+                  ) : yaPasoSinAutorizar ? (
+                    <Badge variant="danger" className="shrink-0 text-[10px]">
+                      Pasó sin autorizar
                     </Badge>
                   ) : (
                     <Badge variant={BADGE_AUTORIZACION_SALIDA[s.estadoAutorizacion]} className="shrink-0 text-[10px]">
@@ -239,7 +248,7 @@ export function SalidasPage() {
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 gap-1 px-2 text-xs"
+                          className="h-9 gap-1 px-2.5 text-xs"
                           onClick={() => decidir(s, "rechazada")}
                           disabled={decidiendo === s.id}
                         >
@@ -248,7 +257,7 @@ export function SalidasPage() {
                         <Button
                           type="button"
                           size="sm"
-                          className="h-7 gap-1 px-2 text-xs"
+                          className="h-9 gap-1 px-2.5 text-xs"
                           onClick={() => decidir(s, "autorizada")}
                           disabled={decidiendo === s.id}
                         >
@@ -262,7 +271,7 @@ export function SalidasPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-7 gap-1 px-2 text-xs text-destructive hover:bg-destructive/10"
+                        className="h-9 gap-1 px-2.5 text-xs text-destructive hover:bg-destructive/10"
                         title="Eliminar esta salida"
                         onClick={() => setAEliminar(s)}
                       >

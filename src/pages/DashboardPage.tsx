@@ -812,7 +812,7 @@ export function DashboardPage() {
             <Card className="border-red-300 bg-red-50 dark:border-red-400/30 dark:bg-red-400/10">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-red-900 dark:text-red-200">
-                  <AlertTriangle className="h-4.5 w-4.5" /> Tareas atrasadas ({tareasAtrasadas.length})
+                  <AlertTriangle className="h-[18px] w-[18px]" /> Tareas atrasadas ({tareasAtrasadas.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">

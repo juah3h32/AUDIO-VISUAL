@@ -1171,20 +1171,26 @@ export function RevisarEntregableDialog({
       {/* "Cambios en pagina web" tiene su PROPIA vista — nada de reproductor de video ni visor de
           Drive (esto nunca vivio en Drive). "Ver como quedo" es abrir el link real de la pagina. */}
       {esPaginaWeb ? (
-        <div className="flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-bg-secondary p-8 text-center">
-          <Globe className="h-9 w-9 text-muted-foreground" />
+        <div className="flex w-full flex-col items-center gap-3">
+          {preview ? (
+            <div className="h-[60vh] w-full overflow-hidden rounded-lg bg-white ring-1 ring-black/10 dark:ring-white/10 lg:h-full lg:w-[70vw] lg:max-w-2xl">
+              <iframe src={preview} className="h-full w-full" title="Captura de la página" />
+            </div>
+          ) : (
+            <div className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-bg-secondary p-8 text-center">
+              <Globe className="h-9 w-9 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Sin captura todavía — sube una para que el cambio se vea aquí.</p>
+            </div>
+          )}
           {entregable.urlPaginaWeb ? (
-            <>
-              <p className="max-w-md break-all text-sm font-medium">{entregable.urlPaginaWeb}</p>
-              <a
-                href={entregable.urlPaginaWeb}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
-              >
-                <ExternalLink className="h-4 w-4" /> Abrir página web
-              </a>
-            </>
+            <a
+              href={entregable.urlPaginaWeb}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+            >
+              <ExternalLink className="h-4 w-4" /> Abrir página web
+            </a>
           ) : (
             <p className="text-sm text-muted-foreground">Este entregable no tiene un link de página asignado.</p>
           )}
@@ -1595,9 +1601,9 @@ export function RevisarEntregableDialog({
     </div>
   );
 
-  const bloqueSubirVideo = puedeEditarMaterial && puedeSubirVideos(usuario) && !esFoto && !esPaginaWeb && (
+  const bloqueSubirVideo = puedeEditarMaterial && puedeSubirVideos(usuario) && !esFoto && (
     <div className="space-y-2 rounded-md border border-border p-3">
-      <Label>{esDiseno ? "Subir diseño" : "Subir video"}</Label>
+      <Label>{esDiseno ? "Subir diseño" : esPaginaWeb ? "Subir captura" : "Subir video"}</Label>
       {/* Solo se pregunta la orientacion la primera vez — en una correccion/reemplazo ya se
           sabe (se detecto sola al reproducir el primer video), no hace falta repetirla. */}
       {!esImagenUnica && !entregable.orientacionVideo && (
@@ -1622,7 +1628,7 @@ export function RevisarEntregableDialog({
       <input
         ref={inputArchivoRef}
         type="file"
-        accept={esDiseno ? "image/*,.pdf,.ai,.psd,.fig,.sketch,.eps" : "video/*"}
+        accept={esPaginaWeb ? "image/*" : esDiseno ? "image/*,.pdf,.ai,.psd,.fig,.sketch,.eps" : "video/*"}
         className="hidden"
         onChange={onSeleccionarArchivo}
       />
@@ -1633,23 +1639,36 @@ export function RevisarEntregableDialog({
         disabled={subiendo}
       >
         <Upload className="h-4 w-4" />
-        {subiendo ? `Subiendo... ${progreso}%` : esDiseno ? "Subir diseño a Drive" : "Subir video a Drive"}
+        {subiendo
+          ? `Subiendo... ${progreso}%`
+          : esDiseno
+            ? "Subir diseño a Drive"
+            : esPaginaWeb
+              ? "Subir captura a Drive"
+              : "Subir video a Drive"}
       </Button>
       {errorSubida && <p className="text-xs text-destructive">{errorSubida}</p>}
     </div>
   );
 
-  // "Cambios en pagina web": nada que subir — el material es la pagina en vivo. Este boton solo
-  // avisa a Community que ya se hicieron los cambios ahi (ver onEnviarPaginaWeb).
-  const bloqueEnviarPaginaWeb = esPaginaWeb && puedeEditarMaterial && (
+  // Avisar a Community sin subir captura — para cuando el cambio no amerita una imagen (ej. un
+  // texto suelto) y basta con el link en vivo. Si ya hay captura subida (`linkPrincipal`), este
+  // boton no aplica: subir la captura (arriba) ya manda a revision por su cuenta.
+  const bloqueEnviarPaginaWeb = esPaginaWeb && puedeEditarMaterial && !linkPrincipal && (
     <div className="space-y-2 rounded-md border border-border p-3">
-      <Label>Página web</Label>
+      <Label>Avisar sin captura</Label>
       <p className="text-xs text-muted-foreground">
-        Cuando ya hiciste los cambios en la página en vivo, avisa a Community para que la revise.
+        Si prefieres no subir una captura, avisa a Community con solo el link de la página.
       </p>
-      <Button type="button" className="w-full" onClick={onEnviarPaginaWeb} disabled={subiendo || !entregable.urlPaginaWeb}>
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={onEnviarPaginaWeb}
+        disabled={subiendo || !entregable.urlPaginaWeb}
+      >
         <SendHorizontal className="h-4 w-4" />
-        {subiendo ? "Enviando..." : linkPrincipal ? "Volver a avisar (ya hubo más cambios)" : "Enviar a revisión"}
+        {subiendo ? "Enviando..." : "Enviar a revisión (sin captura)"}
       </Button>
       {errorSubida && <p className="text-xs text-destructive">{errorSubida}</p>}
     </div>

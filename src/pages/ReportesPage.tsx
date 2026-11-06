@@ -199,21 +199,24 @@ export function ReportesPage() {
                 <TabsTrigger value="mes">Mensual</TabsTrigger>
               </TabsList>
             </Tabs>
-            <Button variant="outline" size="icon" onClick={() => setOffset((o) => o - 1)} aria-label="Periodo anterior">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="min-w-[7rem] text-center text-sm font-medium">
-              {offset === 0 ? etiquetaActual[0] : offset === -1 ? etiquetaActual[1] : `Hace ${-offset} ${periodo === "semana" ? "semanas" : "meses"}`}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setOffset((o) => o + 1)}
-              disabled={offset >= 0}
-              aria-label="Periodo siguiente"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            {/* Agrupados en `shrink-0` para que no se partan entre si al envolver en pantallas angostas. */}
+            <div className="flex shrink-0 items-center gap-2">
+              <Button variant="outline" size="icon" onClick={() => setOffset((o) => o - 1)} aria-label="Periodo anterior">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-[7rem] text-center text-sm font-medium">
+                {offset === 0 ? etiquetaActual[0] : offset === -1 ? etiquetaActual[1] : `Hace ${-offset} ${periodo === "semana" ? "semanas" : "meses"}`}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setOffset((o) => o + 1)}
+                disabled={offset >= 0}
+                aria-label="Periodo siguiente"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
             <Button onClick={onDescargar} disabled={descargando}>
               {descargando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
               {descargando ? "Generando..." : "Descargar PDF"}

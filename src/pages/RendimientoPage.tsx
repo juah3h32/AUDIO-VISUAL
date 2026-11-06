@@ -146,32 +146,37 @@ export function RendimientoPage() {
         description="Tareas con fecha compromiso en la semana vs. las que cada colaborador ya entregó."
       >
         <DemoBadge />
-        <Button variant="outline" size="icon" onClick={() => setOffset((o) => o - 1)} aria-label="Semana anterior">
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <div className="min-w-[9.5rem] text-center text-sm font-medium">
-          {offset === 0 ? "Esta semana" : offset === -1 ? "Semana pasada" : etiquetaSemana(semanaActual)}
-          {offset >= -1 && <p className="text-[11px] font-normal text-muted-foreground">{etiquetaSemana(semanaActual)}</p>}
+        {/* Agrupados en un solo bloque `shrink-0` — sueltos dentro del flex-wrap de PageHeader,
+            en pantallas angostas (360-375px) las flechas se separaban de la etiqueta al partirse
+            en 2 lineas. Asi el grupo entero salta de linea junto, nunca a la mitad. */}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => setOffset((o) => o - 1)} aria-label="Semana anterior">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div className="min-w-[9.5rem] text-center text-sm font-medium">
+            {offset === 0 ? "Esta semana" : offset === -1 ? "Semana pasada" : etiquetaSemana(semanaActual)}
+            {offset >= -1 && <p className="text-[11px] font-normal text-muted-foreground">{etiquetaSemana(semanaActual)}</p>}
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setOffset((o) => o + 1)}
+            disabled={offset >= 0}
+            aria-label="Semana siguiente"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+          {/* Siempre ocupa su lugar (invisible en "esta semana") para que las flechas no se muevan al hacer clic. */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setOffset(0)}
+            className={cn(offset === 0 && "invisible")}
+            tabIndex={offset === 0 ? -1 : 0}
+          >
+            Hoy
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => setOffset((o) => o + 1)}
-          disabled={offset >= 0}
-          aria-label="Semana siguiente"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-        {/* Siempre ocupa su lugar (invisible en "esta semana") para que las flechas no se muevan al hacer clic. */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setOffset(0)}
-          className={cn(offset === 0 && "invisible")}
-          tabIndex={offset === 0 ? -1 : 0}
-        >
-          Hoy
-        </Button>
       </PageHeader>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
