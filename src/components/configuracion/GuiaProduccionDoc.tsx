@@ -153,6 +153,16 @@ export const PASOS_GUIA: PasoGuia[] = [
           <Dato label="Entregable de esta etapa" valor="Diálogo completo, listo para ElevenLabs" />
         </div>
         <ListaReglas
+          titulo="Qué va en cada parte de la estructura"
+          items={[
+            "Apertura: engancha en los primeros segundos — sin preámbulo genérico.",
+            "Desarrollo: contexto del producto/proceso, directo al punto.",
+            "Demostración: lo que se ve en pantalla — aquí la imagen hace el trabajo, el guion la acompaña.",
+            "Conexión: por qué le importa a quien lo ve (cliente, planta, equipo).",
+            "Cierre: remata la idea — sin repetir lo ya dicho, sin relleno.",
+          ]}
+        />
+        <ListaReglas
           titulo="Reglas clave"
           items={[
             "Evitar guiones genéricos, aperturas repetidas o venta agresiva.",
@@ -210,6 +220,10 @@ export const PASOS_GUIA: PasoGuia[] = [
           usamos para generar la narración — siempre con la misma voz oficial, sin variaciones.
         </p>
         <Dato label="Voz oficial" valor="El Faraón" />
+        <p className="text-[14px] leading-relaxed">
+          Usar siempre la misma voz es lo que hace que cualquier cápsula se reconozca como de Grupo Ortiz desde
+          el primer segundo — por eso no se alterna ni se prueban voces nuevas sin autorización.
+        </p>
         <LinkDestacado etiqueta="ElevenLabs (texto a voz)" url="https://elevenlabs.io" />
         <ListaReglas
           titulo="Checklist antes de generar"
@@ -229,16 +243,18 @@ export const PASOS_GUIA: PasoGuia[] = [
     contenido: () => (
       <>
         <p className="text-[14px] leading-relaxed">
-          Con la voz ya grabada, se le pone música de fondo. Usamos <b>3 tipos de música</b>, todas clásicas,
-          seleccionadas por el dueño — no se cambian sin su autorización.
+          Con la voz ya grabada, se le pone música de fondo. Usamos únicamente <b>3 pistas clásicas</b>, las
+          tres elegidas por el dueño — no se coloca ninguna música que el dueño no haya seleccionado, sin
+          excepción.
         </p>
-        <Dato label="Música" valor="3 pistas clásicas, seleccionadas por el dueño" />
+        <Dato label="Música" valor="Solo estas 3 pistas clásicas, elegidas por el dueño — ninguna otra" />
         <LinkDestacado etiqueta="Carpeta de música (Drive)" url="https://drive.google.com/drive/folders/1uu6aOnx4cWc6d6SN7woTF-ytHwPkt3J5" />
         <ListaReglas
           titulo="Reglas clave"
           items={[
-            "Siempre una de estas 3 pistas — nunca música nueva sin autorización.",
-            "La elección entre las 3 depende del tono del video (consultar con el lider/dueño si hay duda).",
+            "Siempre una de estas 3 pistas — nunca música nueva, de banco de audio o encontrada en línea.",
+            "La elección entre las 3 depende del tono del video (consultar con el líder/dueño si hay duda).",
+            "Si ninguna de las 3 encaja, se consulta al dueño antes de usar cualquier otra — nunca se decide solo.",
           ]}
         />
       </>
@@ -252,7 +268,9 @@ export const PASOS_GUIA: PasoGuia[] = [
       <>
         <p className="text-[14px] leading-relaxed">
           Con voz y música listas, se arma el video final en el editor: se acomodan las tomas, se sincroniza la
-          narración con la imagen, y se deja el corte listo para ponerle los subtítulos (siguiente paso).
+          narración con la imagen, y se deja el corte listo para ponerle los subtítulos (siguiente paso). Las
+          tomas que se usan aquí son las ya grabadas en locación bajo el guion aprobado (ver Paso 2) — montaje
+          no decide contenido nuevo, acomoda lo que ya se grabó.
         </p>
         <ListaReglas
           titulo="Qué debe quedar listo aquí"
@@ -260,6 +278,7 @@ export const PASOS_GUIA: PasoGuia[] = [
             "Corte final sincronizado con la voz en off y la música.",
             "Imagen revisada: sin tomas repetidas, movidas o de baja calidad.",
             "Duración dentro de lo acordado en el guion (ver Paso 1).",
+            "Si falta una toma o no se ve bien, se regresa a producción antes de seguir — no se disimula en edición.",
           ]}
         />
       </>
@@ -306,9 +325,18 @@ export const PASOS_GUIA: PasoGuia[] = [
         </p>
         <LinkDestacado etiqueta="Carpeta del logo de cierre (Drive)" url="https://drive.google.com/drive/folders/1Ch4GikaERtHlDquAc_n3C2A70eYkOlhs" />
         <p className="text-[14px] leading-relaxed">
-          Con la cortinilla ya puesta, el video se entrega a <b>Community</b>, quien lo usa/publica. Con esto se
-          cierra el ciclo completo de la cápsula.
+          Con la cortinilla ya puesta, el video se entrega a <b>Community</b>, quien lo usa/publica. Esta es la
+          ÚLTIMA validación antes de salir — cualquier detalle que se haya colado en pasos anteriores (voz,
+          música, subtítulo, toma) se detecta aquí o ya queda publicado así.
         </p>
+        <ListaReglas
+          titulo="Antes de entregar, revisar"
+          items={[
+            "Voz, música y subtítulos coinciden con las reglas de los pasos 3, 4 y 6.",
+            "La cortinilla final es la del logo institucional, sin modificar.",
+            "El video completo se ve de principio a fin una vez más — no solo el corte por partes.",
+          ]}
+        />
         <div className="grid grid-cols-4 gap-3">
           <Dato label="Voz" valor="Integrada (ElevenLabs)" />
           <Dato label="Música" valor="Integrada (3 clásicas)" />
