@@ -12,6 +12,7 @@ import {
   ExternalLink,
   FileCode2,
   FileText,
+  Globe,
   Image as ImageIcon,
   Link2,
   Loader2,
@@ -721,6 +722,35 @@ export function RevisarEntregableDialog({
     });
   };
 
+  // "Cambios en pagina web" no sube ningun archivo — el material ES la pagina en vivo
+  // (`entregable.urlPaginaWeb`, capturado desde que se creo el entregable). Mandar a revision
+  // aqui solo significa "ya hice los cambios ahi, avisale a Community" — se reusa el mismo
+  // urlRevision/estado de siempre para que Aprobar/Marcar entregado sigan funcionando igual,
+  // solo que en vez de un archivo de Drive, `urlRevision` guarda el link real de la pagina.
+  const onEnviarPaginaWeb = async () => {
+    if (!entregable.urlPaginaWeb) return;
+    const yaHabiaEnvio = Boolean(linkPrincipal);
+    setErrorSubida(null);
+    setSubiendo(true);
+    try {
+      await enviarARevision.mutateAsync({ id: entregable.id, urlRevision: entregable.urlPaginaWeb });
+      if (yaHabiaEnvio) {
+        try {
+          await marcarComentariosCorregidos.mutateAsync();
+        } catch (err) {
+          console.error("No se pudieron marcar las observaciones como corregidas:", err);
+        }
+      }
+      notificarRevisores(
+        `${nombreResponsable} ${yaHabiaEnvio ? "actualizo" : "mando a revisar"} los cambios de la página "${entregable.nombre}".`
+      );
+    } catch (err) {
+      setErrorSubida(mensajeErrorAuth(err));
+    } finally {
+      setSubiendo(false);
+    }
+  };
+
   const onEliminarFoto = async (url: string) => {
     setErrorFotos(null);
     // Mismo criterio que onMoverFoto/onEliminarFotosMarcadas: calcular contra `galeriaFotosRef`
@@ -1138,6 +1168,29 @@ export function RevisarEntregableDialog({
       {selectorDeVersion}
       {errorSubidaAlt && <p className="text-xs text-destructive">{errorSubidaAlt}</p>}
 
+      {/* "Cambios en pagina web" tiene su PROPIA vista — nada de reproductor de video ni visor de
+          Drive (esto nunca vivio en Drive). "Ver como quedo" es abrir el link real de la pagina. */}
+      {esPaginaWeb ? (
+        <div className="flex w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border bg-bg-secondary p-8 text-center">
+          <Globe className="h-9 w-9 text-muted-foreground" />
+          {entregable.urlPaginaWeb ? (
+            <>
+              <p className="max-w-md break-all text-sm font-medium">{entregable.urlPaginaWeb}</p>
+              <a
+                href={entregable.urlPaginaWeb}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
+              >
+                <ExternalLink className="h-4 w-4" /> Abrir página web
+              </a>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Este entregable no tiene un link de página asignado.</p>
+          )}
+        </div>
+      ) : (
+        <>
       {modoVisor === "player" && fileIdActual && (
         <DriveVideoPlayer
           ref={videoPlayerRef}
@@ -1190,7 +1243,7 @@ export function RevisarEntregableDialog({
               src={preview}
               className="h-full w-full"
               allow="autoplay; fullscreen"
-              title={esDiseno ? "Vista previa del diseño" : esPaginaWeb ? "Vista previa de la captura" : "Vista previa del video"}
+              title={esDiseno ? "Vista previa del diseño" : "Vista previa del video"}
             />
           </div>
         </div>
@@ -1203,14 +1256,16 @@ export function RevisarEntregableDialog({
           rel="noreferrer"
           className="flex items-center gap-2 rounded-md border border-border bg-bg-secondary p-3 text-sm font-medium transition-colors hover:bg-border/60"
         >
-          <ExternalLink className="h-4 w-4" /> {esDiseno ? "Abrir diseño en Drive" : esPaginaWeb ? "Abrir captura en Drive" : "Abrir video en Drive"}
+          <ExternalLink className="h-4 w-4" /> {esDiseno ? "Abrir diseño en Drive" : "Abrir video en Drive"}
         </a>
       )}
 
       {modoVisor === "vacio" && (
         <p className="rounded-md border border-dashed border-border p-4 text-center text-xs text-muted-foreground">
-          {esDiseno ? "Sin diseño cargado todavia." : esPaginaWeb ? "Sin captura cargada todavia." : "Sin video cargado todavia."}
+          {esDiseno ? "Sin diseño cargado todavia." : "Sin video cargado todavia."}
         </p>
+      )}
+      </>
       )}
     </div>
   );
@@ -1535,9 +1590,9 @@ export function RevisarEntregableDialog({
     </div>
   );
 
-  const bloqueSubirVideo = puedeEditarMaterial && puedeSubirVideos(usuario) && !esFoto && (
+  const bloqueSubirVideo = puedeEditarMaterial && puedeSubirVideos(usuario) && !esFoto && !esPaginaWeb && (
     <div className="space-y-2 rounded-md border border-border p-3">
-      <Label>{esDiseno ? "Subir diseño" : esPaginaWeb ? "Subir captura" : "Subir video"}</Label>
+      <Label>{esDiseno ? "Subir diseño" : "Subir video"}</Label>
       {/* Solo se pregunta la orientacion la primera vez — en una correccion/reemplazo ya se
           sabe (se detecto sola al reproducir el primer video), no hace falta repetirla. */}
       {!esImagenUnica && !entregable.orientacionVideo && (
@@ -1562,7 +1617,7 @@ export function RevisarEntregableDialog({
       <input
         ref={inputArchivoRef}
         type="file"
-        accept={esDiseno ? "image/*,.pdf,.ai,.psd,.fig,.sketch,.eps" : esPaginaWeb ? "image/*" : "video/*"}
+        accept={esDiseno ? "image/*,.pdf,.ai,.psd,.fig,.sketch,.eps" : "video/*"}
         className="hidden"
         onChange={onSeleccionarArchivo}
       />
@@ -1573,13 +1628,23 @@ export function RevisarEntregableDialog({
         disabled={subiendo}
       >
         <Upload className="h-4 w-4" />
-        {subiendo
-          ? `Subiendo... ${progreso}%`
-          : esDiseno
-            ? "Subir diseño a Drive"
-            : esPaginaWeb
-              ? "Subir captura a Drive"
-              : "Subir video a Drive"}
+        {subiendo ? `Subiendo... ${progreso}%` : esDiseno ? "Subir diseño a Drive" : "Subir video a Drive"}
+      </Button>
+      {errorSubida && <p className="text-xs text-destructive">{errorSubida}</p>}
+    </div>
+  );
+
+  // "Cambios en pagina web": nada que subir — el material es la pagina en vivo. Este boton solo
+  // avisa a Community que ya se hicieron los cambios ahi (ver onEnviarPaginaWeb).
+  const bloqueEnviarPaginaWeb = esPaginaWeb && puedeEditarMaterial && (
+    <div className="space-y-2 rounded-md border border-border p-3">
+      <Label>Página web</Label>
+      <p className="text-xs text-muted-foreground">
+        Cuando ya hiciste los cambios en la página en vivo, avisa a Community para que la revise.
+      </p>
+      <Button type="button" className="w-full" onClick={onEnviarPaginaWeb} disabled={subiendo || !entregable.urlPaginaWeb}>
+        <SendHorizontal className="h-4 w-4" />
+        {subiendo ? "Enviando..." : linkPrincipal ? "Volver a avisar (ya hubo más cambios)" : "Enviar a revisión"}
       </Button>
       {errorSubida && <p className="text-xs text-destructive">{errorSubida}</p>}
     </div>
@@ -2059,7 +2124,9 @@ export function RevisarEntregableDialog({
                   </button>
                 </div>
               )
-            ) : (
+            ) : esPaginaWeb ? null : (
+              // "min (ej. 0:45)" no tiene sentido fuera de un video — pagina web solo deja
+              // observaciones de texto, sin momento/reloj (ver bloque de abajo).
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
                   value={momento}
@@ -2080,14 +2147,14 @@ export function RevisarEntregableDialog({
                 />
               </div>
             )}
-            {esFoto && (
+            {(esFoto || esPaginaWeb) && (
               <Input
                 value={comentario}
                 onChange={(e) => setComentario(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") onComentar();
                 }}
-                placeholder="Ej. Esta foto sale movida"
+                placeholder={esPaginaWeb ? "Ej. El banner principal se ve cortado" : "Ej. Esta foto sale movida"}
               />
             )}
             <Button
@@ -2102,9 +2169,11 @@ export function RevisarEntregableDialog({
             <p className="text-[11px] text-muted-foreground">
               {esFoto
                 ? "Toca el icono de comentario en una o varias fotos de la galeria para amarrar la observacion a esas fotos (opcional)."
-                : usaPlayerPropio
-                  ? "Se llena solo mientras reproduces."
-                  : "Anota el minuto donde esta el cambio que pides."}
+                : esPaginaWeb
+                  ? "Describe que hay que cambiar en la pagina."
+                  : usaPlayerPropio
+                    ? "Se llena solo mientras reproduces."
+                    : "Anota el minuto donde esta el cambio que pides."}
             </p>
           </div>
         )}
@@ -2153,6 +2222,7 @@ export function RevisarEntregableDialog({
       {bloqueSubirMaterial}
       {bloqueFotosSinFondo}
       {bloqueSubirVideo}
+      {bloqueEnviarPaginaWeb}
       {bloqueArchivosDiseno}
     </div>
   );
@@ -2252,18 +2322,6 @@ export function RevisarEntregableDialog({
               <Badge variant={PRIORIDAD_BADGE[entregable.prioridad ?? "media"]}>
                 {PRIORIDAD_LABELS[entregable.prioridad ?? "media"]}
               </Badge>
-            )}
-            {esPaginaWeb && entregable.urlPaginaWeb && (
-              <a
-                href={entregable.urlPaginaWeb}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1 truncate rounded-md border border-border bg-bg-secondary px-2 py-1 text-xs font-medium text-text-primary hover:bg-border/60"
-                title={entregable.urlPaginaWeb}
-              >
-                <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{entregable.urlPaginaWeb}</span>
-              </a>
             )}
             {fileIdActual && (
               <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
