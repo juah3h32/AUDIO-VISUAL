@@ -182,10 +182,12 @@ export function NuevoEntregableDialog() {
                     <SelectContent>
                       {colaboradores.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          <span className="flex items-center gap-1.5">
-                            {c.fuertes.length > 0 && <Star className="h-3 w-3 fill-amber-400 text-amber-400" />}
-                            {c.nombre}
-                            <span className="text-xs text-muted-foreground">
+                          {/* `min-w-0` + `truncate` en cada parte — nombre + carga + especialidades
+                              en una sola linea desbordaba el popover en pantallas de 360-375px. */}
+                          <span className="flex min-w-0 max-w-[min(70vw,22rem)] items-center gap-1.5">
+                            {c.fuertes.length > 0 && <Star className="h-3 w-3 shrink-0 fill-amber-400 text-amber-400" />}
+                            <span className="truncate">{c.nombre}</span>
+                            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
                               · {c.carga} {c.carga === 1 ? "tarea" : "tareas"}
                               {c.fuertes.length > 0 && ` · ${c.fuertes.join(", ")}`}
                             </span>

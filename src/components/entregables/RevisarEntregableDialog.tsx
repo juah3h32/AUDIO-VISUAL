@@ -1459,7 +1459,10 @@ export function RevisarEntregableDialog({
                 </button>
               )}
               {puedeEditarMaterial && (
-                <div className="absolute bottom-2 right-2 flex gap-1.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
+                // Siempre visibles — no solo en hover (igual que el icono de comentar arriba):
+                // en touch no hay hover persistente, y mover/borrar no tenia NINGUN otro modo de
+                // llegar a estos controles en celular.
+                <div className="absolute bottom-2 right-2 flex gap-1.5">
                   <button
                     type="button"
                     onClick={() => onMoverFoto(i, -1)}
@@ -1551,13 +1554,15 @@ export function RevisarEntregableDialog({
                 <img src={url} alt="" className="h-full w-full object-contain" />
               </a>
               {puedeEditarMaterial && (
+                // Siempre visible y con area de toque real (antes 24x24px y solo en hover —
+                // en celular era imposible de tocar y no se veia nunca).
                 <button
                   type="button"
                   onClick={() => onEliminarFotoSinFondo(url)}
-                  className="absolute bottom-1 right-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 backdrop-blur-sm transition-opacity hover:bg-destructive group-hover:opacity-100"
+                  className="absolute bottom-1 right-1 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors hover:bg-destructive"
                   title="Quitar"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-4 w-4" />
                 </button>
               )}
             </div>
@@ -2371,7 +2376,7 @@ export function RevisarEntregableDialog({
                   asignarProyecto.mutate({ id: entregable.id, proyectoId: v === SIN_PROYECTO_VALOR ? null : v })
                 }
               >
-                <SelectTrigger className="h-6 w-auto gap-1 border-none bg-transparent px-1.5 py-0 text-xs font-medium text-text-primary shadow-none hover:bg-bg-secondary">
+                <SelectTrigger className="h-8 w-auto gap-1 border-none bg-transparent px-1.5 text-xs font-medium text-text-primary shadow-none hover:bg-bg-secondary">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -2397,7 +2402,7 @@ export function RevisarEntregableDialog({
                   value={entregable.responsableId}
                   onValueChange={(v) => reasignarResponsable.mutate({ id: entregable.id, responsableId: v })}
                 >
-                  <SelectTrigger className="h-6 w-auto gap-1 border-none bg-transparent px-1.5 py-0 text-xs font-medium text-text-primary shadow-none hover:bg-bg-secondary">
+                  <SelectTrigger className="h-8 w-auto gap-1 border-none bg-transparent px-1.5 text-xs font-medium text-text-primary shadow-none hover:bg-bg-secondary">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -2467,7 +2472,7 @@ export function RevisarEntregableDialog({
                 de comentarios de abajo, como si la foto nunca fuera a aparecer. El <img> real
                 queda invisible (no desmontado, para que su `onLoad` si dispare) hasta que
                 `fotoAmpliadaCargando` se apague. */}
-            <div className="group/stage relative flex w-full min-h-[40vh] shrink-0 items-center justify-center bg-black">
+            <div className="relative flex w-full min-h-[40vh] shrink-0 items-center justify-center bg-black">
               {fotoAmpliadaFileId ? (
                 <>
                   {fotoAmpliadaCargando && (
@@ -2510,11 +2515,15 @@ export function RevisarEntregableDialog({
                 </a>
               </div>
 
+              {/* Siempre visibles — no solo en hover (igual que la barra superior): en touch no
+                  hay hover persistente, asi que un boton que dependa de el es invisible/inusable
+                  en celular. Son el UNICO modo de pasar de foto ahi (el atajo de teclado no sirve
+                  sin teclado fisico). */}
               {fotoAmpliadaIndex! > 0 && (
                 <button
                   type="button"
                   onClick={() => setFotoAmpliadaIndex((i) => (i != null ? i - 1 : i))}
-                  className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition-all duration-150 hover:bg-black/70 group-hover/stage:opacity-100"
+                  className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
                   title="Foto anterior"
                 >
                   <ChevronLeft className="h-6 w-6" />
@@ -2524,7 +2533,7 @@ export function RevisarEntregableDialog({
                 <button
                   type="button"
                   onClick={() => setFotoAmpliadaIndex((i) => (i != null ? i + 1 : i))}
-                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white opacity-0 backdrop-blur-sm transition-all duration-150 hover:bg-black/70 group-hover/stage:opacity-100"
+                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-colors hover:bg-black/70"
                   title="Siguiente foto"
                 >
                   <ChevronRight className="h-6 w-6" />

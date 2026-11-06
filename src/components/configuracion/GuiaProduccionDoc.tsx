@@ -25,17 +25,19 @@ const C = {
 
 /** Encabezado ejecutivo compartido por toda la presentacion — mismo lenguaje que SlideRendimiento
  * (logo GO, linea de acento de marca). El espacio entre el texto chico de arriba y el titulo
- * grande usa `gap` de flexbox (no margin) — un gap de flex es un espacio REAL garantizado por el
- * layout, a diferencia de un margin que puede verse distinto segun el line-height que calcule
- * cada motor de render; asi no se vuelve a pegar el titulo con la linea de arriba. */
+ * grande usa `margin-bottom` EXPLICITO en vez de `gap` de flexbox — se veia bien en la vista
+ * previa (DOM normal del navegador) pero `gap` no siempre se captura bien al rasterizar con
+ * html-to-image (la libreria clona el nodo fuera del documento para generar el PNG, y ese clon no
+ * siempre hereda propiedades de layout "modernas" como flexbox gap). `margin` es una propiedad de
+ * caja basica que SI se captura siempre igual, viva o rasterizada. */
 function Encabezado({ kicker, titulo }: { kicker: string; titulo: string }) {
   return (
     <div className="relative flex items-center justify-between pb-4" style={{ borderBottom: `1px solid ${C.borde}` }}>
       <div className="flex items-center gap-4">
         <img src="/logo-go.png" alt="GO" className="h-14 w-14 shrink-0 object-contain" />
         <div className="h-11 w-px shrink-0" style={{ backgroundColor: C.borde }} />
-        <div className="flex min-w-0 flex-col gap-2.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: C.suave }}>
+        <div className="min-w-0">
+          <p className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: C.suave }}>
             {kicker}
           </p>
           <h2 className="truncate text-[28px] font-bold leading-snug tracking-tight">{titulo}</h2>

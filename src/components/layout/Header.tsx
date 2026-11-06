@@ -46,7 +46,10 @@ function NotificacionesMenu() {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger className="relative shrink-0 rounded-md p-2 hover:bg-bg-secondary focus:outline-none" aria-label="Notificaciones">
+      <DropdownMenuTrigger
+        className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-md hover:bg-bg-secondary focus:outline-none"
+        aria-label="Notificaciones"
+      >
         <Bell className="h-5 w-5 text-text-primary/70" />
         {noLeidas > 0 && (
           <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-destructive-foreground">
@@ -93,7 +96,7 @@ function TemaToggle() {
     <button
       type="button"
       onClick={alternarTema}
-      className="shrink-0 rounded-md p-2 hover:bg-bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md hover:bg-bg-secondary focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       aria-label={esOscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       title={esOscuro ? "Modo claro" : "Modo oscuro"}
     >
@@ -125,7 +128,7 @@ function MiCargaTrabajo() {
     <button
       type="button"
       onClick={() => navigate("/entregables")}
-      className="flex shrink-0 items-center gap-1.5 rounded-full border border-border px-2 py-1.5 hover:bg-bg-secondary focus:outline-none sm:gap-2 sm:px-3"
+      className="flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-border px-3 hover:bg-bg-secondary focus:outline-none sm:gap-2"
       title={`Mi carga de trabajo: ${carga.activas} activas, ${carga.atrasadas} atrasadas`}
     >
       <Gauge className="h-4 w-4 shrink-0 text-text-primary/70" />
