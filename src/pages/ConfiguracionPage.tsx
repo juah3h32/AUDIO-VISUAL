@@ -21,7 +21,6 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { InvitarUsuarioDialog } from "@/components/configuracion/InvitarUsuarioDialog";
 import { PASOS_GUIA, SLIDE_GUIA_H, SLIDE_GUIA_W, SlideCapsula, SlidePortada } from "@/components/configuracion/GuiaProduccionDoc";
 import { descargarNodoComoPdf } from "@/lib/pdf";
-import { formatFecha } from "@/lib/utils";
 import type { GestorRequisicionesPermisos } from "@/types";
 
 /** Vista previa a escala de UNA diapositiva (tamaño fijo) dentro de la tarjeta — mismo truco que
@@ -300,7 +299,6 @@ export function ConfiguracionPage() {
                     ref={(el) => {
                       slidesRefs.current[0] = el;
                     }}
-                    generado={formatFecha(new Date().toISOString())}
                   />
                 </VistaPreviaDoc>
                 <p className="truncate text-xs font-medium">Portada</p>
@@ -325,7 +323,6 @@ export function ConfiguracionPage() {
                         slidesRefs.current[i + 1] = el;
                       }}
                       paso={paso}
-                      generado={formatFecha(new Date().toISOString())}
                       urlMd={urlMd}
                     />
                   </VistaPreviaDoc>

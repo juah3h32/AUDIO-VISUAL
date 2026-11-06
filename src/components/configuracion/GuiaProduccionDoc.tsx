@@ -1,12 +1,13 @@
 import { forwardRef } from "react";
-import { Captions, CheckCircle2, Clapperboard, Mic, ScrollText } from "lucide-react";
+import { Captions, CheckCircle2, Clapperboard, Film, Mic, Music, ScrollText } from "lucide-react";
 
 /**
  * Presentacion "Guia del proceso de produccion — Capsulas Grupo Ortiz": UNA diapositiva por paso
  * (formato horizontal, mas alta que el slide 16:9 de Reportes para que el contenido respire —
  * esto es un documento para leer con calma, no un slide de proyector) en vez de un documento
  * vertical largo. `export const PASOS_GUIA` trae los datos; `SlidePortada`/`SlideCapsula` son los
- * dos tipos de diapositiva.
+ * dos tipos de diapositiva. Sin fecha de generacion en ningun lado — es una guia de referencia
+ * fija, no un reporte de un periodo puntual.
  */
 export const SLIDE_GUIA_W = 1280;
 export const SLIDE_GUIA_H = 900;
@@ -27,23 +28,22 @@ const C = {
  * grande usa `gap` de flexbox (no margin) — un gap de flex es un espacio REAL garantizado por el
  * layout, a diferencia de un margin que puede verse distinto segun el line-height que calcule
  * cada motor de render; asi no se vuelve a pegar el titulo con la linea de arriba. */
-function Encabezado({ kicker, titulo, generado }: { kicker: string; titulo: string; generado: string }) {
+function Encabezado({ kicker, titulo }: { kicker: string; titulo: string }) {
   return (
     <div className="relative flex items-center justify-between pb-4" style={{ borderBottom: `1px solid ${C.borde}` }}>
       <div className="flex items-center gap-4">
         <img src="/logo-go.png" alt="GO" className="h-14 w-14 shrink-0 object-contain" />
         <div className="h-11 w-px shrink-0" style={{ backgroundColor: C.borde }} />
-        <div className="flex min-w-0 flex-col gap-1.5">
+        <div className="flex min-w-0 flex-col gap-2.5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: C.suave }}>
             {kicker}
           </p>
           <h2 className="truncate text-[28px] font-bold leading-snug tracking-tight">{titulo}</h2>
         </div>
       </div>
-      <div className="shrink-0 text-right text-xs" style={{ color: C.suave }}>
-        <p>Generado {generado}</p>
-        <p className="text-[10px] uppercase tracking-widest">Documento interno</p>
-      </div>
+      <p className="shrink-0 text-right text-[10px] uppercase tracking-widest" style={{ color: C.suave }}>
+        Documento interno
+      </p>
       <div className="absolute -bottom-px left-0 h-[3px] w-28 rounded-full" style={{ backgroundColor: C.marca }} />
     </div>
   );
@@ -95,7 +95,7 @@ function ListaReglas({ titulo, items }: { titulo?: string; items: string[] }) {
   );
 }
 
-export const SlidePortada = forwardRef<HTMLDivElement, { generado: string }>(({ generado }, ref) => (
+export const SlidePortada = forwardRef<HTMLDivElement, object>((_props, ref) => (
   <div
     ref={ref}
     className="relative flex flex-col items-center justify-center gap-7 p-10 text-center"
@@ -112,11 +112,11 @@ export const SlidePortada = forwardRef<HTMLDivElement, { generado: string }>(({ 
       </p>
     </div>
     <p className="max-w-xl text-[14px] leading-relaxed" style={{ color: C.suave }}>
-      Referencia para quien se incorpora al equipo: guion y tono, aprobación, voz y música, montaje y
-      subtítulos, y cierre/entrega. Cinco pasos, uno por diapositiva.
+      Referencia para quien se incorpora al equipo: guion y tono, aprobación, voz, música, montaje,
+      subtítulos, y cierre/entrega — un paso por diapositiva.
     </p>
     <p className="absolute bottom-10 text-[11px] uppercase tracking-widest" style={{ color: C.suave }}>
-      Generado {generado} · Documento interno
+      Documento interno
     </p>
     <div className="absolute bottom-0 left-0 h-[6px] w-full" style={{ backgroundColor: C.marca }} />
   </div>
@@ -138,9 +138,10 @@ export const PASOS_GUIA: PasoGuia[] = [
     contenido: ({ urlMd }) => (
       <>
         <p className="text-[14px] leading-relaxed">
-          Antes de escribir cualquier guion es importante conocer la <b>estructura de los videos</b>. El tono de
-          diálogo que usamos para Grupo Ortiz está definido en un documento maestro — se puede abrir directo
-          desde este link:
+          Este es el PRIMER paso de toda cápsula: alguien del equipo (el responsable asignado) escribe el guion
+          — el texto que después se convierte en la voz en off del video. Antes de escribir cualquier guion es
+          importante conocer la <b>estructura de los videos</b>. El tono de diálogo que usamos para Grupo Ortiz
+          está definido en un documento maestro — se puede abrir directo desde este link:
         </p>
         <LinkDestacado etiqueta="Prompt maestro de guiones (tono Grupo Ortiz)" url={urlMd} />
         <div className="grid grid-cols-2 gap-3">
@@ -167,6 +168,10 @@ export const PASOS_GUIA: PasoGuia[] = [
     titulo: "Aprobación",
     contenido: () => (
       <>
+        <p className="text-[14px] leading-relaxed">
+          <b>Community</b> es el equipo que revisa y aprueba el contenido antes de producirlo — conoce el
+          contexto de a quién le habla cada cápsula, por eso ningún guion avanza sin pasar por aquí.
+        </p>
         <div className="grid grid-cols-3 gap-3">
           <Dato label="1. Envío" valor="El responsable manda el guion terminado a Community" />
           <Dato label="2. Revisión" valor="Community lo lee y deja comentarios directamente sobre el texto" />
@@ -174,14 +179,13 @@ export const PASOS_GUIA: PasoGuia[] = [
         </div>
         <p className="text-[14px] leading-relaxed">
           Este envío-revisión-ajuste se repite las veces que haga falta hasta que Community quede conforme. Una
-          vez <b>aprobado</b>, el guion pasa a la etapa de generación de voz y música — no antes.
+          vez <b>aprobado</b>, el guion pasa a la etapa de generación de voz — no antes.
         </p>
         <ListaReglas
           titulo="Por qué importa"
           items={[
             "Ninguna cápsula debe generarse en ElevenLabs sin esta aprobación previa.",
             "Evita rehacer voz y música por un cambio de texto que se pudo resolver antes.",
-            "Community es quien conoce el contexto de a quién le habla cada cápsula.",
           ]}
         />
       </>
@@ -190,18 +194,15 @@ export const PASOS_GUIA: PasoGuia[] = [
   {
     numero: 3,
     icono: Mic,
-    titulo: "Voz y música",
+    titulo: "Voz (ElevenLabs)",
     contenido: ({ urlMd }) => (
       <>
-        <div className="grid grid-cols-2 gap-3">
-          <Dato label="Texto a voz" valor="ElevenLabs" />
-          <Dato label="Voz oficial" valor="El Faraón" />
-        </div>
         <p className="text-[14px] leading-relaxed">
-          El guion ya aprobado se convierte a audio con la voz oficial. Se usan <b>3 tipos de música</b>, todas
-          clásicas, seleccionadas por el dueño — no se cambian sin autorización.
+          El guion ya aprobado se convierte a audio en <b>ElevenLabs</b>, la plataforma de texto a voz que
+          usamos para generar la narración — siempre con la misma voz oficial, sin variaciones.
         </p>
-        <LinkDestacado etiqueta="Carpeta de música (Drive)" url="https://drive.google.com/drive/folders/1uu6aOnx4cWc6d6SN7woTF-ytHwPkt3J5" />
+        <Dato label="Voz oficial" valor="El Faraón" />
+        <LinkDestacado etiqueta="ElevenLabs (texto a voz)" url="https://elevenlabs.io" />
         <ListaReglas
           titulo="Checklist antes de generar"
           items={[
@@ -215,10 +216,57 @@ export const PASOS_GUIA: PasoGuia[] = [
   },
   {
     numero: 4,
-    icono: Captions,
-    titulo: "Montaje y subtítulos",
+    icono: Music,
+    titulo: "Música",
     contenido: () => (
       <>
+        <p className="text-[14px] leading-relaxed">
+          Con la voz ya grabada, se le pone música de fondo. Usamos <b>3 tipos de música</b>, todas clásicas,
+          seleccionadas por el dueño — no se cambian sin su autorización.
+        </p>
+        <Dato label="Música" valor="3 pistas clásicas, seleccionadas por el dueño" />
+        <LinkDestacado etiqueta="Carpeta de música (Drive)" url="https://drive.google.com/drive/folders/1uu6aOnx4cWc6d6SN7woTF-ytHwPkt3J5" />
+        <ListaReglas
+          titulo="Reglas clave"
+          items={[
+            "Siempre una de estas 3 pistas — nunca música nueva sin autorización.",
+            "La elección entre las 3 depende del tono del video (consultar con el lider/dueño si hay duda).",
+          ]}
+        />
+      </>
+    ),
+  },
+  {
+    numero: 5,
+    icono: Film,
+    titulo: "Montaje",
+    contenido: () => (
+      <>
+        <p className="text-[14px] leading-relaxed">
+          Con voz y música listas, se arma el video final en el editor: se acomodan las tomas, se sincroniza la
+          narración con la imagen, y se deja el corte listo para ponerle los subtítulos (siguiente paso).
+        </p>
+        <ListaReglas
+          titulo="Qué debe quedar listo aquí"
+          items={[
+            "Corte final sincronizado con la voz en off y la música.",
+            "Imagen revisada: sin tomas repetidas, movidas o de baja calidad.",
+            "Duración dentro de lo acordado en el guion (ver Paso 1).",
+          ]}
+        />
+      </>
+    ),
+  },
+  {
+    numero: 6,
+    icono: Captions,
+    titulo: "Subtítulos",
+    contenido: () => (
+      <>
+        <p className="text-[14px] leading-relaxed">
+          Sobre el video ya montado se agregan los subtítulos — español arriba, inglés debajo — con un formato
+          FIJO, igual en todas las cápsulas.
+        </p>
         <div className="grid grid-cols-2 gap-3">
           <Dato label="Fuente" valor="Morganite Medium, tamaño 82" />
           <Dato label="Posición" valor="X 550.000 · Y 525.000 · Interlineado 0" />
@@ -233,14 +281,13 @@ export const PASOS_GUIA: PasoGuia[] = [
             "El español va siempre arriba (principal); el inglés va debajo, en menor jerarquía visual.",
             "El color (dorado, blanco o naranja) depende de la marca/identidad del video, nunca al azar.",
             "Mayúsculas en español y minúsculas en inglés son fijas, sin excepción.",
-            "Estos ajustes no varían entre proyectos salvo instrucción expresa.",
           ]}
         />
       </>
     ),
   },
   {
-    numero: 5,
+    numero: 7,
     icono: Clapperboard,
     titulo: "Cierre y entrega",
     contenido: () => (
@@ -251,8 +298,8 @@ export const PASOS_GUIA: PasoGuia[] = [
         </p>
         <LinkDestacado etiqueta="Carpeta del logo de cierre (Drive)" url="https://drive.google.com/drive/folders/1Ch4GikaERtHlDquAc_n3C2A70eYkOlhs" />
         <p className="text-[14px] leading-relaxed">
-          Terminado el montaje, el video se entrega a <b>Community</b>, quien lo usa/publica. Con esto se cierra
-          el ciclo completo de la cápsula.
+          Con la cortinilla ya puesta, el video se entrega a <b>Community</b>, quien lo usa/publica. Con esto se
+          cierra el ciclo completo de la cápsula.
         </p>
         <div className="grid grid-cols-4 gap-3">
           <Dato label="Voz" valor="Integrada (ElevenLabs)" />
@@ -265,30 +312,28 @@ export const PASOS_GUIA: PasoGuia[] = [
   },
 ];
 
-export const SlideCapsula = forwardRef<HTMLDivElement, { paso: PasoGuia; generado: string; urlMd: string }>(
-  ({ paso, generado, urlMd }, ref) => {
-    const Icono = paso.icono;
-    return (
-      <div
-        ref={ref}
-        className="flex flex-col gap-6 p-10"
-        style={{ width: SLIDE_GUIA_W, height: SLIDE_GUIA_H, backgroundColor: C.fondo, color: C.texto, fontFamily: "Inter, sans-serif" }}
-      >
-        <Encabezado kicker="Guía del proceso de producción · Cápsulas" titulo={`Paso ${paso.numero} — ${paso.titulo}`} generado={generado} />
-        <div className="flex flex-1 items-start gap-6 overflow-hidden">
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
-            style={{ backgroundColor: C.marcaSuave }}
-          >
-            <Icono className="h-7 w-7" style={{ color: C.marca }} />
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-4">{paso.contenido({ urlMd })}</div>
+export const SlideCapsula = forwardRef<HTMLDivElement, { paso: PasoGuia; urlMd: string }>(({ paso, urlMd }, ref) => {
+  const Icono = paso.icono;
+  return (
+    <div
+      ref={ref}
+      className="flex flex-col gap-8 p-10"
+      style={{ width: SLIDE_GUIA_W, height: SLIDE_GUIA_H, backgroundColor: C.fondo, color: C.texto, fontFamily: "Inter, sans-serif" }}
+    >
+      <Encabezado kicker="Guía del proceso de producción · Cápsulas" titulo={`Paso ${paso.numero} — ${paso.titulo}`} />
+      <div className="flex flex-1 items-start gap-6 overflow-hidden">
+        <div
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full"
+          style={{ backgroundColor: C.marcaSuave }}
+        >
+          <Icono className="h-7 w-7" style={{ color: C.marca }} />
         </div>
-        <p className="text-right text-[11px]" style={{ color: C.suave }}>
-          Paso {paso.numero} de {PASOS_GUIA.length}
-        </p>
+        <div className="flex min-w-0 flex-1 flex-col gap-4">{paso.contenido({ urlMd })}</div>
       </div>
-    );
-  }
-);
+      <p className="text-right text-[11px]" style={{ color: C.suave }}>
+        Paso {paso.numero} de {PASOS_GUIA.length}
+      </p>
+    </div>
+  );
+});
 SlideCapsula.displayName = "SlideCapsula";
