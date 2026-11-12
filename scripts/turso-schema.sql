@@ -53,6 +53,8 @@ CREATE TABLE IF NOT EXISTS marcas (
   colores TEXT NOT NULL,
   tipografia TEXT,
   manual_url TEXT,
+  -- id (en assets_marca) de la tipografia que manda; las demas son secundarias por eliminacion.
+  tipografia_principal_id TEXT,
   creado_en TEXT NOT NULL,
   actualizado_en TEXT NOT NULL
 );

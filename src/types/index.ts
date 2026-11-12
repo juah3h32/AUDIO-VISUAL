@@ -451,6 +451,11 @@ export interface Marca {
    * texto, no se sube ningun archivo de fuente. */
   tipografia?: string;
   assets: AssetMarca[];
+  /** id (dentro de `assets`) de la tipografia que manda — la que se usa en el nombre de la
+   * marca y la que el equipo debe preferir para titulos. Sin esto se asumia que era siempre
+   * la primera subida, que no necesariamente es la principal. Las demas tipografias de
+   * `assets` son secundarias por eliminacion (no hace falta marcarlas una a una). */
+  tipografiaPrincipalId?: string;
   /** Link al manual de identidad completo en PDF (Drive), si existe. */
   manualUrl?: string;
   creadoEn: string;

@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { Check, Copy, Download, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, FileText, Pencil, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useActualizarMarca } from "@/hooks/useMarcas";
 import type { Marca, Proyecto } from "@/types";
 
 /** `@font-face` necesita bytes crudos, no la pagina de vista de Drive — `/api/drive-video` ya
@@ -57,6 +59,7 @@ export function MarcaDetalle({
   onEliminar: () => void;
   eliminarPending: boolean;
 }) {
+  const actualizarMarca = useActualizarMarca();
   const paleta = marca.colores.length > 0 ? marca.colores : ["#E5E7EB"];
   const logo = marca.assets.find((a) => a.tipo === "logo");
   const manualPdf = marca.assets.find((a) => a.tipo === "pdf");
@@ -65,17 +68,25 @@ export function MarcaDetalle({
   // unico (no se puede reusar el mismo `font-family` para dos `src` distintos).
   const tipografiaAssets = marca.assets.filter((a) => a.tipo === "tipografia");
   const familiaDe = (i: number) => `marca-fuente-${marca.id}-${i}`;
+  // Sin marcar a mano cual manda, se asumia que era siempre la primera subida — con esto
+  // alguien puede decidir cual es la principal de verdad (ej. subieron antes la secundaria).
+  const indicePrincipal = Math.max(
+    0,
+    tipografiaAssets.findIndex((a) => a.id === marca.tipografiaPrincipalId)
+  );
   // Con archivo real: se ve exactamente como es, no una adivinanza de fuente de sistema por nombre.
-  const familiaPrincipal = tipografiaAssets.length > 0 ? familiaDe(0) : marca.tipografia;
+  const familiaPrincipal = tipografiaAssets.length > 0 ? familiaDe(indicePrincipal) : marca.tipografia;
 
   return (
     <div>
-      {/* `font-display: swap` — sin esto el navegador deja el texto INVISIBLE mientras baja el
-          archivo de fuente (font-display default es "block", hasta ~3s) antes de mostrar algo,
-          se sentia como que "tarda en verse la tipografia". Con swap se ve de inmediato con una
-          fuente de reemplazo y cambia en cuanto el archivo real termina de cargar. */}
+      {/* `font-display: optional` — "block" (default) deja el texto INVISIBLE mientras baja el
+          archivo de fuente (hasta ~3s) antes de mostrar algo. "swap" ya mostraba texto de
+          inmediato, pero con una fuente de marca pesada bajando via el proxy de Drive, el swap
+          llegaba tarde y se sentia como un parpadeo/salto de texto al abrir la marca. "optional"
+          muestra la fuente de reemplazo de inmediato y SOLO cambia a la real si ya cargo a
+          tiempo (o ya estaba en cache) — sin swap tardio, sin texto invisible. */}
       {tipografiaAssets.map((a, i) => (
-        <style key={a.id}>{`@font-face { font-family: '${familiaDe(i)}'; src: url(/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}) format('${formatoFuente(a.nombre)}'); font-display: swap; }`}</style>
+        <style key={a.id}>{`@font-face { font-family: '${familiaDe(i)}'; src: url(/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}) format('${formatoFuente(a.nombre)}'); font-display: optional; }`}</style>
       ))}
       <div
         className="relative flex h-32 items-end overflow-hidden rounded-t-lg p-4 sm:h-40"
@@ -101,7 +112,7 @@ export function MarcaDetalle({
       <div className="space-y-6 border border-t-0 border-border rounded-b-lg p-4 text-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <h2 className="truncate text-3xl font-extrabold text-text-primary sm:text-4xl" style={familiaPrincipal ? { fontFamily: familiaPrincipal } : undefined}>
+            <h2 className="truncate text-4xl font-extrabold text-text-primary sm:text-6xl" style={familiaPrincipal ? { fontFamily: familiaPrincipal } : undefined}>
               {marca.nombre}
             </h2>
             {marca.descripcion && <p className="text-sm text-muted-foreground">{marca.descripcion}</p>}
@@ -131,23 +142,47 @@ export function MarcaDetalle({
           </p>
           {tipografiaAssets.length > 0 ? (
             <div className="space-y-2">
-              {tipografiaAssets.map((a, i) => (
-                <div key={a.id} className="rounded-md border border-border bg-bg-primary p-3">
-                  <p className="text-2xl" style={{ fontFamily: familiaDe(i) }}>
-                    Aa Bb Cc
-                  </p>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">{a.nombre}</p>
-                    <a
-                      href={`/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}&download=1&nombre=${encodeURIComponent(a.nombre)}`}
-                      className="flex shrink-0 items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium hover:bg-bg-secondary"
-                      title={`Descargar ${a.nombre}`}
-                    >
-                      <Download className="h-3 w-3" /> Descargar
-                    </a>
+              {tipografiaAssets.map((a, i) => {
+                const esPrincipal = i === indicePrincipal;
+                return (
+                  <div key={a.id} className="rounded-md border border-border bg-bg-primary p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-2xl" style={{ fontFamily: familiaDe(i) }}>
+                        Aa Bb Cc
+                      </p>
+                      <Badge
+                        variant={esPrincipal ? "accent" : "default"}
+                        className="shrink-0 gap-1 whitespace-nowrap text-[10px]"
+                      >
+                        {esPrincipal && <Star className="h-3 w-3" />}
+                        {esPrincipal ? "Principal" : "Secundaria"}
+                      </Badge>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">{a.nombre}</p>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {puedeGestionar && !esPrincipal && (
+                          <button
+                            type="button"
+                            onClick={() => actualizarMarca.mutate({ id: marca.id, cambios: { tipografiaPrincipalId: a.id } })}
+                            disabled={actualizarMarca.isPending}
+                            className="rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium hover:bg-bg-secondary"
+                          >
+                            Usar como principal
+                          </button>
+                        )}
+                        <a
+                          href={`/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}&download=1&nombre=${encodeURIComponent(a.nombre)}`}
+                          className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium hover:bg-bg-secondary"
+                          title={`Descargar ${a.nombre}`}
+                        >
+                          <Download className="h-3 w-3" /> Descargar
+                        </a>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : marca.tipografia ? (
             <div className="rounded-md border border-border bg-bg-primary p-3">

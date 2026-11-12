@@ -25,6 +25,7 @@ async function filaAMarca(fila: Record<string, unknown>) {
     colores: parseJsonArray(fila.colores),
     tipografia: fila.tipografia ? String(fila.tipografia) : undefined,
     manualUrl: fila.manual_url ? String(fila.manual_url) : undefined,
+    tipografiaPrincipalId: fila.tipografia_principal_id ? String(fila.tipografia_principal_id) : undefined,
     assets: assets.rows.map((a) => ({
       id: String(a.id),
       tipo: String(a.tipo),
@@ -94,6 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         colores?: string[];
         tipografia?: string;
         manualUrl?: string;
+        tipografiaPrincipalId?: string;
         assets?: AssetMarcaEntrada[];
       }>(req);
 
@@ -104,6 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (body.colores !== undefined) { campos.push("colores = ?"); args.push(JSON.stringify(body.colores)); }
       if (body.tipografia !== undefined) { campos.push("tipografia = ?"); args.push(body.tipografia); }
       if (body.manualUrl !== undefined) { campos.push("manual_url = ?"); args.push(body.manualUrl); }
+      if (body.tipografiaPrincipalId !== undefined) { campos.push("tipografia_principal_id = ?"); args.push(body.tipografiaPrincipalId); }
       campos.push("actualizado_en = ?");
       args.push(new Date().toISOString());
       args.push(id);
