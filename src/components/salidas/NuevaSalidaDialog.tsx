@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useCrearPlanta, useCrearSalida, usePlantas, useUsuarios } from "@/hooks/useCatalogos";
 import { useProyectos } from "@/hooks/useProyectos";
 import { TIPO_ACTIVIDAD_SALIDA_LABELS } from "@/lib/labels";
+import { aFecha } from "@/lib/periodo";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +33,25 @@ const OPCIONES_TRANSPORTE = ["Uber", "Auto de empresa", "Autobus"] as const;
 const SIN_PROYECTO_SALIDA = "sin-proyecto-salida";
 const NUEVA_PLANTA = "nueva-planta";
 
+/** Recorridos de reconocimiento, entrevistas recurrentes, etc. — en vez de crear cada semana
+ * la misma salida a mano, se eligen cuantas semanas seguidas repetirla y se crean todas de una
+ * vez (cada una es independiente despues: se puede editar o borrar una sin afectar al resto). */
+const OPCIONES_REPETICION = [
+  { valor: 0, etiqueta: "No se repite" },
+  { valor: 3, etiqueta: "4 semanas seguidas" },
+  { valor: 7, etiqueta: "8 semanas seguidas" },
+  { valor: 11, etiqueta: "12 semanas seguidas" },
+  { valor: 25, etiqueta: "26 semanas seguidas" },
+  { valor: 51, etiqueta: "52 semanas seguidas" },
+] as const;
+
+function sumarSemanas(fechaIso: string, semanas: number): string {
+  const d = aFecha(fechaIso);
+  d.setDate(d.getDate() + semanas * 7);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const schema = z.object({
   nombreJornada: z.string().min(3, "Requerido"),
   tipoActividad: z.custom<TipoActividadSalida>((v) => typeof v === "string" && v.length > 0, "Requerido"),
@@ -53,6 +73,7 @@ type FormValues = z.infer<typeof schema>;
 export function NuevaSalidaDialog() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [creandoSerie, setCreandoSerie] = useState(false);
   const { usuario } = useAuth();
   const crear = useCrearSalida();
   const { data: usuarios = [] } = useUsuarios();
@@ -67,6 +88,10 @@ export function NuevaSalidaDialog() {
   // telefono (siguen editables). Al elegir NUEVA_PLANTA se limpian para capturar una desde cero,
   // y esa planta se guarda en el catalogo al enviar el formulario (ver onSubmit).
   const [plantaId, setPlantaId] = useState<string>("");
+  // Semanas ADICIONALES a crear ademas de la fecha capturada (0 = solo esta). Independiente del
+  // formulario de react-hook-form porque no es un campo de la salida en si, solo controla cuantas
+  // copias se generan al enviar.
+  const [repetirSemanas, setRepetirSemanas] = useState(0);
 
   const equipo = usuarios.filter(
     (u) => u.rol === "colaborador_audiovisual" || u.rol === "lider_audiovisual" || u.rol === "superadmin"
@@ -84,6 +109,10 @@ export function NuevaSalidaDialog() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const responsableElegido = watch("responsableProduccionId");
+  const fechaElegida = watch("fecha");
+  // El dia de la semana sale solo de la fecha elegida (si se pone un martes, se repite cada
+  // martes) — no hace falta un selector aparte de dia, solo mostrarlo para que quede claro.
+  const diaSemanaElegido = fechaElegida ? aFecha(fechaElegida).toLocaleDateString("es-MX", { weekday: "long" }) : "";
 
   const onElegirPlanta = (value: string) => {
     setPlantaId(value);
@@ -122,7 +151,7 @@ export function NuevaSalidaDialog() {
       }
     }
     try {
-      await crear.mutateAsync({
+      const base = {
         nombreJornada: values.nombreJornada,
         proyectosRelacionados:
           values.proyectoId && values.proyectoId !== SIN_PROYECTO_SALIDA ? [values.proyectoId] : [],
@@ -131,7 +160,6 @@ export function NuevaSalidaDialog() {
         direccion: values.direccion,
         contactoPlanta: values.contactoPlanta,
         telefonoContacto: values.telefonoContacto,
-        fecha: values.fecha,
         horaSalida: values.horaSalida,
         horaEstimadaLlegada: values.horaEstimadaLlegada,
         personalAsignado: personal,
@@ -139,13 +167,23 @@ export function NuevaSalidaDialog() {
         equipoRequerido: [],
         transporte: values.transporte,
         observaciones: values.observaciones,
-      });
+      };
+      // Secuencial (no Promise.all): cada una pide su propio folio consecutivo — mandarlas
+      // todas a la vez no rompe el conteo (es transaccional), pero sí se ve raro si una falla
+      // a medias; uno por uno es mas facil de seguir si algo truena.
+      setCreandoSerie(true);
+      for (let i = 0; i <= repetirSemanas; i++) {
+        await crear.mutateAsync({ ...base, fecha: sumarSemanas(values.fecha, i) });
+      }
       reset();
       setPersonalAsignado([]);
       setPlantaId("");
+      setRepetirSemanas(0);
       setOpen(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "No se pudo crear la salida.");
+    } finally {
+      setCreandoSerie(false);
     }
   };
 
@@ -353,6 +391,29 @@ export function NuevaSalidaDialog() {
           </div>
 
           <div className="space-y-1.5">
+            <Label>Se repite</Label>
+            <Select value={String(repetirSemanas)} onValueChange={(v) => setRepetirSemanas(Number(v))}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {OPCIONES_REPETICION.map((op) => (
+                  <SelectItem key={op.valor} value={String(op.valor)}>
+                    {op.etiqueta}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {repetirSemanas > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Se crean {repetirSemanas + 1} salidas, cada{" "}
+                {diaSemanaElegido ? <span className="font-medium text-text-primary">{diaSemanaElegido}</span> : "semana"}{" "}
+                a partir de la fecha de arriba — cada una se puede editar o borrar despues por separado.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             <Label>Transporte</Label>
             <Controller
               control={control}
@@ -385,8 +446,14 @@ export function NuevaSalidaDialog() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={crear.isPending}>
-              {crear.isPending ? "Guardando..." : "Crear salida"}
+            <Button type="submit" disabled={creandoSerie}>
+              {creandoSerie
+                ? repetirSemanas > 0
+                  ? "Creando serie..."
+                  : "Guardando..."
+                : repetirSemanas > 0
+                  ? `Crear ${repetirSemanas + 1} salidas`
+                  : "Crear salida"}
             </Button>
           </DialogFooter>
         </form>

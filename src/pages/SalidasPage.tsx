@@ -35,6 +35,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { NuevaSalidaDialog } from "@/components/salidas/NuevaSalidaDialog";
+import { EditarSalidaDialog } from "@/components/salidas/EditarSalidaDialog";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -150,16 +151,16 @@ export function SalidasPage() {
                 type="button"
                 onClick={() => setFiltroCategoria(cat)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  "flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
                   activo
-                    ? "border-accent-dato bg-accent-dato/10 text-accent-dato"
-                    : "border-border text-muted-foreground hover:bg-bg-secondary"
+                    ? "border-accent-dato bg-accent-dato/15 text-text-primary"
+                    : "border-border font-medium text-muted-foreground hover:bg-bg-secondary"
                 )}
               >
                 {cat === "grabacion" && <Video className="h-3.5 w-3.5" />}
                 {cat === "visita" && <Footprints className="h-3.5 w-3.5" />}
                 {cat === "todas" ? "Todas" : CATEGORIA_SALIDA_LABELS[cat]}
-                <span className={cn("text-[10px]", activo ? "text-accent-dato/70" : "text-muted-foreground/70")}>
+                <span className={cn("text-[10px]", activo ? "text-text-primary/70" : "text-muted-foreground/70")}>
                   {cantidad}
                 </span>
               </button>
@@ -195,7 +196,8 @@ export function SalidasPage() {
               }}
               className={cn(
                 "flex flex-col overflow-hidden p-0 transition-shadow",
-                resaltadaId === s.id && "ring-2 ring-accent-dato"
+                resaltadaId === s.id && "ring-2 ring-accent-dato",
+                yaPaso && "opacity-60 saturate-[0.6] hover:opacity-100 hover:saturate-100"
               )}
             >
               <div className="bg-[#111827] px-3 pb-2 pt-3 text-white dark:bg-[#0B0D11]">
@@ -232,7 +234,7 @@ export function SalidasPage() {
               <CardContent className="flex flex-1 flex-col gap-1 p-3 pt-1.5 text-[11px]">
                 <Badge
                   variant={CATEGORIA_SALIDA_BADGE[CATEGORIA_SALIDA[s.tipoActividad]]}
-                  className="w-fit gap-1 px-1.5 py-0 text-[9px]"
+                  className="w-fit shrink-0 gap-1 whitespace-nowrap px-1.5 py-0 text-[9px]"
                 >
                   {CATEGORIA_SALIDA[s.tipoActividad] === "grabacion" ? (
                     <Video className="h-2.5 w-2.5" />
@@ -319,6 +321,7 @@ export function SalidasPage() {
                         </Button>
                       </>
                     )}
+                    {puedeAutorizar && <EditarSalidaDialog salida={s} />}
                     {puedeAutorizar && (
                       <Button
                         type="button"

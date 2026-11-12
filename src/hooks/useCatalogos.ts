@@ -5,6 +5,7 @@ import {
   actualizarGestorRequisiciones,
   actualizarPerfilColaborador,
   actualizarRolUsuario,
+  actualizarSalida,
   autorizarSalida,
   crearColaborador,
   crearPlanta,
@@ -91,6 +92,15 @@ export function useAutorizarSalida() {
   return useMutation({
     mutationFn: ({ id, estadoAutorizacion }: { id: string; estadoAutorizacion: DecisionSalida }) =>
       autorizarSalida(id, estadoAutorizacion),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["salidas"] }),
+  });
+}
+
+export function useActualizarSalida() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, cambios }: { id: string; cambios: Partial<Omit<SalidaGrabacion, "id" | "folio" | "creadoEn">> }) =>
+      actualizarSalida(id, cambios),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["salidas"] }),
   });
 }

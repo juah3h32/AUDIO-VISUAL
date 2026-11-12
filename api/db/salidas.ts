@@ -72,12 +72,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === "PATCH") {
-      if (!puedeAsignarEntregables(usuario)) throw new ErrorAuth(403, "No tienes permiso para autorizar salidas.");
+      if (!puedeAsignarEntregables(usuario)) throw new ErrorAuth(403, "No tienes permiso para editar salidas.");
       const id = String(req.query.id ?? "");
       if (!id) throw new ErrorAuth(400, "Falta el id.");
-      const body = cuerpoJson<{ estadoAutorizacion: "autorizada" | "rechazada" }>(req);
-      await db().execute({ sql: "UPDATE salidas SET estado_autorizacion = ? WHERE id = ?", args: [body.estadoAutorizacion, id] });
-      res.status(200).json({ ok: true });
+      const body = cuerpoJson<{
+        estadoAutorizacion?: "autorizada" | "rechazada";
+        nombreJornada?: string;
+        proyectosRelacionados?: string[];
+        tipoActividad?: string;
+        planta?: string;
+        direccion?: string;
+        contactoPlanta?: string;
+        telefonoContacto?: string;
+        fecha?: string;
+        horaSalida?: string;
+        horaEstimadaLlegada?: string;
+        personalAsignado?: string[];
+        responsableProduccionId?: string;
+        transporte?: string;
+        observaciones?: string;
+      }>(req);
+
+      const MAPA_CAMPOS: Record<string, string> = {
+        estadoAutorizacion: "estado_autorizacion",
+        nombreJornada: "nombre_jornada",
+        tipoActividad: "tipo_actividad",
+        planta: "planta",
+        direccion: "direccion",
+        contactoPlanta: "contacto_planta",
+        telefonoContacto: "telefono_contacto",
+        fecha: "fecha",
+        horaSalida: "hora_salida",
+        horaEstimadaLlegada: "hora_estimada_llegada",
+        responsableProduccionId: "responsable_produccion_id",
+        transporte: "transporte",
+        observaciones: "observaciones",
+      };
+      const CAMPOS_JSON = new Set(["proyectosRelacionados", "personalAsignado"]);
+
+      const campos: string[] = [];
+      const args: unknown[] = [];
+      for (const [clave, columna] of Object.entries(MAPA_CAMPOS)) {
+        const valor = (body as Record<string, unknown>)[clave];
+        if (valor === undefined) continue;
+        campos.push(`${columna} = ?`);
+        args.push(valor);
+      }
+      for (const clave of CAMPOS_JSON) {
+        const valor = (body as Record<string, unknown>)[clave];
+        if (valor === undefined) continue;
+        campos.push(`${clave === "proyectosRelacionados" ? "proyectos_relacionados" : "personal_asignado"} = ?`);
+        args.push(JSON.stringify(valor));
+      }
+      if (campos.length === 0) throw new ErrorAuth(400, "Nada que actualizar.");
+      args.push(id);
+      await db().execute({ sql: `UPDATE salidas SET ${campos.join(", ")} WHERE id = ?`, args });
+      const fila = await db().execute({ sql: "SELECT * FROM salidas WHERE id = ?", args: [id] });
+      if (!fila.rows[0]) throw new ErrorAuth(404, "Salida no encontrada.");
+      res.status(200).json(filaASalida(fila.rows[0] as Record<string, unknown>));
       return;
     }
 

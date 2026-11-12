@@ -79,6 +79,20 @@ export async function autorizarSalida(id: string, estadoAutorizacion: DecisionSa
   });
 }
 
+export async function actualizarSalida(
+  id: string,
+  cambios: Partial<Omit<SalidaGrabacion, "id" | "folio" | "creadoEn">>
+): Promise<void> {
+  if (esModoDemo) {
+    demoSalidas = demoSalidas.map((s) => (s.id === id ? { ...s, ...cambios } : s));
+    return;
+  }
+  await apiFetch(`/api/db/salidas?id=${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    body: JSON.stringify(cambios),
+  });
+}
+
 export async function eliminarSalida(id: string): Promise<void> {
   if (esModoDemo) {
     demoSalidas = demoSalidas.filter((s) => s.id !== id);
