@@ -172,6 +172,34 @@ export const TIPO_ACTIVIDAD_SALIDA_LABELS: Record<TipoActividadSalida, string> =
   visita_tecnica: "Visita técnica",
 };
 
+export type CategoriaSalida = "grabacion" | "visita";
+
+/** Separa lo que SI implica grabar/fotografiar (va equipo, hay material que entregar despues)
+ * de lo que es solo un recorrido o visita sin captura — para filtrar y distinguir de un
+ * vistazo en la vista de Salidas, donde ambos tipos se mezclaban sin diferenciarse. */
+export const CATEGORIA_SALIDA: Record<TipoActividadSalida, CategoriaSalida> = {
+  levantamiento_contenido: "grabacion",
+  grabacion_proceso_industrial: "grabacion",
+  fotografia_maquinaria: "grabacion",
+  fotografia_producto: "grabacion",
+  entrevista: "grabacion",
+  recorrido_reconocimiento: "visita",
+  grabacion_dron: "grabacion",
+  cobertura_evento: "grabacion",
+  grabacion_institucional: "grabacion",
+  visita_tecnica: "visita",
+};
+
+export const CATEGORIA_SALIDA_LABELS: Record<CategoriaSalida, string> = {
+  grabacion: "Grabación / contenido",
+  visita: "Visita / recorrido",
+};
+
+export const CATEGORIA_SALIDA_BADGE: Record<CategoriaSalida, BadgeVariant> = {
+  grabacion: "info",
+  visita: "default",
+};
+
 /** Unica fuente del texto/color del estado de autorizacion de una salida — lo usan la pagina
  * de Salidas (badge de la tarjeta) y el Calendario (badge del evento del dia). */
 export const ETIQUETA_AUTORIZACION_SALIDA: Record<EstadoAutorizacionSalida, string> = {

@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   XCircle,
   Trash2,
+  Video,
+  Footprints,
 } from "lucide-react";
 import { useAutorizarSalida, useEliminarSalida, useSalidas } from "@/hooks/useCatalogos";
 import { useUsuarios } from "@/hooks/useCatalogos";
@@ -18,8 +20,12 @@ import { useAuth } from "@/context/AuthContext";
 import { puedeAsignarEntregables } from "@/lib/roles";
 import {
   BADGE_AUTORIZACION_SALIDA,
+  CATEGORIA_SALIDA,
+  CATEGORIA_SALIDA_BADGE,
+  CATEGORIA_SALIDA_LABELS,
   ETIQUETA_AUTORIZACION_SALIDA,
   TIPO_ACTIVIDAD_SALIDA_LABELS,
+  type CategoriaSalida,
 } from "@/lib/labels";
 import { cn, partesFecha } from "@/lib/utils";
 import { linkAgregarEventoCalendar } from "@/services/calendarService";
@@ -65,6 +71,12 @@ export function SalidasPage() {
   const nombreProyectoDe = (id: string) => proyectos.find((p) => p.id === id)?.nombre ?? "Proyecto eliminado";
   const [decidiendo, setDecidiendo] = useState<string | null>(null);
   const [aEliminar, setAEliminar] = useState<SalidaGrabacion | null>(null);
+  // Mezcladas en una sola grilla, un recorrido sin equipo se veia igual que una grabacion con
+  // todo el levantamiento de contenido — de aqui el pedido de distinguirlas y poder filtrar.
+  const [filtroCategoria, setFiltroCategoria] = useState<"todas" | CategoriaSalida>("todas");
+  const salidasFiltradas = salidas.filter(
+    (s) => filtroCategoria === "todas" || CATEGORIA_SALIDA[s.tipoActividad] === filtroCategoria
+  );
   const nombreDe = (id: string) => usuarios.find((u) => u.id === id)?.nombre ?? "Usuario eliminado";
   // Mismo criterio que crear la salida (lider/superadmin): quien la programa es quien la
   // autoriza. El responsable de produccion nunca se autoriza su propia jornada.
@@ -126,6 +138,36 @@ export function SalidasPage() {
         </CardContent>
       </Card>
 
+      {!isLoading && !isError && (
+        <div className="flex flex-wrap items-center gap-2">
+          {(["todas", "grabacion", "visita"] as const).map((cat) => {
+            const cantidad =
+              cat === "todas" ? salidas.length : salidas.filter((s) => CATEGORIA_SALIDA[s.tipoActividad] === cat).length;
+            const activo = filtroCategoria === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setFiltroCategoria(cat)}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  activo
+                    ? "border-accent-dato bg-accent-dato/10 text-accent-dato"
+                    : "border-border text-muted-foreground hover:bg-bg-secondary"
+                )}
+              >
+                {cat === "grabacion" && <Video className="h-3.5 w-3.5" />}
+                {cat === "visita" && <Footprints className="h-3.5 w-3.5" />}
+                {cat === "todas" ? "Todas" : CATEGORIA_SALIDA_LABELS[cat]}
+                <span className={cn("text-[10px]", activo ? "text-accent-dato/70" : "text-muted-foreground/70")}>
+                  {cantidad}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {isLoading ? (
         <LoadingState label="Cargando salidas…" />
       ) : isError ? (
@@ -134,7 +176,7 @@ export function SalidasPage() {
         // Tarjetas compactas: 3 columnas en pantallas anchas (antes 2 columnas con texto grande
         // dejaban cada tarjeta de media pantalla).
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-          {salidas.map((s) => {
+          {salidasFiltradas.map((s) => {
             const { dia, diaSemana, mes } = partesFecha(s.fecha);
             // Ya se realizo: sin que nadie la marque a mano, si ya quedo autorizada y su fecha ya
             // paso, ya se fue/visito — no tiene caso seguir mostrandola como si fuera a futuro.
@@ -188,6 +230,17 @@ export function SalidasPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-1 flex-col gap-1 p-3 pt-1.5 text-[11px]">
+                <Badge
+                  variant={CATEGORIA_SALIDA_BADGE[CATEGORIA_SALIDA[s.tipoActividad]]}
+                  className="w-fit gap-1 px-1.5 py-0 text-[9px]"
+                >
+                  {CATEGORIA_SALIDA[s.tipoActividad] === "grabacion" ? (
+                    <Video className="h-2.5 w-2.5" />
+                  ) : (
+                    <Footprints className="h-2.5 w-2.5" />
+                  )}
+                  {CATEGORIA_SALIDA_LABELS[CATEGORIA_SALIDA[s.tipoActividad]]}
+                </Badge>
                 <p className="truncate text-muted-foreground">
                   {TIPO_ACTIVIDAD_SALIDA_LABELS[s.tipoActividad]}
                   {s.proyectosRelacionados.length > 0 && ` · ${nombreProyectoDe(s.proyectosRelacionados[0])}`}
@@ -284,9 +337,9 @@ export function SalidasPage() {
             </Card>
             );
           })}
-          {salidas.length === 0 && (
+          {salidasFiltradas.length === 0 && (
             <p className="col-span-full py-8 text-center text-sm text-muted-foreground">
-              Sin salidas programadas.
+              {salidas.length === 0 ? "Sin salidas programadas." : "Nada en esta categoria."}
             </p>
           )}
         </div>
