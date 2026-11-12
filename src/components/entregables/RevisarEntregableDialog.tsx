@@ -1165,7 +1165,12 @@ export function RevisarEntregableDialog({
         // en pantallas de otro tamaño/alto). Ahora `lg:items-stretch` en la fila le da una altura
         // real y definida (la que sobra del dialogo) — de ahi el video deriva su ancho solo con
         // aspect-ratio. Se adapta a cualquier pantalla porque usa el espacio real, no un numero fijo.
-        layoutLado && "w-full lg:w-auto lg:min-w-[160px]",
+        // Un HORIZONTAL con `lg:self-start` (ver mas abajo) ya NO tiene esa altura real de donde
+        // derivar su ancho (por eso no se estira) — sin un ancho explicito se quedaba encogido a
+        // un minimo de 160px, chiquito de mas. Vertical si sigue derivando de la altura (se estira,
+        // nunca tuvo este problema), asi que solo el horizontal necesita su propio ancho generoso.
+        layoutLado && esVideoVertical && "w-full lg:w-auto lg:min-w-[160px]",
+        layoutLado && !esVideoVertical && !esImagenUnica && "w-full lg:w-[70vw] lg:max-w-4xl",
         // `esImagenUnica` (diseño/pagina web) queda fuera: su caja de preview (imagen/PDF) si
         // quiere ocupar toda la altura disponible (lg:h-full sin aspect-ratio fijo) — este fix es
         // solo para video, que SI tiene una proporcion fija y por eso puede sobrarle espacio al

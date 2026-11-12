@@ -181,9 +181,9 @@ export function ArchivosPage() {
   const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodo>("todos");
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
   const [carpetaCopiadaId, setCarpetaCopiadaId] = useState<string | null>(null);
-  // Tabla de 6+ columnas es ilegible en un telefono — arrancar en cuadricula ahi (el usuario
-  // sigue pudiendo cambiar a tabla a mano). Solo se checa una vez al montar, no en cada resize.
-  const [vista, setVista] = useState<"cuadricula" | "tabla">(() => (window.innerWidth < 640 ? "cuadricula" : "tabla"));
+  // Cuadricula por default (en movil Y escritorio) — el usuario sigue pudiendo cambiar a tabla
+  // a mano, solo que ya no arranca en una tabla de 6+ columnas que nadie pidio ver primero.
+  const [vista, setVista] = useState<"cuadricula" | "tabla">("cuadricula");
 
   /** Todos los archivos de Drive ligados a un entregable — principal, alterna y cada foto de la
    * galeria, si tenia. Para borrarlos de Drive junto con quitar la referencia (ver
@@ -436,7 +436,10 @@ export function ArchivosPage() {
               className="cursor-pointer overflow-hidden hover:shadow-md"
               onClick={() => setSeleccionadoId(e.id)}
             >
-              <MiniaturaVideo url={e.urlRevision || e.urlFinal} orientacion={e.orientacionVideo} />
+              {/* aspect-square fijo (no el 3/4 o 16/9 que trae por default segun orientacion) —
+                  mezclando vertical/horizontal, cada quien con su propia proporcion dejaba la
+                  cuadricula dispareja/quebrada. object-cover sigue recortando sin deformar. */}
+              <MiniaturaVideo url={e.urlRevision || e.urlFinal} orientacion={e.orientacionVideo} className="aspect-square" />
               <CardContent className="space-y-1 p-2">
                 <div className="flex items-start justify-between gap-1">
                   <p className="truncate text-xs font-medium">{e.nombre}</p>
@@ -471,7 +474,7 @@ export function ArchivosPage() {
                   </button>
                 )}
                 {puedeBajarYCompartir && (
-                  <div className="flex gap-1 pt-1">
+                  <div className="flex flex-wrap gap-1 pt-1">
                     <a
                       href={`/api/drive-video?id=${encodeURIComponent(fileId!)}&download=1&nombre=${encodeURIComponent(e.nombre)}`}
                       onClick={(ev) => ev.stopPropagation()}
