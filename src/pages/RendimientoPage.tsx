@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ListChecks, Target } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ListChecks, Target, Trash2 } from "lucide-react";
 import { useEntregables, useUsuarios } from "@/hooks/useCatalogos";
+import { useEliminarEntregable } from "@/hooks/useEntregables";
 import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AvanceEntregable } from "@/components/entregables/AvanceEntregable";
@@ -72,6 +74,11 @@ interface FilaColaborador {
   color: string;
   actual: RendimientoSemanal;
   historial: { semana: string; porcentaje: number | null }[];
+  /** Responsable que ya no corresponde a ninguna cuenta (se borro el usuario, o es dato viejo
+   * de antes de tener cuentas reales) — sus entregables quedaron huerfanos. Solo estos se
+   * pueden borrar en bloque desde aqui; a una persona real nunca se le ofrece esta opcion. */
+  sinCuenta: boolean;
+  entregablesIds: string[];
 }
 
 export function RendimientoPage() {
@@ -79,6 +86,8 @@ export function RendimientoPage() {
   const { usuario } = useAuth();
   const [offset, setOffset] = useState(0);
   const [abierto, setAbierto] = useState<string | null>(null);
+  const [aEliminar, setAEliminar] = useState<FilaColaborador | null>(null);
+  const eliminarEntregable = useEliminarEntregable();
   const { data: entregables = [], isLoading } = useEntregables();
   const { data: usuarios = [] } = useUsuarios();
   const { data: colaboradores = [] } = useColaboradoresDelEquipo();
@@ -93,11 +102,13 @@ export function RendimientoPage() {
     );
 
     // Roster del equipo + cualquier responsable con tareas que no este en el (ej. cambio de rol).
-    const personas = new Map(colaboradores.map((c) => [c.id, { nombre: c.nombre, puesto: c.puesto }]));
+    const personas = new Map(
+      colaboradores.map((c) => [c.id, { nombre: c.nombre, puesto: c.puesto, sinCuenta: false }])
+    );
     for (const id of porResponsable.keys()) {
       if (personas.has(id)) continue;
       const u = usuarios.find((x) => x.id === id);
-      personas.set(id, { nombre: u?.nombre ?? "Usuario sin cuenta", puesto: u?.puesto ?? "—" });
+      personas.set(id, { nombre: u?.nombre ?? "Usuario sin cuenta", puesto: u?.puesto ?? "—", sinCuenta: !u });
     }
 
     const colorPersona = coloresDelEquipo([...personas.values()].map((p) => p.nombre));
@@ -105,6 +116,7 @@ export function RendimientoPage() {
       const propios = porResponsable.get(id) ?? [];
       return {
         id,
+        entregablesIds: propios.map((e) => e.id),
         ...p,
         color: colorPersona(p.nombre),
         actual: rendimientoSemanal(propios, semanaActual),
@@ -229,11 +241,12 @@ export function RendimientoPage() {
             const expandido = abierto === f.id;
             return (
               <div key={f.id} className="rounded-lg border border-border">
+                <div className="flex items-stretch">
                 <button
                   type="button"
                   onClick={() => setAbierto(expandido ? null : f.id)}
                   aria-expanded={expandido}
-                  className="flex w-full flex-col gap-3 p-3 text-left hover:bg-bg-secondary/50 sm:flex-row sm:items-center sm:gap-4"
+                  className="flex w-full flex-1 flex-col gap-3 p-3 text-left hover:bg-bg-secondary/50 sm:flex-row sm:items-center sm:gap-4"
                 >
                   <div className="flex min-w-0 items-center gap-3 sm:w-56">
                     <div
@@ -280,6 +293,17 @@ export function RendimientoPage() {
                     <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", expandido && "rotate-180")} />
                   </div>
                 </button>
+                {f.sinCuenta && usuario?.rol === "superadmin" && (
+                  <button
+                    type="button"
+                    onClick={() => setAEliminar(f)}
+                    title={`Eliminar los ${f.entregablesIds.length} entregables huerfanos de este responsable`}
+                    className="flex shrink-0 items-center justify-center border-l border-border px-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+                </div>
 
                 {expandido && (
                   <div className="border-t border-border p-3">
@@ -332,6 +356,21 @@ export function RendimientoPage() {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={Boolean(aEliminar)}
+        onOpenChange={(v) => !v && setAEliminar(null)}
+        title={`¿Eliminar ${aEliminar?.entregablesIds.length ?? 0} entregables huerfanos?`}
+        description="Esta persona ya no corresponde a ninguna cuenta activa (se borro el usuario, o es dato historico sin cuenta real) — sus entregables se borran por completo, no solo esta fila. Esta accion no se puede deshacer."
+        confirmLabel="Eliminar"
+        destructive
+        confirmarTexto="ELIMINAR"
+        onConfirm={async () => {
+          if (!aEliminar) return;
+          await Promise.all(aEliminar.entregablesIds.map((id) => eliminarEntregable.mutateAsync(id)));
+          setAEliminar(null);
+        }}
+      />
     </div>
   );
 }
