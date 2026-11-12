@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useEntregables } from "@/hooks/useCatalogos";
 import { useProyectos } from "@/hooks/useProyectos";
@@ -113,14 +113,19 @@ export function EntregablesPage() {
   const { data: usuarios = [] } = useUsuarios();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [guionSeleccionadoId, setGuionSeleccionadoId] = useState<string | null>(null);
-  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodoEntregables>("semana");
+  // Al venir del link "Ver entregables" de Equipo (?responsable=<id>), arranca mostrando TODO
+  // lo de esa persona (no solo esta semana) — para eso es el link, no para repetir el filtro
+  // de siempre y que parezca que no trajo nada.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const responsableDeLink = searchParams.get("responsable");
+  const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodoEntregables>(responsableDeLink ? "todos" : "semana");
+  const [filtroResponsable, setFiltroResponsable] = useState(responsableDeLink ?? "todos");
   const ahora = new Date();
   const seleccionado = entregables.find((e) => e.id === seleccionadoId) ?? null;
   const guionSeleccionado = guiones.find((g) => g.id === guionSeleccionadoId) ?? null;
 
   // Al venir de una notificacion ("tu video se aprobo", etc.) con ?abrir=<id>, abre ese
   // entregable de una vez en vez de dejar que lo busque a mano en el Kanban.
-  const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const abrir = searchParams.get("abrir");
     if (abrir && entregables.some((e) => e.id === abrir)) {
@@ -135,6 +140,15 @@ export function EntregablesPage() {
   const proyectoDe = (id: string | undefined) =>
     id ? proyectos.find((p) => p.id === id)?.nombre ?? "Proyecto eliminado" : "Sin proyecto";
   const nombreDe = (id: string) => usuarios.find((u) => u.id === id)?.nombre ?? "Usuario eliminado";
+
+  // Solo quien ya aparece como responsable de algo — no tiene caso listar a todo el catalogo
+  // de usuarios (invitados, gestores de venta, etc.) en un filtro pensado para ver trabajo hecho.
+  const personasConEntregables = useMemo(() => {
+    const ids = new Set(entregables.map((e) => e.responsableId));
+    return [...ids]
+      .map((id) => ({ id, nombre: nombreDe(id) }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [entregables, usuarios]);
 
   return (
     <div className="space-y-6">
@@ -185,22 +199,49 @@ export function EntregablesPage() {
 
         <TabsContent value="entregables" className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-0.5">
-              <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodoEntregables)}>
-                <SelectTrigger className="w-full sm:w-44">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(FILTRO_PERIODO_LABELS).map(([valor, etiqueta]) => (
-                    <SelectItem key={valor} value={valor}>
-                      {etiqueta}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">
-                Aplica solo a Aprobado/Entregado — lo pendiente siempre se ve completo.
-              </p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+              <div className="space-y-0.5">
+                <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodoEntregables)}>
+                  <SelectTrigger className="w-full sm:w-44">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(FILTRO_PERIODO_LABELS).map(([valor, etiqueta]) => (
+                      <SelectItem key={valor} value={valor}>
+                        {etiqueta}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Aplica solo a Aprobado/Entregado — lo pendiente siempre se ve completo.
+                </p>
+              </div>
+              {usuario?.rol === "superadmin" && (
+                <Select
+                  value={filtroResponsable}
+                  onValueChange={(v) => {
+                    setFiltroResponsable(v);
+                    setSearchParams((p) => {
+                      if (v === "todos") p.delete("responsable");
+                      else p.set("responsable", v);
+                      return p;
+                    }, { replace: true });
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Todos los responsables" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos los responsables</SelectItem>
+                    {personasConEntregables.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {usuario?.rol === "superadmin" && <CargarEntregableHistoricoDialog />}
@@ -218,7 +259,12 @@ export function EntregablesPage() {
                 // Dentro de cada columna, prioridad primero (critica arriba) — para que se sepa
                 // de un vistazo que atender primero sin tener que abrir cada tarjeta.
                 const items = entregables
-                  .filter((e) => e.estado === estado && (!esHistorico || coincideFiltroPeriodo(e, filtroPeriodo, ahora)))
+                  .filter(
+                    (e) =>
+                      e.estado === estado &&
+                      (!esHistorico || coincideFiltroPeriodo(e, filtroPeriodo, ahora)) &&
+                      (filtroResponsable === "todos" || e.responsableId === filtroResponsable)
+                  )
                   .sort((a, b) => compararPorPrioridad(a.prioridad, b.prioridad));
                 return (
                   <Card key={estado} className="min-w-0">

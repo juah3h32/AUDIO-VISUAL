@@ -60,6 +60,7 @@ import { useGuiones } from "@/hooks/useGuiones";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useUsuarios } from "@/hooks/useCatalogos";
 import { VistaPreviaGuion } from "@/components/guiones/VistaPreviaGuion";
+import { DialogoFormateado } from "@/components/guiones/DialogoFormateado";
 import { crearNotificacion } from "@/services/notificacionesService";
 import { driveUrlAPreview } from "@/services/entregablesService";
 import {
@@ -1915,8 +1916,8 @@ export function RevisarEntregableDialog({
               </button>
               {mostrandoDialogo && (
                 <div className="space-y-2">
-                  <div className="max-h-[40vh] overflow-y-auto whitespace-pre-wrap rounded-md border border-border p-3 text-sm scrollbar-thin">
-                    {entregable.dialogoTexto}
+                  <div className="max-h-[40vh] overflow-y-auto rounded-md border border-border p-3 scrollbar-thin">
+                    <DialogoFormateado texto={entregable.dialogoTexto} />
                   </div>
                   <div className="flex gap-2">
                     <Button type="button" variant="outline" className="flex-1" onClick={onCopiarDialogo}>
@@ -1972,13 +1973,24 @@ export function RevisarEntregableDialog({
                     <ExternalLink className="h-3 w-3" /> Abrir en Drive
                   </a>
                 ) : (
-                  <a
-                    href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}&download=1&nombre=${encodeURIComponent(m.nombre)}`}
-                    className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
-                    title={`Descargar ${m.nombre}`}
-                  >
-                    <Download className="h-3 w-3" /> Descargar
-                  </a>
+                  <>
+                    <a
+                      href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                      title={`Ver ${m.nombre}`}
+                    >
+                      <ExternalLink className="h-3 w-3" /> Ver
+                    </a>
+                    <a
+                      href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}&download=1&nombre=${encodeURIComponent(m.nombre)}`}
+                      className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                      title={`Descargar ${m.nombre}`}
+                    >
+                      <Download className="h-3 w-3" /> Descargar
+                    </a>
+                  </>
                 )}
                 {puedeAsignarEntregables(usuario) && (
                   <button

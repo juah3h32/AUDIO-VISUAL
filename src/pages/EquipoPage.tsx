@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { Link } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 import { useEntregables, useEquipoAV } from "@/hooks/useCatalogos";
 import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
 import { useAuth } from "@/context/AuthContext";
@@ -108,6 +110,14 @@ export function EquipoPage() {
                             <div className="min-w-0">
                               <p className="truncate font-medium">{c.nombre}</p>
                               <p className="truncate text-xs text-muted-foreground">{c.puesto}</p>
+                              {usuario?.rol === "superadmin" && (
+                                <Link
+                                  to={`/entregables?responsable=${c.id}`}
+                                  className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-orange-600 hover:underline"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> Ver entregables
+                                </Link>
+                              )}
                             </div>
                             <Badge variant={NIVEL_CARGA[carga.nivel].badge} className="shrink-0 text-[10px]">
                               {NIVEL_CARGA[carga.nivel].label}
@@ -176,6 +186,14 @@ export function EquipoPage() {
                             <TableCell>
                               <p className="font-medium">{c.nombre}</p>
                               <p className="text-xs text-muted-foreground">{c.puesto}</p>
+                              {usuario?.rol === "superadmin" && (
+                                <Link
+                                  to={`/entregables?responsable=${c.id}`}
+                                  className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-orange-600 hover:underline"
+                                >
+                                  <ExternalLink className="h-3 w-3" /> Ver entregables
+                                </Link>
+                              )}
                             </TableCell>
                             <TableCell className="max-w-xs">
                               <div className="flex flex-wrap items-center gap-1">
