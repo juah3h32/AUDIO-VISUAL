@@ -200,7 +200,7 @@ export function EntregablesPage() {
         <TabsContent value="entregables" className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-              <div className="space-y-0.5">
+              <div className="shrink-0 space-y-0.5">
                 <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodoEntregables)}>
                   <SelectTrigger className="w-full sm:w-44">
                     <SelectValue />
@@ -218,29 +218,31 @@ export function EntregablesPage() {
                 </p>
               </div>
               {usuario?.rol === "superadmin" && (
-                <Select
-                  value={filtroResponsable}
-                  onValueChange={(v) => {
-                    setFiltroResponsable(v);
-                    setSearchParams((p) => {
-                      if (v === "todos") p.delete("responsable");
-                      else p.set("responsable", v);
-                      return p;
-                    }, { replace: true });
-                  }}
-                >
-                  <SelectTrigger className="w-full sm:w-48">
-                    <SelectValue placeholder="Todos los responsables" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos los responsables</SelectItem>
-                    {personasConEntregables.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.nombre}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="shrink-0">
+                  <Select
+                    value={filtroResponsable}
+                    onValueChange={(v) => {
+                      setFiltroResponsable(v);
+                      setSearchParams((p) => {
+                        if (v === "todos") p.delete("responsable");
+                        else p.set("responsable", v);
+                        return p;
+                      }, { replace: true });
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-56">
+                      <SelectValue placeholder="Todos los responsables" className="min-w-0 flex-1 truncate whitespace-nowrap text-left" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">Todos los responsables</SelectItem>
+                      {personasConEntregables.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               )}
             </div>
             <div className="flex flex-wrap gap-2">
