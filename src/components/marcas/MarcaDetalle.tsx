@@ -78,27 +78,27 @@ export function MarcaDetalle({
         <style key={a.id}>{`@font-face { font-family: '${familiaDe(i)}'; src: url(/api/drive-video?id=${encodeURIComponent(a.fileId ?? "")}) format('${formatoFuente(a.nombre)}'); font-display: swap; }`}</style>
       ))}
       <div
-        className="relative flex h-28 items-end overflow-hidden rounded-t-lg p-4 sm:h-32"
+        className="relative flex h-32 items-end overflow-hidden rounded-t-lg p-4 sm:h-40"
         style={{
           background: paleta.length > 1 ? `linear-gradient(135deg, ${paleta.slice(0, 3).join(", ")})` : paleta[0],
         }}
       >
-        <div className="absolute left-4 top-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md sm:h-20 sm:w-20">
+        <div className="absolute left-4 top-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-xl bg-white shadow-md sm:h-28 sm:w-28">
           {logo ? (
             <img
-              src={`/api/drive-thumbnail?id=${encodeURIComponent(logo.fileId ?? "")}&size=150`}
+              src={`/api/drive-thumbnail?id=${encodeURIComponent(logo.fileId ?? "")}&size=300`}
               alt={marca.nombre}
-              className="h-full w-full object-contain p-1.5"
+              className="h-full w-full object-contain p-2"
             />
           ) : (
-            <span className="text-base font-semibold text-text-primary sm:text-lg">
+            <span className="text-xl font-semibold text-text-primary sm:text-2xl">
               {marca.nombre.slice(0, 2).toUpperCase()}
             </span>
           )}
         </div>
       </div>
 
-      <div className="space-y-5 border border-t-0 border-border rounded-b-lg p-4 text-sm sm:p-5">
+      <div className="space-y-6 border border-t-0 border-border rounded-b-lg p-4 text-sm sm:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h2 className="truncate text-3xl font-extrabold text-text-primary sm:text-4xl" style={familiaPrincipal ? { fontFamily: familiaPrincipal } : undefined}>
@@ -125,14 +125,14 @@ export function MarcaDetalle({
           )}
         </div>
 
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <section className="rounded-lg border border-border bg-bg-secondary/40 p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {tipografiaAssets.length > 1 ? "Tipografías" : "Tipografía"}
           </p>
           {tipografiaAssets.length > 0 ? (
             <div className="space-y-2">
               {tipografiaAssets.map((a, i) => (
-                <div key={a.id} className="rounded-md border border-border p-3">
+                <div key={a.id} className="rounded-md border border-border bg-bg-primary p-3">
                   <p className="text-2xl" style={{ fontFamily: familiaDe(i) }}>
                     Aa Bb Cc
                   </p>
@@ -150,7 +150,7 @@ export function MarcaDetalle({
               ))}
             </div>
           ) : marca.tipografia ? (
-            <div className="rounded-md border border-border p-3">
+            <div className="rounded-md border border-border bg-bg-primary p-3">
               <p className="text-2xl" style={{ fontFamily: marca.tipografia }}>
                 Aa Bb Cc
               </p>
@@ -159,19 +159,19 @@ export function MarcaDetalle({
           ) : (
             <p className="text-xs text-muted-foreground">Sin tipografía registrada.</p>
           )}
-        </div>
+        </section>
 
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paleta de colores</p>
+        <section className="rounded-lg border border-border bg-bg-secondary/40 p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Paleta de colores</p>
           <div className="flex flex-wrap gap-2">
             {marca.colores.map((c) => (
               <Swatch key={c} color={c} />
             ))}
           </div>
-        </div>
+        </section>
 
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Logos</p>
+        <section className="rounded-lg border border-border bg-bg-secondary/40 p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Logos</p>
           {marca.assets.filter((a) => a.tipo === "logo").length === 0 ? (
             <p className="text-xs text-muted-foreground">Sin logos cargados.</p>
           ) : (
@@ -179,7 +179,7 @@ export function MarcaDetalle({
               {marca.assets
                 .filter((a) => a.tipo === "logo")
                 .map((a) => (
-                  <div key={a.id} className="flex flex-col items-center gap-1 rounded-md border border-border p-2">
+                  <div key={a.id} className="flex flex-col items-center gap-1 rounded-md border border-border bg-bg-primary p-2">
                     <a href={a.url} target="_blank" rel="noreferrer" className="rounded hover:opacity-80">
                       <img
                         src={`/api/drive-thumbnail?id=${encodeURIComponent(a.fileId ?? "")}&size=150`}
@@ -199,16 +199,16 @@ export function MarcaDetalle({
                 ))}
             </div>
           )}
-        </div>
+        </section>
 
         {marca.manualUrl && (
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Manual de identidad</p>
+          <section className="rounded-lg border border-border bg-bg-secondary/40 p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Manual de identidad</p>
             <a
               href={marca.manualUrl}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-3 rounded-md border border-border p-2.5 text-sm hover:bg-bg-secondary"
+              className="flex items-center gap-3 rounded-md border border-border bg-bg-primary p-2.5 text-sm hover:bg-bg-secondary"
             >
               {manualPdf && (
                 <img
@@ -220,11 +220,11 @@ export function MarcaDetalle({
               <FileText className="h-4 w-4 shrink-0" /> Ver manual de identidad completo (PDF)
               <ExternalLink className="ml-auto h-3.5 w-3.5 opacity-60" />
             </a>
-          </div>
+          </section>
         )}
 
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <section className="rounded-lg border border-border bg-bg-secondary/40 p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Proyectos asociados ({proyectosAsociados.length})
           </p>
           {proyectosAsociados.length === 0 ? (
@@ -232,19 +232,18 @@ export function MarcaDetalle({
           ) : (
             <div className="flex flex-wrap gap-2">
               {proyectosAsociados.map((p) => (
-                <span key={p.id} className="rounded-full bg-bg-secondary px-2.5 py-1 text-xs">
+                <span key={p.id} className="rounded-full bg-bg-primary px-2.5 py-1 text-xs">
                   {p.nombre}
                 </span>
               ))}
             </div>
           )}
-        </div>
-
-        {entregablesCount > 0 && (
-          <p className="text-xs text-muted-foreground">
-            {entregablesCount} entregable(s) ligado(s) directamente a esta marca.
-          </p>
-        )}
+          {entregablesCount > 0 && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              {entregablesCount} entregable(s) ligado(s) directamente a esta marca.
+            </p>
+          )}
+        </section>
       </div>
     </div>
   );
