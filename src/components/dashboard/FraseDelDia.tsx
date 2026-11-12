@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Camera, Loader2, Quote } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 /** Foto de portada de fabrica (public/portada-inicio.jpg) — se ve hasta que superadmin suba una
  * propia a Drive (`fotoId`). */
@@ -21,6 +22,7 @@ export function FraseDelDia({
   onCambiarFoto,
   subiendoFoto,
   errorFoto,
+  className,
 }: {
   frase: string;
   nombre: string;
@@ -29,20 +31,37 @@ export function FraseDelDia({
   onCambiarFoto?: (file: File) => void;
   subiendoFoto?: boolean;
   errorFoto?: string | null;
+  className?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [fotoPortadaCayo, setFotoPortadaCayo] = useState(false);
-  const foto = fotoId ? `/api/drive-thumbnail?id=${encodeURIComponent(fotoId)}&size=1200` : FOTO_PORTADA_DEFECTO;
+  // Antes: si la foto PERSONALIZADA (fotoId) fallaba (archivo borrado en Drive, cuenta de
+  // servicio sin acceso, etc.) se quedaba rota para siempre, sin caer a la de fabrica default —
+  // el fallback solo cubria el caso de la foto default fallando. Ahora cualquier URL que falle
+  // se marca aqui (por URL, no por booleano) y se intenta la siguiente de la cadena:
+  // personalizada -> default -> ninguna (fondo solido).
+  const [fotosFallidas, setFotosFallidas] = useState<Set<string>>(new Set());
+  const fotoPersonalizada = fotoId ? `/api/drive-thumbnail?id=${encodeURIComponent(fotoId)}&size=1200` : null;
+  const foto =
+    fotoPersonalizada && !fotosFallidas.has(fotoPersonalizada)
+      ? fotoPersonalizada
+      : !fotosFallidas.has(FOTO_PORTADA_DEFECTO)
+        ? FOTO_PORTADA_DEFECTO
+        : null;
 
   return (
-    <Card className="relative min-h-[14rem] overflow-hidden border-none bg-[#111827] shadow-[0_12px_20px_-10px_rgba(0,0,0,0.45)] sm:min-h-[17rem]">
-      {!(!fotoId && fotoPortadaCayo) && (
+    <Card
+      className={cn(
+        "relative min-h-[14rem] overflow-hidden border-none bg-[#111827] shadow-[0_12px_20px_-10px_rgba(0,0,0,0.45)] sm:min-h-[17rem]",
+        className
+      )}
+    >
+      {foto && (
         <img
           key={foto}
           src={foto}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
-          onError={() => !fotoId && setFotoPortadaCayo(true)}
+          onError={() => setFotosFallidas((actual) => new Set(actual).add(foto))}
         />
       )}
       {/* Degradado oscuro encima de la foto — asegura que el texto blanco se lea sin importar

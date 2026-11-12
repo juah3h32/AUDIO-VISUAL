@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 import { MisAvances } from "@/components/entregables/MisAvances";
@@ -188,15 +189,20 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
     }
   };
 
-  return (
-    // Sticky dentro de <main> (el que hace scroll, ver AppLayout) — pedido explicito: la frase
-    // se queda fija arriba mientras el resto de Inicio se desplaza debajo. Es a proposito el
-    // PRIMER elemento de la pagina para poder cancelar el padding propio
-    // de <main> con margen negativo — si no, quedaba una rendija del padding de <main> arriba del
-    // sticky por la que se alcanzaba a ver el contenido de abajo asomando. `isolate` +
-    // `will-change-transform` fuerzan su propia capa de composicion (evita el parpadeo de
-    // Safari/Chrome movil que deja ver un frame de lo de abajo durante el scroll).
-    <div className="sticky top-0 isolate z-20 -mx-4 -mt-4 bg-bg-app px-4 pb-3 pt-4 will-change-transform sm:-mx-6 sm:-mt-6 sm:px-6 sm:pt-6">
+  // El banner vive FUERA de <main> (el que hace scroll) — ver el slot #banner-inicio-slot en
+  // AppLayout.tsx. Se probo sticky + isolate + z-index + will-change + translateZ(0) +
+  // backface-visibility + contain-paint, y en scroll rapido (con las graficas de Inicio
+  // repintando a la vez) seguia colandose un frame del contenido de abajo detras de la tarjeta.
+  // La unica forma de que no se "asome" nada detras es que no haya nada superpuesto: portal a
+  // una fila fija normal de la pagina (como el Header), que nunca se solapa con lo que scrollea.
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setSlot(document.getElementById("banner-inicio-slot"));
+  }, []);
+  if (!slot) return null;
+
+  return createPortal(
+    <div className="bg-bg-app px-4 pb-3 sm:px-6">
       <FraseDelDia
         frase={frase}
         nombre={usuario?.nombre?.split(" ")[0] ?? "de nuevo"}
@@ -205,8 +211,12 @@ function FraseDelDiaSeccion({ frase }: { frase: string }) {
         onCambiarFoto={onCambiarFoto}
         subiendoFoto={subiendoFoto}
         errorFoto={errorFoto}
+        // Pegada contra el Header (sin gap arriba): las esquinas redondeadas de ARRIBA dejaban
+        // ver el fondo por detras en las puntas.
+        className="rounded-t-none"
       />
-    </div>
+    </div>,
+    slot
   );
 }
 
