@@ -58,7 +58,7 @@ import {
 } from "@/hooks/useEntregables";
 import { useGuiones } from "@/hooks/useGuiones";
 import { useProyectos } from "@/hooks/useProyectos";
-import { useUsuarios } from "@/hooks/useCatalogos";
+import { useEntregables, useUsuarios } from "@/hooks/useCatalogos";
 import { VistaPreviaGuion } from "@/components/guiones/VistaPreviaGuion";
 import { DialogoFormateado } from "@/components/guiones/DialogoFormateado";
 import { crearNotificacion } from "@/services/notificacionesService";
@@ -146,6 +146,7 @@ export function RevisarEntregableDialog({
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
   const { data: guiones = [] } = useGuiones();
+  const { data: entregables = [] } = useEntregables();
   const asignarProyecto = useAsignarProyectoEntregable();
   const reasignarResponsable = useReasignarResponsableEntregable();
   const vincularGuion = useVincularGuionEntregable();
@@ -2476,6 +2477,42 @@ export function RevisarEntregableDialog({
             · v{entregable.version}
           </span>
         </div>
+
+        {/* Serie/capsula: otros entregables del MISMO proyecto, para ver de un vistazo en que va
+            toda la tanda (ej. "CAPSULA ALEJANDRO | ..."). Ya aprobado/entregado se ve opaco (ya
+            quedo listo), el que se esta viendo ahora resaltado, el resto en estilo normal. Solo
+            si hay proyecto Y mas de uno — un hermano solo no es "serie" de nada. */}
+        {entregable.proyectoId &&
+          (() => {
+            const hermanos = entregables
+              .filter((e) => e.proyectoId === entregable.proyectoId)
+              .sort((a, b) => a.fechaCompromiso.localeCompare(b.fechaCompromiso));
+            if (hermanos.length < 2) return null;
+            return (
+              <div className="-mt-3 mb-5 flex flex-wrap gap-1.5">
+                {hermanos.map((h) => {
+                  const listo = h.estado === "aprobado" || h.estado === "entregado";
+                  const actual = h.id === entregable.id;
+                  return (
+                    <span
+                      key={h.id}
+                      title={h.nombre}
+                      className={cn(
+                        "max-w-[11rem] truncate rounded-full border px-2.5 py-1 text-[11px] font-medium",
+                        actual
+                          ? "border-accent bg-accent/10 font-semibold text-text-primary"
+                          : listo
+                            ? "border-border bg-bg-secondary text-muted-foreground opacity-50"
+                            : "border-border text-text-primary"
+                      )}
+                    >
+                      {h.nombre}
+                    </span>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
         <div
           className={cn(
