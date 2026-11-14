@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Star } from "lucide-react";
+import { Layers, Minus, Plus, Star, Video } from "lucide-react";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useEntregables, useUsuarios } from "@/hooks/useCatalogos";
 import { useColaboradoresDelEquipo } from "@/hooks/useColaboradoresDelEquipo";
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { cn } from "@/lib/utils";
 import type { CategoriaContenido, Prioridad } from "@/types";
 
 /** Sentinel del Select — Radix no acepta value="" en un SelectItem. Se convierte a
@@ -34,7 +35,8 @@ const SIN_GUION = "sin-guion";
 
 const schema = z
   .object({
-    nombre: z.string().min(3, "Escribe al menos 3 caracteres"),
+    // El nombre se valida a mano en `onSubmit` (ver mas abajo): en modo capsula no existe un solo
+    // campo "nombre" (es un nombre base + numero por video), asi que aqui queda sin requerir.
     proyectoId: z.string().min(1, "Elige un proyecto o “Sin proyecto”"),
     responsableId: z.string().min(1, "Elige a quién se asigna"),
     tipo: z.custom<CategoriaContenido>((v) => typeof v === "string" && v.length > 0, "Elige el tipo de trabajo"),
@@ -55,6 +57,15 @@ type FormValues = z.infer<typeof schema>;
 export function NuevoEntregableDialog() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // "uno" = flujo de siempre (un campo Nombre). "capsula" = varios videos de un jalon que
+  // comparten proyecto/responsable/tipo/fecha/prioridad — solo cambia el nombre de cada uno
+  // (base + numero automatico). Crea las tarjetas vacias nada mas; el video de cada una se sube
+  // despues, individual, igual que siempre desde su propia tarjeta.
+  const [modo, setModo] = useState<"uno" | "capsula">("uno");
+  const [nombre, setNombre] = useState("");
+  const [nombreBase, setNombreBase] = useState("");
+  const [cantidadCapsula, setCantidadCapsula] = useState(3);
+  const [errorNombre, setErrorNombre] = useState<string | null>(null);
   const { data: proyectos = [] } = useProyectos();
   const { data: usuarios = [] } = useUsuarios();
   const crear = useCrearEntregable();
@@ -105,21 +116,55 @@ export function NuevoEntregableDialog() {
 
   const onSubmit = async (values: FormValues) => {
     setError(null);
+    setErrorNombre(null);
+
+    // Nombre(s): en "uno" es el campo de siempre; en "capsula" se generan a partir del nombre
+    // base + numero (ej. "Capsula Semana 46" -> "Capsula Semana 46 - 1", "- 2", "- 3"...).
+    const nombres =
+      modo === "uno"
+        ? [nombre.trim()]
+        : Array.from({ length: cantidadCapsula }, (_, i) => `${nombreBase.trim()} - ${i + 1}`);
+    if (modo === "uno" && nombre.trim().length < 3) {
+      setErrorNombre("Escribe al menos 3 caracteres");
+      return;
+    }
+    if (modo === "capsula" && nombreBase.trim().length < 3) {
+      setErrorNombre("Escribe al menos 3 caracteres");
+      return;
+    }
+
+    const compartido = {
+      ...(values.proyectoId !== SIN_PROYECTO ? { proyectoId: values.proyectoId } : {}),
+      responsableId: values.responsableId,
+      tipo: values.tipo,
+      fechaCompromiso: values.fechaCompromiso,
+      prioridad: values.prioridad,
+      ...(values.guionId && values.guionId !== SIN_GUION ? { guionId: values.guionId } : {}),
+      ...(values.tipo === "pagina_web" && values.urlPaginaWeb ? { urlPaginaWeb: values.urlPaginaWeb.trim() } : {}),
+    };
+
+    let creados = 0;
     try {
-      await crear.mutateAsync({
-        nombre: values.nombre,
-        ...(values.proyectoId !== SIN_PROYECTO ? { proyectoId: values.proyectoId } : {}),
-        responsableId: values.responsableId,
-        tipo: values.tipo,
-        fechaCompromiso: values.fechaCompromiso,
-        prioridad: values.prioridad,
-        ...(values.guionId && values.guionId !== SIN_GUION ? { guionId: values.guionId } : {}),
-        ...(values.tipo === "pagina_web" && values.urlPaginaWeb ? { urlPaginaWeb: values.urlPaginaWeb.trim() } : {}),
-      });
+      // Secuencial, no Promise.all — si una falla a medias de la capsula, se sabe exactamente
+      // cuantas SI quedaron creadas (el mensaje de error de abajo lo dice) en vez de quedar en
+      // un estado ambiguo por llamadas en paralelo.
+      for (const n of nombres) {
+        await crear.mutateAsync({ nombre: n, ...compartido });
+        creados++;
+      }
       reset({ proyectoId: SIN_PROYECTO, guionId: SIN_GUION, prioridad: "media" });
+      setNombre("");
+      setNombreBase("");
+      setCantidadCapsula(3);
+      setModo("uno");
       setOpen(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No se pudo crear el entregable.");
+      const motivo = e instanceof Error ? e.message : "error desconocido";
+      setError(
+        nombres.length > 1
+          ? `Se crearon ${creados} de ${nombres.length} videos de la capsula; se detuvo por: ${motivo}`
+          : motivo
+      );
     }
   };
 
@@ -137,11 +182,85 @@ export function NuevoEntregableDialog() {
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="nombre">Nombre del entregable *</Label>
-            <Input id="nombre" {...register("nombre")} placeholder="Ej. Video institucional planta - corte 1" />
-            {errors.nombre && <p className="text-xs text-destructive">{errors.nombre.message}</p>}
+          {/* "Uno" = flujo de siempre. "Capsula" = varios videos de un jalon (ej. 3 entrevistas
+              de la misma semana) que comparten todo lo demas del formulario — solo cambia el
+              nombre, generado automatico a partir de una base. Crea solo las tarjetas; el video
+              de cada una se sube despues, individual, igual que siempre. */}
+          <div className="flex gap-1 rounded-md border border-border p-0.5">
+            <button
+              type="button"
+              onClick={() => setModo("uno")}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-colors",
+                modo === "uno" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-bg-secondary"
+              )}
+            >
+              <Video className="h-3.5 w-3.5" /> Uno
+            </button>
+            <button
+              type="button"
+              onClick={() => setModo("capsula")}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-colors",
+                modo === "capsula" ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-bg-secondary"
+              )}
+            >
+              <Layers className="h-3.5 w-3.5" /> Capsula (varios videos)
+            </button>
           </div>
+
+          {modo === "uno" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="nombre">Nombre del entregable *</Label>
+              <Input
+                id="nombre"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Ej. Video institucional planta - corte 1"
+              />
+              {errorNombre && <p className="text-xs text-destructive">{errorNombre}</p>}
+            </div>
+          ) : (
+            <div className="space-y-1.5 rounded-md border border-dashed border-border p-3">
+              <Label htmlFor="nombreBase">Nombre base de la capsula *</Label>
+              <Input
+                id="nombreBase"
+                value={nombreBase}
+                onChange={(e) => setNombreBase(e.target.value)}
+                placeholder="Ej. Testimonios Semana 46"
+              />
+              <div className="flex items-center gap-2 pt-1">
+                <Label className="shrink-0">Cuantos videos</Label>
+                <button
+                  type="button"
+                  onClick={() => setCantidadCapsula((n) => Math.max(2, n - 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-bg-secondary"
+                  aria-label="Quitar uno"
+                >
+                  <Minus className="h-3.5 w-3.5" />
+                </button>
+                <span className="w-6 text-center text-sm font-semibold">{cantidadCapsula}</span>
+                <button
+                  type="button"
+                  onClick={() => setCantidadCapsula((n) => Math.min(20, n + 1))}
+                  className="flex h-7 w-7 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-bg-secondary"
+                  aria-label="Agregar uno"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              {errorNombre && <p className="text-xs text-destructive">{errorNombre}</p>}
+              {nombreBase.trim() && (
+                <p className="text-[11px] text-muted-foreground">
+                  Se crean: {Array.from({ length: cantidadCapsula }, (_, i) => `"${nombreBase.trim()} - ${i + 1}"`).join(", ")}
+                </p>
+              )}
+              <p className="text-[11px] text-muted-foreground">
+                Mismo proyecto, responsable, tipo, fecha y prioridad para los {cantidadCapsula}. El video de cada uno se
+                sube despues, individual, desde su propia tarjeta.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Proyecto (opcional)</Label>
@@ -302,7 +421,11 @@ export function NuevoEntregableDialog() {
               Cancelar
             </Button>
             <Button type="submit" disabled={crear.isPending}>
-              {crear.isPending ? "Creando..." : "Crear y asignar"}
+              {crear.isPending
+                ? "Creando..."
+                : modo === "capsula"
+                  ? `Crear ${cantidadCapsula} videos`
+                  : "Crear y asignar"}
             </Button>
           </DialogFooter>
         </form>
