@@ -35,7 +35,16 @@ export function aFecha(valor: unknown): Date {
 
 export function dentroDelPeriodo(fecha: unknown, periodo: Periodo | "todos", ahora: Date = new Date()): boolean {
   if (periodo === "todos") return true;
-  return aFecha(fecha) >= inicioDePeriodo(periodo, ahora);
+  const inicio = inicioDePeriodo(periodo, ahora);
+  // Limite superior real — antes solo comparaba ">= inicio", asi que "Este mes" en realidad
+  // mostraba "desde el dia 1 de este mes EN ADELANTE PARA SIEMPRE" (sin tope), colando cualquier
+  // fecha futura. Con tope, "Este mes"/"Esta semana" muestran solo ese periodo; "Todo" (arriba)
+  // sigue sin filtrar nada.
+  const fin = new Date(inicio);
+  if (periodo === "semana") fin.setDate(fin.getDate() + 7);
+  else fin.setMonth(fin.getMonth() + 1);
+  const f = aFecha(fecha);
+  return f >= inicio && f < fin;
 }
 
 export function etiquetaPeriodo(periodo: Periodo, ahora: Date = new Date()): string {
