@@ -29,6 +29,7 @@ import {
   nivelCumplimiento,
   rendimientoSemanal,
   semana,
+  unidadesDeTrabajo,
   type EstadoTareaSemana,
   type NivelCumplimiento,
   type RendimientoSemanal,
@@ -323,6 +324,11 @@ export function RendimientoPage() {
                             <div className="flex gap-1.5">
                               <Badge variant={ESTADO_ENTREGABLE_BADGE[e.estado]}>{etiquetaEstadoEntregable(e)}</Badge>
                               <Badge variant={ESTADO_TAREA[estado].badge}>{ESTADO_TAREA[estado].label}</Badge>
+                              {unidadesDeTrabajo(e) === 2 && (
+                                <Badge variant="accent" title="Tiene version vertical y horizontal — cuenta como 2 en los totales">
+                                  ×2
+                                </Badge>
+                              )}
                             </div>
                           </li>
                         ))}

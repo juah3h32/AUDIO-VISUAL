@@ -49,6 +49,19 @@ export function avanceDe(e: Entregable): number {
   return AVANCE_POR_ESTADO[e.estado];
 }
 
+/** Cuantas "unidades de trabajo" representa un entregable PARA REPORTES de desempeno (Rendimiento,
+ * Reportes, Metricas) — normalmente 1, pero 2 en cuanto se sube tambien la version alterna
+ * (vertical Y horizontal del mismo video): es otra edicion aparte, cuenta doble ahi. El Kanban
+ * operativo (EntregablesPage) NO usa esto — ahi importa el ITEM de flujo (una tarjeta), no el
+ * volumen de ediciones producidas. */
+export function unidadesDeTrabajo(e: Entregable): number {
+  return e.urlRevisionAlt || e.urlFinalAlt ? 2 : 1;
+}
+
+export function sumarUnidades(entregables: Entregable[]): number {
+  return entregables.reduce((total, e) => total + unidadesDeTrabajo(e), 0);
+}
+
 export interface RendimientoSemanal {
   /** Entregables con fecha compromiso dentro de la semana — la "meta" de la semana. */
   asignadas: number;
@@ -88,17 +101,26 @@ export function rendimientoSemanal(
     .map((entregable) => ({ entregable, estado: clasificar(entregable, ahora) }))
     .sort((a, b) => a.entregable.fechaCompromiso.localeCompare(b.entregable.fechaCompromiso));
 
-  const entregadas = tareas.filter((t) => t.estado === "a_tiempo" || t.estado === "tarde").length;
+  // Los TOTALES cuentan en unidades de trabajo (ver `unidadesDeTrabajo` — doble si tiene version
+  // alterna), aunque `tareas` se deje sin duplicar: esa lista se renderiza tal cual en pantalla
+  // (una fila por entregable, ver RendimientoPage), duplicarla ahi mostraria la misma tarjeta dos
+  // veces.
+  const unidades = (lista: typeof tareas) => sumarUnidades(lista.map((t) => t.entregable));
+  const asignadas = unidades(tareas);
+  const entregadasTareas = tareas.filter((t) => t.estado === "a_tiempo" || t.estado === "tarde");
+  const entregadas = unidades(entregadasTareas);
   return {
-    asignadas: tareas.length,
+    asignadas,
     entregadas,
-    aTiempo: tareas.filter((t) => t.estado === "a_tiempo").length,
-    atrasadas: tareas.filter((t) => t.estado === "atrasada").length,
-    aprobadas: tareas.filter((t) => ["aprobado", "entregado"].includes(t.entregable.estado)).length,
-    enCorrecciones: tareas.filter((t) => t.entregable.estado === "correcciones").length,
-    porcentaje: tareas.length ? Math.round((entregadas / tareas.length) * 100) : null,
-    avance: tareas.length
-      ? Math.round(tareas.reduce((suma, t) => suma + avanceDe(t.entregable), 0) / tareas.length)
+    aTiempo: unidades(tareas.filter((t) => t.estado === "a_tiempo")),
+    atrasadas: unidades(tareas.filter((t) => t.estado === "atrasada")),
+    aprobadas: unidades(tareas.filter((t) => ["aprobado", "entregado"].includes(t.entregable.estado))),
+    enCorrecciones: unidades(tareas.filter((t) => t.entregable.estado === "correcciones")),
+    porcentaje: asignadas ? Math.round((entregadas / asignadas) * 100) : null,
+    avance: asignadas
+      ? Math.round(
+          tareas.reduce((suma, t) => suma + avanceDe(t.entregable) * unidadesDeTrabajo(t.entregable), 0) / asignadas
+        )
       : null,
     tareas,
   };
@@ -172,7 +194,10 @@ export function etiquetaRango(periodo: PeriodoReporte, r: SemanaRango): string {
   return `${fmt(r.inicio)} – ${fmt(fin)} ${fin.getFullYear()}`;
 }
 
-/** Entregables cuyo material se entrego DENTRO del rango, con si fue a tiempo vs su compromiso. */
+/** Entregables cuyo material se entrego DENTRO del rango, con si fue a tiempo vs su compromiso.
+ * Si tiene version alterna (vertical+horizontal) se repite 2 veces — es otra edicion aparte y
+ * este arreglo solo alimenta sumas/graficas (nunca se lista como tarjetas individuales), asi que
+ * repetir la entrada es la forma correcta de contarla doble aqui. */
 export function entregasEnRango(entregables: Entregable[], r: SemanaRango) {
   const resultado: { entregable: Entregable; fecha: Date; aTiempo: boolean }[] = [];
   for (const e of entregables) {
@@ -183,7 +208,9 @@ export function entregasEnRango(entregables: Entregable[], r: SemanaRango) {
     if (!enSemana(fecha, r)) continue;
     const limite = e.fechaCompromiso ? fechaLocal(e.fechaCompromiso) : null;
     if (limite) limite.setDate(limite.getDate() + 1);
-    resultado.push({ entregable: e, fecha, aTiempo: !limite || fecha < limite });
+    for (let i = 0; i < unidadesDeTrabajo(e); i++) {
+      resultado.push({ entregable: e, fecha, aTiempo: !limite || fecha < limite });
+    }
   }
   return resultado;
 }
@@ -218,11 +245,11 @@ export function diasPromedioEntrega(entregas: ReturnType<typeof entregasEnRango>
 
 /** Entregables creados (asignados por el lider) dentro del rango. */
 export function asignadosEnRango(entregables: Entregable[], r: SemanaRango): number {
-  return entregables.filter((e) => e.creadoEn && enSemana(aFecha(e.creadoEn), r)).length;
+  return sumarUnidades(entregables.filter((e) => e.creadoEn && enSemana(aFecha(e.creadoEn), r)));
 }
 
 export function aprobadosEnRango(entregables: Entregable[], r: SemanaRango): number {
-  return entregables.filter((e) => e.fechaAprobado && enSemana(aFecha(e.fechaAprobado), r)).length;
+  return sumarUnidades(entregables.filter((e) => e.fechaAprobado && enSemana(aFecha(e.fechaAprobado), r)));
 }
 
 /** Colores semanticos de estado — iguales en la app y en el PDF. */
@@ -266,7 +293,7 @@ export function donaEstados(r: RendimientoSemanal, paleta: PaletaEstados = COLOR
   return (Object.keys(paleta) as EstadoTareaSemana[])
     .map((estado) => ({
       nombre: ETIQUETA_ESTADO_TAREA[estado],
-      valor: r.tareas.filter((t) => t.estado === estado).length,
+      valor: sumarUnidades(r.tareas.filter((t) => t.estado === estado).map((t) => t.entregable)),
       color: paleta[estado],
     }))
     .filter((d) => d.valor > 0);
@@ -294,7 +321,7 @@ export function calificacionArea(avance: number | null, marca: ModoMarca = false
  */
 export function explicarArea(r: RendimientoSemanal, cuando: string, marca: ModoMarca = false) {
   const paleta = marca === "oscuro" ? PALETA_MARCA_OSCURA : marca ? PALETA_MARCA : COLOR_ESTADO_TAREA;
-  const enCurso = r.tareas.filter((t) => t.estado === "pendiente").length;
+  const enCurso = sumarUnidades(r.tareas.filter((t) => t.estado === "pendiente").map((t) => t.entregable));
   const segmentos = [
     { nombre: "Entregadas", valor: r.entregadas, color: paleta.a_tiempo },
     { nombre: "En curso", valor: enCurso, color: paleta.pendiente },

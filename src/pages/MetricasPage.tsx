@@ -8,6 +8,7 @@ import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FileCheck2, FolderCheck, Timer, Video } from "lucide-react";
 import { useTemaGrafica } from "@/lib/chartTheme";
+import { sumarUnidades } from "@/lib/rendimiento";
 
 export function MetricasPage() {
   const g = useTemaGrafica();
@@ -18,10 +19,11 @@ export function MetricasPage() {
 
   const aprobadas = requisiciones.filter((r) => r.estado === "aprobada").length;
   const finalizados = proyectos.filter((p) => ["entregado", "cerrado"].includes(p.etapaActual)).length;
-  const entregablesAprobados = entregables.filter((e) => e.estado === "aprobado" || e.estado === "entregado").length;
-  const cumplimiento = entregables.length
-    ? Math.round((entregablesAprobados / entregables.length) * 100)
-    : 0;
+  // En unidades de trabajo, no en filas — un entregable con version alterna (vertical+horizontal)
+  // es otra edicion aparte y cuenta doble (ver `unidadesDeTrabajo`).
+  const totalUnidades = sumarUnidades(entregables);
+  const entregablesAprobados = sumarUnidades(entregables.filter((e) => e.estado === "aprobado" || e.estado === "entregado"));
+  const cumplimiento = totalUnidades ? Math.round((entregablesAprobados / totalUnidades) * 100) : 0;
 
   const jornadasPorPlanta = salidas.reduce<Record<string, number>>((acc, s) => {
     acc[s.planta] = (acc[s.planta] ?? 0) + 1;
@@ -39,7 +41,7 @@ export function MetricasPage() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard icon={FileCheck2} label="Requisiciones aprobadas" value={aprobadas} hint={`de ${requisiciones.length} totales`} />
         <StatCard icon={FolderCheck} label="Proyectos finalizados" value={finalizados} hint={`de ${proyectos.length} totales`} />
-        <StatCard icon={Video} label="Entregables aprobados" value={entregablesAprobados} hint={`de ${entregables.length} totales`} />
+        <StatCard icon={Video} label="Entregables aprobados" value={entregablesAprobados} hint={`de ${totalUnidades} totales`} />
         <StatCard icon={Timer} label="Cumplimiento de fechas" value={`${cumplimiento}%`} hint="Entregables a tiempo" />
       </div>
 
