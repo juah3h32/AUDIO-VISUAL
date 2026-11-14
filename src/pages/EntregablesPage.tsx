@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { useEntregables } from "@/hooks/useCatalogos";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useUsuarios } from "@/hooks/useCatalogos";
 import { useGuiones } from "@/hooks/useGuiones";
 import { useAuth } from "@/context/AuthContext";
-import { puedeAsignarEntregables } from "@/lib/roles";
+import { puedeAprobarEntregables, puedeAsignarEntregables } from "@/lib/roles";
 import { aFecha, inicioDeSemana } from "@/lib/periodo";
 import {
   CATEGORIA_CONTENIDO_LABELS,
+  ESTADO_ENTREGABLE_BADGE,
   ESTADO_ENTREGABLE_LABELS,
   ESTADO_GUION_LABELS,
   PRIORIDAD_BADGE,
   PRIORIDAD_LABELS,
   compararPorPrioridad,
 } from "@/lib/labels";
-import { formatFecha } from "@/lib/utils";
+import { cn, formatFecha } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -105,6 +107,21 @@ const COLUMNAS: EstadoEntregable[] = [
 
 const COLUMNAS_GUION: EstadoGuion[] = ["borrador", "en_revision", "correcciones", "aprobado"];
 
+/** Sentinel del Select de proyecto — Radix no acepta value="" en un SelectItem. */
+const SIN_PROYECTO_VALOR = "sin-proyecto";
+
+/** Mismo color por estado que ya usa `ESTADO_ENTREGABLE_BADGE` (ver lib/labels.ts), pero como
+ * punto solido + borde — para distinguir las 6 columnas de un vistazo en el submenu, sin tener
+ * que leer la etiqueta de cada una. */
+const ESTADO_COLOR: Record<EstadoEntregable, { punto: string; activo: string }> = {
+  pendiente: { punto: "bg-muted-foreground/50", activo: "border-muted-foreground/50 bg-bg-secondary" },
+  en_proceso: { punto: "bg-blue-500", activo: "border-blue-500 bg-blue-500/10" },
+  en_revision: { punto: "bg-amber-500", activo: "border-amber-500 bg-amber-500/10" },
+  correcciones: { punto: "bg-red-500", activo: "border-red-500 bg-red-500/10" },
+  aprobado: { punto: "bg-green-500", activo: "border-green-500 bg-green-500/10" },
+  entregado: { punto: "bg-accent-dato", activo: "border-accent-dato bg-accent-dato/10" },
+};
+
 export function EntregablesPage() {
   const { usuario } = useAuth();
   const { data: entregables = [], isLoading, isError, refetch } = useEntregables();
@@ -113,6 +130,11 @@ export function EntregablesPage() {
   const { data: usuarios = [] } = useUsuarios();
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [guionSeleccionadoId, setGuionSeleccionadoId] = useState<string | null>(null);
+  // Que columna de estado se ve en el panel principal — antes eran 6 columnas angostas lado a
+  // lado (cards minusculas con 20+ amontonadas, ej. "En revision"); ahora se ve UNA a la vez, a
+  // todo el ancho, elegida en el submenu de la derecha (mismo lenguaje visual que el Sidebar
+  // principal de la app).
+  const [estadoActivo, setEstadoActivo] = useState<EstadoEntregable>("en_revision");
   // Al venir del link "Ver entregables" de Equipo (?responsable=<id>), arranca mostrando TODO
   // lo de esa persona (no solo esta semana) — para eso es el link, no para repetir el filtro
   // de siempre y que parezca que no trajo nada.
@@ -120,6 +142,11 @@ export function EntregablesPage() {
   const responsableDeLink = searchParams.get("responsable");
   const [filtroPeriodo, setFiltroPeriodo] = useState<FiltroPeriodoEntregables>(responsableDeLink ? "todos" : "semana");
   const [filtroResponsable, setFiltroResponsable] = useState(responsableDeLink ?? "todos");
+  const [filtroProyecto, setFiltroProyecto] = useState("todos");
+  // Pruebas de edicion (esDemo) vienen aparte, OCULTAS por default — el backend ya solo las
+  // manda a superadmin/community, pero aun entre esos dos se quedan fuera del Kanban normal a
+  // menos que se pida verlas, para no confundirlas con la entrega real.
+  const [mostrarDemo, setMostrarDemo] = useState(false);
   const ahora = new Date();
   const seleccionado = entregables.find((e) => e.id === seleccionadoId) ?? null;
   const guionSeleccionado = guiones.find((g) => g.id === guionSeleccionadoId) ?? null;
@@ -140,6 +167,23 @@ export function EntregablesPage() {
   const proyectoDe = (id: string | undefined) =>
     id ? proyectos.find((p) => p.id === id)?.nombre ?? "Proyecto eliminado" : "Sin proyecto";
   const nombreDe = (id: string) => usuarios.find((u) => u.id === id)?.nombre ?? "Usuario eliminado";
+
+  // Compartida entre el header y el submenu de estados — mismo filtro, mismo orden, una sola
+  // fuente de verdad. El filtro de periodo aplica a TODAS las columnas por igual (ver selector
+  // arriba: "Esta semana" solo muestra lo de esa semana, "Todo" lo muestra todo).
+  const itemsDeColumna = (estado: EstadoEntregable) => {
+    return entregables
+      .filter(
+        (e) =>
+          e.estado === estado &&
+          (mostrarDemo || !e.esDemo) &&
+          coincideFiltroPeriodo(e, filtroPeriodo, ahora) &&
+          (filtroResponsable === "todos" || e.responsableId === filtroResponsable) &&
+          (filtroProyecto === "todos" ||
+            (filtroProyecto === SIN_PROYECTO_VALOR ? !e.proyectoId : e.proyectoId === filtroProyecto))
+      )
+      .sort((a, b) => compararPorPrioridad(a.prioridad, b.prioridad));
+  };
 
   // Solo quien ya aparece como responsable de algo — no tiene caso listar a todo el catalogo
   // de usuarios (invitados, gestores de venta, etc.) en un filtro pensado para ver trabajo hecho.
@@ -198,132 +242,186 @@ export function EntregablesPage() {
         </TabsContent>
 
         <TabsContent value="entregables" className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
-              <div className="shrink-0 space-y-0.5">
-                <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodoEntregables)}>
-                  <SelectTrigger className="w-full sm:w-44">
-                    <SelectValue />
+          {/* Toolbar unica (antes eran controles sueltos directo sobre el fondo de la pagina,
+              sin agrupar — se veian pegados/descuadrados). Un solo contenedor con su propio
+              fondo/borde: filtros a la izquierda, acciones a la derecha, incluso cuando el
+              `justify-between` las separa mucho en pantallas anchas siguen leyendose como UNA
+              barra. Todo a `h-10` (mismo alto que Select/Button por default) para que nada se
+              vea mas chico o desalineado que el resto. */}
+          <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={filtroPeriodo} onValueChange={(v) => setFiltroPeriodo(v as FiltroPeriodoEntregables)}>
+                <SelectTrigger className="w-full sm:w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(FILTRO_PERIODO_LABELS).map(([valor, etiqueta]) => (
+                    <SelectItem key={valor} value={valor}>
+                      {etiqueta}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filtroProyecto} onValueChange={setFiltroProyecto}>
+                <SelectTrigger className="w-full sm:w-52">
+                  <SelectValue placeholder="Todos los proyectos" className="min-w-0 flex-1 truncate whitespace-nowrap text-left" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los proyectos</SelectItem>
+                  <SelectItem value={SIN_PROYECTO_VALOR}>Sin proyecto</SelectItem>
+                  {proyectos.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nombre}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {usuario?.rol === "superadmin" && (
+                <Select
+                  value={filtroResponsable}
+                  onValueChange={(v) => {
+                    setFiltroResponsable(v);
+                    setSearchParams((p) => {
+                      if (v === "todos") p.delete("responsable");
+                      else p.set("responsable", v);
+                      return p;
+                    }, { replace: true });
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-52">
+                    <SelectValue placeholder="Todos los responsables" className="min-w-0 flex-1 truncate whitespace-nowrap text-left" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(FILTRO_PERIODO_LABELS).map(([valor, etiqueta]) => (
-                      <SelectItem key={valor} value={valor}>
-                        {etiqueta}
+                    <SelectItem value="todos">Todos los responsables</SelectItem>
+                    {personasConEntregables.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.nombre}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[11px] text-muted-foreground">
-                  Aplica solo a Aprobado/Entregado — lo pendiente siempre se ve completo.
-                </p>
-              </div>
-              {usuario?.rol === "superadmin" && (
-                <div className="shrink-0">
-                  <Select
-                    value={filtroResponsable}
-                    onValueChange={(v) => {
-                      setFiltroResponsable(v);
-                      setSearchParams((p) => {
-                        if (v === "todos") p.delete("responsable");
-                        else p.set("responsable", v);
-                        return p;
-                      }, { replace: true });
-                    }}
-                  >
-                    <SelectTrigger className="w-full sm:w-56">
-                      <SelectValue placeholder="Todos los responsables" className="min-w-0 flex-1 truncate whitespace-nowrap text-left" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos los responsables</SelectItem>
-                      {personasConEntregables.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.nombre}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              )}
+              {/* El backend ya solo manda "pruebas de edicion" (esDemo) a superadmin/community —
+                  aun asi se quedan ocultas por default en el Kanban normal; este boton las trae
+                  de vuelta cuando de verdad se quieren revisar. */}
+              {puedeAprobarEntregables(usuario) && (
+                <button
+                  type="button"
+                  onClick={() => setMostrarDemo((v) => !v)}
+                  title="Las pruebas de edicion (Demo) estan ocultas por default — este boton las muestra"
+                  className={cn(
+                    "flex h-10 shrink-0 items-center gap-1.5 rounded-md border px-3 text-xs font-medium transition-colors",
+                    mostrarDemo
+                      ? "border-purple-300 bg-purple-100 text-purple-800 dark:border-purple-400/30 dark:bg-purple-400/15 dark:text-purple-300"
+                      : "border-border text-muted-foreground hover:bg-bg-secondary"
+                  )}
+                >
+                  {mostrarDemo ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                  Pruebas (Demo)
+                </button>
               )}
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {usuario?.rol === "superadmin" && <CargarEntregableHistoricoDialog />}
               {puedeAsignarEntregables(usuario) && <NuevoEntregableDialog />}
             </div>
+            <p className="w-full text-[11px] text-muted-foreground">
+              El periodo filtra todas las columnas por fecha compromiso/entrega — "Todo" para ver sin filtro.
+            </p>
           </div>
           {isLoading ? (
             <LoadingState label="Cargando entregables…" />
           ) : isError ? (
             <ErrorState label="No se pudieron cargar los entregables." onRetry={() => refetch()} />
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-              {COLUMNAS.map((estado) => {
-                const esHistorico = estado === "aprobado" || estado === "entregado";
-                // Dentro de cada columna, prioridad primero (critica arriba) — para que se sepa
-                // de un vistazo que atender primero sin tener que abrir cada tarjeta.
-                const items = entregables
-                  .filter(
-                    (e) =>
-                      e.estado === estado &&
-                      (!esHistorico || coincideFiltroPeriodo(e, filtroPeriodo, ahora)) &&
-                      (filtroResponsable === "todos" || e.responsableId === filtroResponsable)
-                  )
-                  .sort((a, b) => compararPorPrioridad(a.prioridad, b.prioridad));
-                return (
-                  <Card key={estado} className="min-w-0">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center justify-between text-sm">
-                        {ESTADO_ENTREGABLE_LABELS[estado]}
-                        <span className="text-xs font-normal text-muted-foreground">{items.length}</span>
-                      </CardTitle>
-                    </CardHeader>
-                    {/* Alto fijo con scroll (no "achicar hasta desaparecer"): con pocas tarjetas
-                        (pendiente/en proceso/...) cabe todo sin scroll. Con muchas acumuladas
-                        (aprobado/entregado de meses) se parte por semana para navegarlo rapido
-                        en vez de una sola lista larguisima de tarjetas minusculas. */}
-                    <CardContent className="max-h-[60vh] space-y-3 overflow-y-auto p-3 pt-0">
-                      {agruparPorSemana(items).map(({ inicio, items: itemsSemana }) => (
-                        <div key={inicio.getTime()}>
-                          <p className="sticky top-0 z-10 -mx-3 bg-card px-3 py-1 text-[11px] font-semibold text-muted-foreground">
-                            {etiquetaSemana(inicio)} · {itemsSemana.length}
-                          </p>
-                          <div className="space-y-1.5">
-                            {itemsSemana.map((e) => (
-                              <button
-                                key={e.id}
-                                onClick={() => setSeleccionadoId(e.id)}
-                                className="flex w-full items-center gap-2 rounded-md border border-border bg-card p-1.5 text-left text-xs transition-colors hover:bg-bg-secondary"
-                              >
-                                <MiniaturaVideo
-                                  url={e.urlRevision || e.urlFinal}
-                                  orientacion={e.orientacionVideo}
-                                  llenarAlto
-                                  className="h-20 w-20 shrink-0 rounded"
-                                />
-                                <div className="min-w-0 flex-1 overflow-hidden">
-                                  <div className="flex items-center gap-1">
-                                    <Badge variant={PRIORIDAD_BADGE[e.prioridad ?? "media"]} className="shrink-0 text-[9px]">
-                                      {PRIORIDAD_LABELS[e.prioridad ?? "media"]}
-                                    </Badge>
-                                    <p className="truncate font-medium text-text-primary">{e.nombre}</p>
-                                  </div>
-                                  <p className="truncate text-muted-foreground">{proyectoDe(e.proyectoId)}</p>
-                                  <div className="mt-0.5 flex items-center justify-between gap-1">
-                                    <span className="truncate text-muted-foreground">{nombreDe(e.responsableId)}</span>
-                                    <Badge variant="outline" className="shrink-0 text-[10px]">
-                                      {formatFecha(fechaDeOrden(e))}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                      {items.length === 0 && <p className="py-4 text-center text-xs text-muted-foreground">Nada en esta columna.</p>}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+              {/* Panel principal: UNA columna de estado a la vez, a todo el ancho — cards grandes
+                  con mas aire, en vez del grid de 6 columnas angostas de antes. */}
+              <div className="min-w-0 flex-1 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", ESTADO_COLOR[estadoActivo].punto)} />
+                  <h3 className="text-sm font-semibold text-text-primary">{ESTADO_ENTREGABLE_LABELS[estadoActivo]}</h3>
+                  <Badge variant={ESTADO_ENTREGABLE_BADGE[estadoActivo]} className="text-[10px]">
+                    {itemsDeColumna(estadoActivo).length}
+                  </Badge>
+                </div>
+                <div className="max-h-[70vh] space-y-5 overflow-y-auto pr-1 scrollbar-thin">
+                  {agruparPorSemana(itemsDeColumna(estadoActivo)).map(({ inicio, items: itemsSemana }) => (
+                    <div key={inicio.getTime()}>
+                      <p className="sticky top-0 z-10 bg-bg-app py-1 text-xs font-semibold text-muted-foreground">
+                        {etiquetaSemana(inicio)} · {itemsSemana.length}
+                      </p>
+                      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {itemsSemana.map((e) => (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() => setSeleccionadoId(e.id)}
+                            className="flex items-center gap-3 rounded-md border border-border bg-card p-2.5 text-left text-sm transition-colors hover:bg-bg-secondary"
+                          >
+                            <MiniaturaVideo
+                              url={e.urlRevision || e.urlFinal}
+                              orientacion={e.orientacionVideo}
+                              llenarAlto
+                              className="h-24 w-24 shrink-0 rounded-md"
+                            />
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              <div className="flex items-center gap-1.5">
+                                <Badge variant={PRIORIDAD_BADGE[e.prioridad ?? "media"]} className="shrink-0 text-[10px]">
+                                  {PRIORIDAD_LABELS[e.prioridad ?? "media"]}
+                                </Badge>
+                                {e.esDemo && (
+                                  <Badge className="shrink-0 bg-purple-100 text-[10px] text-purple-800 dark:bg-purple-400/15 dark:text-purple-300">
+                                    Demo
+                                  </Badge>
+                                )}
+                                <p className="truncate font-medium text-text-primary">{e.nombre}</p>
+                              </div>
+                              <p className="truncate text-xs text-muted-foreground">{proyectoDe(e.proyectoId)}</p>
+                              <div className="mt-1 flex items-center justify-between gap-2">
+                                <span className="truncate text-xs text-muted-foreground">{nombreDe(e.responsableId)}</span>
+                                <Badge variant="outline" className="shrink-0 text-[10px]">
+                                  {formatFecha(fechaDeOrden(e))}
+                                </Badge>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {itemsDeColumna(estadoActivo).length === 0 && (
+                    <p className="py-10 text-center text-sm text-muted-foreground">Nada en esta columna.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Submenu de estados, lado derecho — mismo lenguaje visual que el Sidebar
+                  principal de la app (ver src/components/layout/Sidebar.tsx). */}
+              <nav className="w-full shrink-0 space-y-1 rounded-lg border border-border bg-card p-2 lg:w-56">
+                {COLUMNAS.map((estado) => {
+                  const cantidad = itemsDeColumna(estado).length;
+                  const activo = estado === estadoActivo;
+                  const color = ESTADO_COLOR[estado];
+                  return (
+                    <button
+                      key={estado}
+                      type="button"
+                      onClick={() => setEstadoActivo(estado)}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-md border-l-4 border-transparent px-2.5 py-2.5 text-sm font-medium text-text-primary/80 transition-colors hover:bg-bg-secondary",
+                        activo && cn(color.activo, "text-text-primary font-semibold")
+                      )}
+                    >
+                      <span className={cn("h-2 w-2 shrink-0 rounded-full", color.punto)} />
+                      <span className="flex-1 text-left">{ESTADO_ENTREGABLE_LABELS[estado]}</span>
+                      <Badge variant={ESTADO_ENTREGABLE_BADGE[estado]} className="shrink-0 text-[10px]">
+                        {cantidad}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
           )}
         </TabsContent>
