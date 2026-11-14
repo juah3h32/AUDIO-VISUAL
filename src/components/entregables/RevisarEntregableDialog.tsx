@@ -34,6 +34,7 @@ import { puedeAprobarEntregables, puedeAsignarEntregables, puedeSubirVideos, esG
 import {
   useActualizarArchivosDiseno,
   useActualizarDialogoTexto,
+  useActualizarGuionPdf,
   useActualizarMaterialesApoyo,
   useActualizarPrioridad,
   useAdjuntarMaterialHistorico,
@@ -49,6 +50,7 @@ import {
   useGuardarFotos,
   useGuardarFotosSinFondo,
   useMarcarComentariosCorregidos,
+  useMarcarDemo,
   useMarcarFotosParaBorrar,
   useMarcarEntregado,
   useReasignarResponsableEntregable,
@@ -58,7 +60,7 @@ import {
 } from "@/hooks/useEntregables";
 import { useGuiones } from "@/hooks/useGuiones";
 import { useProyectos } from "@/hooks/useProyectos";
-import { useEntregables, useUsuarios } from "@/hooks/useCatalogos";
+import { useUsuarios } from "@/hooks/useCatalogos";
 import { VistaPreviaGuion } from "@/components/guiones/VistaPreviaGuion";
 import { DialogoFormateado } from "@/components/guiones/DialogoFormateado";
 import { crearNotificacion } from "@/services/notificacionesService";
@@ -146,7 +148,6 @@ export function RevisarEntregableDialog({
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
   const { data: guiones = [] } = useGuiones();
-  const { data: entregables = [] } = useEntregables();
   const asignarProyecto = useAsignarProyectoEntregable();
   const reasignarResponsable = useReasignarResponsableEntregable();
   const vincularGuion = useVincularGuionEntregable();
@@ -163,8 +164,15 @@ export function RevisarEntregableDialog({
   // para que el responsable lo descargue — NO es el material final del entregable.
   const actualizarMateriales = useActualizarMaterialesApoyo();
   const actualizarPrioridad = useActualizarPrioridad();
+  const marcarDemo = useMarcarDemo();
   const [subiendoApoyo, setSubiendoApoyo] = useState(false);
   const inputApoyoRef = useRef<HTMLInputElement>(null);
+  // Guion en PDF — separado de Material de apoyo (que puede traer cualquier cosa): un solo
+  // boton "Ver PDF" dedicado a los dialogos, sin mezclar.
+  const actualizarGuionPdf = useActualizarGuionPdf();
+  const [subiendoGuionPdf, setSubiendoGuionPdf] = useState(false);
+  const inputGuionPdfRef = useRef<HTMLInputElement>(null);
+  const [errorGuionPdf, setErrorGuionPdf] = useState<string | null>(null);
   const [pegandoLinkApoyo, setPegandoLinkApoyo] = useState(false);
   const [linkApoyoBorrador, setLinkApoyoBorrador] = useState("");
   const [errorLinkApoyo, setErrorLinkApoyo] = useState<string | null>(null);
@@ -893,7 +901,13 @@ export function RevisarEntregableDialog({
   // cuadro de comentario, se guarda primero (para no perderlo); el boton en si queda deshabilitado
   // si no hay NADA que explicar (ver el `disabled` en el JSX de abajo).
   const onSolicitarCorrecciones = async () => {
-    if (comentario.trim()) await onComentar();
+    // Si ya estaba "en revision", onComentar() de abajo YA manda a correcciones y notifica solo
+    // (ver ese comentario) — no repetirlo aqui, o se manda la misma notificacion dos veces.
+    const yaLoHaceOnComentar = entregable.estado === "en_revision";
+    if (comentario.trim()) {
+      await onComentar();
+      if (yaLoHaceOnComentar) return;
+    }
     await solicitarCorrecciones.mutateAsync(entregable.id);
     notificarA(
       entregable.responsableId,
@@ -951,6 +965,33 @@ export function RevisarEntregableDialog({
   const onEliminarMaterialApoyo = (materialId: string) => {
     const nuevaLista = (entregable.materialesApoyo ?? []).filter((m) => m.id !== materialId);
     actualizarMateriales.mutate({ id: entregable.id, materialesApoyo: nuevaLista });
+  };
+
+  const onSubirGuionPdf = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setErrorGuionPdf(null);
+    setSubiendoGuionPdf(true);
+    try {
+      const subido = await subirArchivoCentralizado(file, {
+        nombre: `${nombreProyecto ?? "Sin proyecto"} - ${entregable.nombre} - Guion`,
+        nombreCarpeta: nombreProyecto ?? "Sin proyecto",
+        subcarpeta: "Guion",
+      });
+      await actualizarGuionPdf.mutateAsync({
+        id: entregable.id,
+        guionPdf: { id: subido.id, nombre: file.name, url: subido.viewUrl, fileId: subido.id },
+      });
+    } catch (err) {
+      setErrorGuionPdf(mensajeErrorAuth(err));
+    } finally {
+      setSubiendoGuionPdf(false);
+    }
+  };
+
+  const onEliminarGuionPdf = () => {
+    actualizarGuionPdf.mutate({ id: entregable.id, guionPdf: null });
   };
 
   // Pegar un link de Drive que ya existe (no se sube ni se mueve nada — el archivo/carpeta se
@@ -1021,7 +1062,18 @@ export function RevisarEntregableDialog({
     setMomento("");
     setFotosComentando([]);
 
-    if (!esResponsable) {
+    // Bug reportado: quien aprueba dejaba la observacion pero el entregable se quedaba "en
+    // revision" para siempre porque hacia falta un SEGUNDO clic aparte en "Solicitar cambios"
+    // que se olvidaba (vertical, horizontal, foto o pagina web — pasaba igual en cualquiera).
+    // Dejar una observacion mientras se revisa YA ES pedir un cambio, asi que ahora lo hace de
+    // una vez — sin ese segundo paso manual.
+    if (esAprobador && entregable.estado === "en_revision") {
+      await solicitarCorrecciones.mutateAsync(entregable.id);
+      notificarA(
+        entregable.responsableId,
+        `Pidieron cambios en tu ${sustantivoMaterial} "${entregable.nombre}". Revisa las observaciones.`
+      );
+    } else if (!esResponsable) {
       notificarA(
         entregable.responsableId,
         `${usuario.nombre} dejo una observacion en "${entregable.nombre}"${
@@ -1044,7 +1096,14 @@ export function RevisarEntregableDialog({
       momento,
     });
     setComentarioLightbox("");
-    if (!esResponsable) {
+    // Mismo criterio que onComentar() — ver ese comentario para el porque.
+    if (esAprobador && entregable.estado === "en_revision") {
+      await solicitarCorrecciones.mutateAsync(entregable.id);
+      notificarA(
+        entregable.responsableId,
+        `Pidieron cambios en tu ${sustantivoMaterial} "${entregable.nombre}". Revisa las observaciones.`
+      );
+    } else if (!esResponsable) {
       notificarA(entregable.responsableId, `${usuario.nombre} dejo una observacion en "${entregable.nombre}" (${momento})`);
     }
   };
@@ -1956,6 +2015,65 @@ export function RevisarEntregableDialog({
           )}
         </div>
       )}
+      {/* Guion en PDF — separado de Material de apoyo (que puede traer cualquier cosa): un solo
+          boton para subirlo y otro para verlo, nada mas. Visible si ya hay PDF, o si puede
+          subirlo. No aplica a diseño grafico ni a cambios en pagina web (`esImagenUnica`) — ahi
+          no hay dialogo/guion que grabar, es una imagen o un cambio en vivo. */}
+      {!esImagenUnica && (puedeAsignarEntregables(usuario) || entregable.guionPdf) && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5" /> Guion (PDF)
+          </Label>
+          {entregable.guionPdf ? (
+            <div className="flex items-center justify-between gap-2 rounded-md bg-bg-secondary px-2.5 py-1.5 text-xs">
+              <span className="truncate">{entregable.guionPdf.nombre}</span>
+              <div className="flex shrink-0 items-center gap-1">
+                <a
+                  href={`/api/drive-video?id=${encodeURIComponent(entregable.guionPdf.fileId ?? "")}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                >
+                  <ExternalLink className="h-3 w-3" /> Ver PDF
+                </a>
+                {puedeAsignarEntregables(usuario) && (
+                  <button
+                    type="button"
+                    onClick={onEliminarGuionPdf}
+                    className="p-1 text-muted-foreground hover:text-destructive"
+                    title="Quitar"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            puedeAsignarEntregables(usuario) && (
+              <>
+                <input
+                  ref={inputGuionPdfRef}
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={onSubirGuionPdf}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => inputGuionPdfRef.current?.click()}
+                  disabled={subiendoGuionPdf}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  {subiendoGuionPdf ? "Subiendo..." : "Subir guion (PDF)"}
+                </Button>
+                {errorGuionPdf && <p className="text-xs text-destructive">{errorGuionPdf}</p>}
+              </>
+            )
+          )}
+        </div>
+      )}
       {/* Footage crudo, brief, fotos de referencia... insumo para PRODUCIR el entregable, no el
           material final (eso es urlRevision/urlFinal/fotos). Solo lider/superadmin suben o
           quitan; cualquiera con acceso al dialogo puede descargar. */}
@@ -2380,6 +2498,32 @@ export function RevisarEntregableDialog({
                 {PRIORIDAD_LABELS[entregable.prioridad ?? "media"]}
               </Badge>
             )}
+            {/* "Prueba de edicion" — solo superadmin la pone/quita (el backend lo vuelve a
+                validar). Si se ve este dialogo es porque el backend ya dejo pasar a esta persona
+                (superadmin o community) — nadie mas llega a ver `entregable.esDemo` en los datos,
+                asi que el badge para los demas roles es seguro mostrarlo tal cual, sin boton. */}
+            {usuario.rol === "superadmin" ? (
+              <button
+                type="button"
+                onClick={() => marcarDemo.mutate({ id: entregable.id, esDemo: !entregable.esDemo })}
+                disabled={marcarDemo.isPending}
+                title="Marcar como prueba de edicion — se oculta para el responsable, solo la ven superadmin y community"
+                className={cn(
+                  "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
+                  entregable.esDemo
+                    ? "bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-400/15 dark:text-purple-300"
+                    : "border border-dashed border-border text-muted-foreground hover:bg-bg-secondary"
+                )}
+              >
+                {entregable.esDemo ? "Demo ✕" : "Marcar Demo"}
+              </button>
+            ) : (
+              entregable.esDemo && (
+                <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-400/15 dark:text-purple-300">
+                  Demo
+                </Badge>
+              )
+            )}
             {fileIdActual && (
               <div className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
                 {/* Copiar el link NO espera a que este aprobado — en revision tambien sirve
@@ -2477,42 +2621,6 @@ export function RevisarEntregableDialog({
             · v{entregable.version}
           </span>
         </div>
-
-        {/* Serie/capsula: otros entregables del MISMO proyecto, para ver de un vistazo en que va
-            toda la tanda (ej. "CAPSULA ALEJANDRO | ..."). Ya aprobado/entregado se ve opaco (ya
-            quedo listo), el que se esta viendo ahora resaltado, el resto en estilo normal. Solo
-            si hay proyecto Y mas de uno — un hermano solo no es "serie" de nada. */}
-        {entregable.proyectoId &&
-          (() => {
-            const hermanos = entregables
-              .filter((e) => e.proyectoId === entregable.proyectoId)
-              .sort((a, b) => a.fechaCompromiso.localeCompare(b.fechaCompromiso));
-            if (hermanos.length < 2) return null;
-            return (
-              <div className="-mt-3 mb-5 flex flex-wrap gap-1.5">
-                {hermanos.map((h) => {
-                  const listo = h.estado === "aprobado" || h.estado === "entregado";
-                  const actual = h.id === entregable.id;
-                  return (
-                    <span
-                      key={h.id}
-                      title={h.nombre}
-                      className={cn(
-                        "max-w-[11rem] truncate rounded-full border px-2.5 py-1 text-[11px] font-medium",
-                        actual
-                          ? "border-accent bg-accent/10 font-semibold text-text-primary"
-                          : listo
-                            ? "border-border bg-bg-secondary text-muted-foreground opacity-50"
-                            : "border-border text-text-primary"
-                      )}
-                    >
-                      {h.nombre}
-                    </span>
-                  );
-                })}
-              </div>
-            );
-          })()}
 
         <div
           className={cn(
