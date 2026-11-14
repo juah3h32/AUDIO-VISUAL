@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   actualizarArchivosDiseno,
   actualizarDialogoTexto,
+  actualizarGuionPdf,
   actualizarMaterialesApoyo,
   actualizarPrioridad,
   adjuntarMaterialHistorico,
@@ -26,6 +27,7 @@ import {
   guardarFotosSinFondo,
   listarComentarios,
   marcarComentariosCorregidos,
+  marcarDemo,
   marcarFotosParaBorrar,
   marcarEntregado,
   solicitarCorrecciones,
@@ -99,6 +101,14 @@ export function useActualizarMaterialesApoyo() {
   });
 }
 
+export function useActualizarGuionPdf() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, guionPdf }: { id: string; guionPdf: MaterialApoyo | null }) => actualizarGuionPdf(id, guionPdf),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
 export function useActualizarArchivosDiseno() {
   const qc = useQueryClient();
   return useMutation({
@@ -112,6 +122,14 @@ export function useActualizarPrioridad() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, prioridad }: { id: string; prioridad: Prioridad }) => actualizarPrioridad(id, prioridad),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
+export function useMarcarDemo() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, esDemo }: { id: string; esDemo: boolean }) => marcarDemo(id, esDemo),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
   });
 }

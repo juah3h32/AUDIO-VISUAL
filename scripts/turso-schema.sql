@@ -176,7 +176,9 @@ CREATE TABLE IF NOT EXISTS entregables (
   fecha_aprobado TEXT,
   url_pagina_web TEXT,
   archivos_diseno TEXT,
-  fotos_sin_fondo TEXT
+  fotos_sin_fondo TEXT,
+  guion_pdf TEXT,
+  es_demo INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS entregables_comentarios (

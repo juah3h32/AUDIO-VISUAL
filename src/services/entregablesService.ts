@@ -82,6 +82,17 @@ export async function actualizarPrioridad(id: string, prioridad: Prioridad): Pro
   await actualizarEntregable(id, { prioridad });
 }
 
+/** `esDemo` marca la TARJETA como prueba de edicion (no tiene nada que ver con `esModoDemo` de
+ * arriba, que es el modo sandbox de toda la app) — solo superadmin la pone (el backend lo vuelve
+ * a validar, ver puedeActualizar() en api/db/entregables.ts). */
+export async function marcarDemo(id: string, esDemo: boolean): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, esDemo } : e));
+    return;
+  }
+  await actualizarEntregable(id, { esDemo });
+}
+
 /** Lista completa de materiales de apoyo (footage crudo, brief, fotos de referencia...) — se
  * manda la lista entera, igual que `assets` en Marcas, no un solo archivo. */
 export async function actualizarMaterialesApoyo(id: string, materialesApoyo: MaterialApoyo[]): Promise<void> {
@@ -90,6 +101,15 @@ export async function actualizarMaterialesApoyo(id: string, materialesApoyo: Mat
     return;
   }
   await actualizarEntregable(id, { materialesApoyo } as Partial<Entregable>);
+}
+
+/** `guionPdf: null` quita el PDF (reemplazar/quitar) — distinto de `undefined` (no tocar nada). */
+export async function actualizarGuionPdf(id: string, guionPdf: MaterialApoyo | null): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, guionPdf: guionPdf ?? undefined } : e));
+    return;
+  }
+  await actualizarEntregable(id, { guionPdf } as Partial<Entregable>);
 }
 
 /** Archivos finales de un entregable de diseño, etiquetados (editable/PDF final/logo) — ver

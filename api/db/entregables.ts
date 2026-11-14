@@ -13,7 +13,7 @@ const COLUMNAS: Record<string, string> = {
   urlRevisionAlt: "url_revision_alt", urlFinalAlt: "url_final_alt", carpetaFotosUrl: "carpeta_fotos_url",
   guionId: "guion_id", dialogoTexto: "dialogo_texto", aprobadorId: "aprobador_id", creadoEn: "creado_en",
   fechaEnviado: "fecha_enviado", fechaEntregado: "fecha_entregado",
-  fechaAprobado: "fecha_aprobado", urlPaginaWeb: "url_pagina_web",
+  fechaAprobado: "fecha_aprobado", urlPaginaWeb: "url_pagina_web", esDemo: "es_demo",
 };
 const COLUMNAS_JSON: Record<string, string> = {
   fotos: "fotos",
@@ -21,7 +21,19 @@ const COLUMNAS_JSON: Record<string, string> = {
   materialesApoyo: "materiales_apoyo",
   archivosDiseno: "archivos_diseno",
   fotosSinFondo: "fotos_sin_fondo",
+  guionPdf: "guion_pdf",
 };
+
+/** `guion_pdf` guarda UN objeto ({id,nombre,url,fileId}), no un string suelto. */
+function parseGuionPdf(valor: unknown): { id: string; nombre: string; url: string; fileId?: string } | undefined {
+  if (typeof valor !== "string" || !valor) return undefined;
+  try {
+    const parsed = JSON.parse(valor);
+    return parsed && typeof parsed === "object" ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 /** `materiales_apoyo` guarda objetos ({id,nombre,url,fileId,esCarpeta}), no strings sueltos como
  * `fotos` — `parseJsonArray` (tipada a string[]) no sirve aqui. */
@@ -78,6 +90,7 @@ function filaAEntregable(f: Record<string, unknown>) {
     guionId: f.guion_id ? String(f.guion_id) : undefined,
     dialogoTexto: f.dialogo_texto ? String(f.dialogo_texto) : undefined,
     materialesApoyo: parseMaterialesApoyo(f.materiales_apoyo),
+    guionPdf: parseGuionPdf(f.guion_pdf),
     urlPaginaWeb: f.url_pagina_web ? String(f.url_pagina_web) : undefined,
     archivosDiseno: parseArchivosDiseno(f.archivos_diseno),
     aprobadorId: f.aprobador_id ? String(f.aprobador_id) : undefined,
@@ -85,6 +98,7 @@ function filaAEntregable(f: Record<string, unknown>) {
     fechaEnviado: f.fecha_enviado ? String(f.fecha_enviado) : undefined,
     fechaEntregado: f.fecha_entregado ? String(f.fecha_entregado) : undefined,
     fechaAprobado: f.fecha_aprobado ? String(f.fecha_aprobado) : undefined,
+    esDemo: parseBool(f.es_demo),
   };
 }
 
@@ -105,6 +119,9 @@ function puedeActualizar(usuario: UsuarioFila, actual: { estado: string; respons
   // La prioridad (urgencia) la define quien asigna el trabajo — ni el responsable ni community
   // (que solo aprueba) pueden cambiarla, aunque si puedan editar otros campos del mismo PATCH.
   if ("prioridad" in cambios && !esSuperadmin(usuario) && !esLiderAudiovisual(usuario)) return false;
+  // Marcar/quitar "prueba de edicion" (esDemo) es solo de superadmin — ni lider ni community
+  // (que de otro modo editan todo lo demas via el shortcut de abajo) lo deciden.
+  if ("esDemo" in cambios && !esSuperadmin(usuario)) return false;
   if (esSuperadmin(usuario) || esGestorRequisiciones(usuario)) return true;
   const nuevoEstado = typeof cambios.estado === "string" ? cambios.estado : actual.estado;
   if (esLiderAudiovisual(usuario)) return nuevoEstado === actual.estado;
@@ -173,6 +190,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!veTodo && entregable.responsableId !== usuario.id) {
         throw new ErrorAuth(403, "No tienes permiso para ver este entregable.");
       }
+      // "Prueba de edicion" (esDemo) es solo para superadmin/community — ni lider ni el propio
+      // responsable (aunque sea el suyo) la ven, para no confundirla con la entrega real.
+      const puedeVerDemo = esSuperadmin(usuario) || esGestorRequisiciones(usuario);
+      if (entregable.esDemo && !puedeVerDemo) {
+        throw new ErrorAuth(403, "No tienes permiso para ver este entregable.");
+      }
       res.status(200).json(entregable);
       return;
     }
@@ -186,7 +209,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const filas = veTodo
         ? await db().execute("SELECT * FROM entregables")
         : await db().execute({ sql: "SELECT * FROM entregables WHERE responsable_id = ?", args: [usuario.id] });
-      res.status(200).json(filas.rows.map((f) => filaAEntregable(f as Record<string, unknown>)));
+      // "Prueba de edicion" (esDemo) solo la ven superadmin/community — ni lider (aunque "vea
+      // todo") ni el responsable (aunque sea su propio entregable), para no confundirla con la
+      // entrega real entre varios intentos parecidos.
+      const puedeVerDemo = esSuperadmin(usuario) || esGestorRequisiciones(usuario);
+      const entregables = filas.rows
+        .map((f) => filaAEntregable(f as Record<string, unknown>))
+        .filter((e) => !e.esDemo || puedeVerDemo);
+      res.status(200).json(entregables);
       return;
     }
 
@@ -254,7 +284,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       for (const [campo, valor] of Object.entries(body)) {
         if (COLUMNAS[campo]) {
           campos.push(`${COLUMNAS[campo]} = ?`);
-          args.push(valor ?? null);
+          // `es_demo` (y cualquier futura columna booleana) se guarda como 0/1 de SQLite, no el
+          // `true`/`false` de JS tal cual.
+          args.push(typeof valor === "boolean" ? (valor ? 1 : 0) : (valor ?? null));
+        } else if (campo === "guionPdf") {
+          // Unico objeto JSON (no arreglo) entre las columnas JSON — valor falsy quita el PDF.
+          campos.push("guion_pdf = ?");
+          args.push(valor ? JSON.stringify(valor) : null);
         } else if (COLUMNAS_JSON[campo]) {
           campos.push(`${COLUMNAS_JSON[campo]} = ?`);
           args.push(valor && Array.isArray(valor) && valor.length > 0 ? JSON.stringify(valor) : null);

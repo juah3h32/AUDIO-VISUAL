@@ -256,6 +256,13 @@ export interface Entregable {
    * y no existe (ni va a existir) un Guion formal que vincular. Independiente de `guionId`. */
   dialogoTexto?: string;
   materialesApoyo?: MaterialApoyo[];
+  /** PDF del guion/dialogos de este video, subido directo (no via el modulo Guiones) — un solo
+   * boton "Ver PDF" en vez de mezclarlo con Material de apoyo (que puede traer cualquier cosa). */
+  guionPdf?: MaterialApoyo;
+  /** Marca esta tarjeta como prueba de edicion (no la entrega real) — solo superadmin la pone.
+   * Oculta para el responsable/colaborador; visible solo para superadmin y community (quien
+   * aprueba), para no confundirla con la version real entre varios intentos parecidos. */
+  esDemo?: boolean;
   /** Solo aplica a `tipo: "pagina_web"` — el link de la pagina que cambio, para que quien revisa
    * pueda entrar a verla en vivo ademas de ver la captura. */
   urlPaginaWeb?: string;
