@@ -171,6 +171,11 @@ export type EstadoEntregable =
   | "aprobado"
   | "entregado";
 
+/** Clasifica un `MaterialApoyo` para que el responsable vea la lista agrupada en vez de un
+ * monton de archivos sueltos sin orden. Sin valor (material historico de antes de este campo)
+ * se agrupa junto con "material". */
+export type TipoMaterialApoyo = "logo" | "material" | "referencia" | "otro";
+
 /** Archivo de apoyo (footage crudo, brief, fotos de referencia...) que el lider sube a Drive para
  * que el responsable del entregable lo descargue — NO es el material final (eso es
  * urlRevision/urlFinal/fotos), es insumo para producirlo. */
@@ -183,6 +188,7 @@ export interface MaterialApoyo {
    * referencia), no a un solo archivo — no hay nada que "descargar" via el proxy de archivo, se
    * abre directo en Drive con el link guardado. */
   esCarpeta?: boolean;
+  tipo?: TipoMaterialApoyo;
 }
 
 /** Subtipo de un archivo de diseño final — distinto de `MaterialApoyo` (eso es insumo/referencia,
@@ -198,6 +204,12 @@ export interface ArchivoDiseno {
   url: string;
   fileId?: string;
   subtipo: ArchivoDisenoSubtipo;
+}
+
+export interface ChecklistItem {
+  id: string;
+  texto: string;
+  hecho: boolean;
 }
 
 export interface Entregable {
@@ -255,6 +267,15 @@ export interface Entregable {
    * aprobacion — para cuando a quien sube el video se lo entregan ya hecho (o lo genera con IA)
    * y no existe (ni va a existir) un Guion formal que vincular. Independiente de `guionId`. */
   dialogoTexto?: string;
+  /** Marca manual de superadmin/lider: este entregable no lleva guion (ver puedeAsignarEntregables)
+   * — apaga los bloques de "dialogo pegado"/"guion PDF" en el dialogo en vez de mostrarle al
+   * responsable botones vacios de algo que nunca va a existir para este video en particular. */
+  sinGuion?: boolean;
+  /** Indicaciones de como debe quedar este entregable (estilo, encuadre, referencias) que
+   * superadmin/lider escriben al armarlo — el responsable las ve al abrir el entregable, sin
+   * poder editarlas (ver puedeAsignarEntregables). Independiente de `dialogoTexto` (eso es el
+   * guion/dialogo a decir, esto es como se debe VER/producir). */
+  indicaciones?: string;
   materialesApoyo?: MaterialApoyo[];
   /** PDF del guion/dialogos de este video, subido directo (no via el modulo Guiones) — un solo
    * boton "Ver PDF" en vez de mezclarlo con Material de apoyo (que puede traer cualquier cosa). */
@@ -270,6 +291,11 @@ export interface Entregable {
    * ver `ArchivoDiseno`. Independiente de `urlFinal`/`urlRevision` (esos siguen siendo la vista
    * previa principal que se ve en el visor). */
   archivosDiseno?: ArchivoDiseno[];
+  /** Subtareas que superadmin/lider definen al armar el entregable (ver puedeAsignarEntregables)
+   * — el responsable asignado las marca/desmarca segun avanza, pero no puede agregar, redactar
+   * ni borrar ningun item (eso lo vuelve a validar el backend, ver puedeActualizar() en
+   * api/db/entregables.ts). Sin valor = sin checklist, no es obligatorio en ningun tipo. */
+  checklist?: ChecklistItem[];
   aprobadorId?: string;
   creadoEn: string;
   /** Cuando se subio el material POR PRIMERA VEZ (envio a revision). Es la fecha que cuenta para
@@ -280,6 +306,19 @@ export interface Entregable {
   /** Cuando `estado` paso a "aprobado" — una vez aprobado ya cuenta como cumplido en las
    * graficas, aunque todavia no se marque "entregado" (publicado). */
   fechaAprobado?: string;
+  /** Ultima subida de material "principal" (no version alterna ni ingesta historica) — para
+   * mostrar en el Kanban quien la hizo y de que tipo fue, sin tener que esperar a la notificacion
+   * (que se marca leida y desaparece). Se calcula en RevisarEntregableDialog.tsx comparando
+   * contra el estado/fechaEnviado de ANTES del cambio. */
+  ultimaActividad?: UltimaActividadEntregable;
+}
+
+export type TipoUltimaActividad = "nuevo" | "correccion" | "actualizacion";
+
+export interface UltimaActividadEntregable {
+  tipo: TipoUltimaActividad;
+  porId: string;
+  en: string;
 }
 
 export type TipoActividadSalida =
@@ -329,6 +368,26 @@ export interface SalidaGrabacion {
   transporte?: string;
   estadoAutorizacion: EstadoAutorizacionSalida;
   observaciones?: string;
+  /** Nombre(s) del/los modelo(s)/talento que salio en camara ese dia — texto libre (no hay
+   * catalogo de modelos, son personas externas, no usuarios del sistema). Para poder consultar
+   * despues con quien se grabo/fotografio sin tener que revisar el material entregado. */
+  modelos?: string;
+  creadoEn: string;
+}
+
+export type TipoRegistroGrabacion = "grabacion" | "fotografia";
+
+/** Bitacora manual, SOLO visible/capturable por superadmin — a diferencia de `SalidaGrabacion`
+ * (que registra la LOGISTICA de una jornada completa: planta, horarios, personal, autorizacion),
+ * esto es nomas un conteo rapido de cuantos videos/sesiones se grabaron un dia, sin tener que
+ * crear una salida formal para cada uno (ej. grabaciones cortas en oficina, sin desplazamiento). */
+export interface RegistroGrabacion {
+  id: string;
+  fecha: string;
+  cantidad: number;
+  tipo: TipoRegistroGrabacion;
+  nota?: string;
+  creadoPorId: string;
   creadoEn: string;
 }
 

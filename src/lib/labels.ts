@@ -8,6 +8,8 @@ import type {
   EtapaProyecto,
   Prioridad,
   TipoActividadSalida,
+  TipoMaterialApoyo,
+  TipoUltimaActividad,
 } from "@/types";
 import type { BadgeVariant } from "@/components/ui/badge";
 
@@ -81,6 +83,15 @@ export const DISENO_SUBTIPO_LABELS: Record<ArchivoDisenoSubtipo, string> = {
   logo: "Logo",
 };
 
+/** Orden fijo en el que se agrupa Material de apoyo en el dialogo de revision — logos primero
+ * (lo mas reutilizable), "otro" al final. */
+export const MATERIAL_APOYO_TIPO_LABELS: Record<TipoMaterialApoyo, string> = {
+  logo: "Logo",
+  material: "Material",
+  referencia: "Referencia",
+  otro: "Otro",
+};
+
 export const PRIORIDAD_LABELS: Record<Prioridad, string> = {
   baja: "Baja",
   media: "Media",
@@ -147,6 +158,21 @@ export const ESTADO_ENTREGABLE_BADGE: Record<EstadoEntregable, BadgeVariant> = {
   correcciones: "danger",
   aprobado: "success",
   entregado: "accent",
+};
+
+/** Ultima subida de material (ver `ultimaActividad` en types) — badge aparte del de `estado`,
+ * para distinguir "subieron por primera vez" de "corrigieron lo pedido" de "actualizaron algo
+ * ya aprobado/entregado" de un vistazo, sin abrir el entregable. */
+export const ULTIMA_ACTIVIDAD_LABELS: Record<TipoUltimaActividad, string> = {
+  nuevo: "Nuevo",
+  correccion: "Corrección subida",
+  actualizacion: "Actualización",
+};
+
+export const ULTIMA_ACTIVIDAD_BADGE: Record<TipoUltimaActividad, BadgeVariant> = {
+  nuevo: "success",
+  correccion: "danger",
+  actualizacion: "info",
 };
 
 /** Etiqueta de estado para UN entregable puntual (badge, encabezado de dialogo, calendario).

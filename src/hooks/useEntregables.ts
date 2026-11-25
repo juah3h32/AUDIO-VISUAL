@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   actualizarArchivosDiseno,
+  actualizarChecklist,
   actualizarDialogoTexto,
   actualizarGuionPdf,
+  actualizarIndicaciones,
   actualizarMaterialesApoyo,
   actualizarPrioridad,
   adjuntarMaterialHistorico,
@@ -30,9 +32,10 @@ import {
   marcarDemo,
   marcarFotosParaBorrar,
   marcarEntregado,
+  marcarSinGuion,
   solicitarCorrecciones,
 } from "@/services/entregablesService";
-import type { ArchivoDiseno, CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo, Prioridad } from "@/types";
+import type { ArchivoDiseno, CategoriaContenido, ChecklistItem, Entregable, EstadoEntregable, MaterialApoyo, Prioridad, UltimaActividadEntregable } from "@/types";
 
 export function useCrearEntregable() {
   const qc = useQueryClient();
@@ -59,8 +62,10 @@ export function useCrearEntregableHistorico() {
 export function useEnviarARevision() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { id: string; urlRevision: string; orientacionVideo?: "vertical" | "horizontal" }) =>
-      enviarARevision(data.id, data.urlRevision, data.orientacionVideo),
+    mutationFn: (data: {
+      id: string; urlRevision: string; orientacionVideo?: "vertical" | "horizontal";
+      ultimaActividad?: UltimaActividadEntregable;
+    }) => enviarARevision(data.id, data.urlRevision, data.orientacionVideo, data.ultimaActividad),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
   });
 }
@@ -118,6 +123,14 @@ export function useActualizarArchivosDiseno() {
   });
 }
 
+export function useActualizarChecklist() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, checklist }: { id: string; checklist: ChecklistItem[] }) => actualizarChecklist(id, checklist),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
 export function useActualizarPrioridad() {
   const qc = useQueryClient();
   return useMutation({
@@ -130,6 +143,23 @@ export function useMarcarDemo() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, esDemo }: { id: string; esDemo: boolean }) => marcarDemo(id, esDemo),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
+export function useMarcarSinGuion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, sinGuion }: { id: string; sinGuion: boolean }) => marcarSinGuion(id, sinGuion),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
+  });
+}
+
+export function useActualizarIndicaciones() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, indicaciones }: { id: string; indicaciones: string | null }) =>
+      actualizarIndicaciones(id, indicaciones),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
   });
 }
@@ -287,12 +317,14 @@ export function useGuardarFotos() {
       fotos,
       comoHistorico,
       carpetaFotosUrl,
+      ultimaActividad,
     }: {
       id: string;
       fotos: string[];
       comoHistorico: boolean;
       carpetaFotosUrl?: string;
-    }) => guardarFotos(id, fotos, { comoHistorico, carpetaFotosUrl }),
+      ultimaActividad?: UltimaActividadEntregable;
+    }) => guardarFotos(id, fotos, { comoHistorico, carpetaFotosUrl, ultimaActividad }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["entregables"] }),
   });
 }

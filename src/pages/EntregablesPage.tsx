@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 import { Eye, EyeOff } from "lucide-react";
 import { useEntregables } from "@/hooks/useCatalogos";
 import { useProyectos } from "@/hooks/useProyectos";
@@ -15,6 +17,8 @@ import {
   ESTADO_GUION_LABELS,
   PRIORIDAD_BADGE,
   PRIORIDAD_LABELS,
+  ULTIMA_ACTIVIDAD_BADGE,
+  ULTIMA_ACTIVIDAD_LABELS,
   compararPorPrioridad,
 } from "@/lib/labels";
 import { cn, formatFecha } from "@/lib/utils";
@@ -378,6 +382,17 @@ export function EntregablesPage() {
                                 <p className="truncate font-medium text-text-primary">{e.nombre}</p>
                               </div>
                               <p className="truncate text-xs text-muted-foreground">{proyectoDe(e.proyectoId)}</p>
+                              {e.ultimaActividad && (
+                                <div className="mt-1 flex items-center gap-1.5 overflow-hidden">
+                                  <Badge variant={ULTIMA_ACTIVIDAD_BADGE[e.ultimaActividad.tipo]} className="shrink-0 text-[10px]">
+                                    {ULTIMA_ACTIVIDAD_LABELS[e.ultimaActividad.tipo]}
+                                  </Badge>
+                                  <span className="truncate text-[11px] text-muted-foreground">
+                                    {nombreDe(e.ultimaActividad.porId)} ·{" "}
+                                    {formatDistanceToNow(new Date(e.ultimaActividad.en), { addSuffix: true, locale: es })}
+                                  </span>
+                                </div>
+                              )}
                               <div className="mt-1 flex items-center justify-between gap-2">
                                 <span className="truncate text-xs text-muted-foreground">{nombreDe(e.responsableId)}</span>
                                 <Badge variant="outline" className="shrink-0 text-[10px]">

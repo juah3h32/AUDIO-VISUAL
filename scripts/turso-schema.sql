@@ -178,7 +178,11 @@ CREATE TABLE IF NOT EXISTS entregables (
   archivos_diseno TEXT,
   fotos_sin_fondo TEXT,
   guion_pdf TEXT,
-  es_demo INTEGER NOT NULL DEFAULT 0
+  es_demo INTEGER NOT NULL DEFAULT 0,
+  checklist TEXT,
+  sin_guion INTEGER NOT NULL DEFAULT 0,
+  indicaciones TEXT,
+  ultima_actividad TEXT
 );
 
 CREATE TABLE IF NOT EXISTS entregables_comentarios (
@@ -214,6 +218,7 @@ CREATE TABLE IF NOT EXISTS salidas (
   transporte TEXT,
   estado_autorizacion TEXT NOT NULL,
   observaciones TEXT,
+  modelos TEXT,
   creado_en TEXT NOT NULL
 );
 
@@ -223,6 +228,16 @@ CREATE TABLE IF NOT EXISTS plantas (
   direccion TEXT,
   contacto_planta TEXT,
   telefono_contacto TEXT,
+  creado_en TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS registros_grabacion (
+  id TEXT PRIMARY KEY,
+  fecha TEXT NOT NULL,
+  cantidad INTEGER NOT NULL,
+  tipo TEXT NOT NULL,
+  nota TEXT,
+  creado_por_id TEXT NOT NULL,
   creado_en TEXT NOT NULL
 );
 

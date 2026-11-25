@@ -14,6 +14,7 @@ const COLUMNAS: Record<string, string> = {
   guionId: "guion_id", dialogoTexto: "dialogo_texto", aprobadorId: "aprobador_id", creadoEn: "creado_en",
   fechaEnviado: "fecha_enviado", fechaEntregado: "fecha_entregado",
   fechaAprobado: "fecha_aprobado", urlPaginaWeb: "url_pagina_web", esDemo: "es_demo",
+  sinGuion: "sin_guion", indicaciones: "indicaciones",
 };
 const COLUMNAS_JSON: Record<string, string> = {
   fotos: "fotos",
@@ -22,6 +23,7 @@ const COLUMNAS_JSON: Record<string, string> = {
   archivosDiseno: "archivos_diseno",
   fotosSinFondo: "fotos_sin_fondo",
   guionPdf: "guion_pdf",
+  checklist: "checklist",
 };
 
 /** `guion_pdf` guarda UN objeto ({id,nombre,url,fileId}), no un string suelto. */
@@ -35,11 +37,24 @@ function parseGuionPdf(valor: unknown): { id: string; nombre: string; url: strin
   }
 }
 
+/** `ultima_actividad` guarda UN objeto ({tipo,porId,en}) — mismo patron que `guion_pdf`. */
+function parseUltimaActividad(
+  valor: unknown
+): { tipo: "nuevo" | "correccion" | "actualizacion"; porId: string; en: string } | undefined {
+  if (typeof valor !== "string" || !valor) return undefined;
+  try {
+    const parsed = JSON.parse(valor);
+    return parsed && typeof parsed === "object" ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** `materiales_apoyo` guarda objetos ({id,nombre,url,fileId,esCarpeta}), no strings sueltos como
  * `fotos` — `parseJsonArray` (tipada a string[]) no sirve aqui. */
 function parseMaterialesApoyo(
   valor: unknown
-): { id: string; nombre: string; url: string; fileId?: string; esCarpeta?: boolean }[] | undefined {
+): { id: string; nombre: string; url: string; fileId?: string; esCarpeta?: boolean; tipo?: string }[] | undefined {
   if (typeof valor !== "string" || !valor) return undefined;
   try {
     const parsed = JSON.parse(valor);
@@ -60,6 +75,29 @@ function parseArchivosDiseno(valor: unknown): ArchivoDisenoFila[] | undefined {
   } catch {
     return undefined;
   }
+}
+
+type ChecklistItemFila = { id: string; texto: string; hecho: boolean };
+
+/** Mismo patron que `parseMaterialesApoyo` — objetos etiquetados, no strings sueltos. */
+function parseChecklist(valor: unknown): ChecklistItemFila[] | undefined {
+  if (typeof valor !== "string" || !valor) return undefined;
+  try {
+    const parsed = JSON.parse(valor);
+    return Array.isArray(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** El responsable solo puede marcar/desmarcar `hecho` de items YA EXISTENTES — nunca agregar,
+ * redactar ni borrar (ver comentario de `checklist` en puedeActualizar). */
+function checklistEsSoloToggle(actual: ChecklistItemFila[], nuevo: unknown): boolean {
+  if (!Array.isArray(nuevo) || nuevo.length !== actual.length) return false;
+  return actual.every((item, i) => {
+    const n = nuevo[i];
+    return n && typeof n === "object" && n.id === item.id && n.texto === item.texto;
+  });
 }
 
 function filaAEntregable(f: Record<string, unknown>) {
@@ -93,12 +131,16 @@ function filaAEntregable(f: Record<string, unknown>) {
     guionPdf: parseGuionPdf(f.guion_pdf),
     urlPaginaWeb: f.url_pagina_web ? String(f.url_pagina_web) : undefined,
     archivosDiseno: parseArchivosDiseno(f.archivos_diseno),
+    checklist: parseChecklist(f.checklist),
+    sinGuion: parseBool(f.sin_guion),
+    indicaciones: f.indicaciones ? String(f.indicaciones) : undefined,
     aprobadorId: f.aprobador_id ? String(f.aprobador_id) : undefined,
     creadoEn: String(f.creado_en),
     fechaEnviado: f.fecha_enviado ? String(f.fecha_enviado) : undefined,
     fechaEntregado: f.fecha_entregado ? String(f.fecha_entregado) : undefined,
     fechaAprobado: f.fecha_aprobado ? String(f.fecha_aprobado) : undefined,
     esDemo: parseBool(f.es_demo),
+    ultimaActividad: parseUltimaActividad(f.ultima_actividad),
   };
 }
 
@@ -115,13 +157,27 @@ function filaAComentario(f: Record<string, unknown>) {
 }
 
 /** Portado 1:1 de la regla `entregables.update` de firestore.rules. */
-function puedeActualizar(usuario: UsuarioFila, actual: { estado: string; responsableId: string }, cambios: Record<string, unknown>): boolean {
+function puedeActualizar(
+  usuario: UsuarioFila,
+  actual: { estado: string; responsableId: string; checklist: ChecklistItemFila[] },
+  cambios: Record<string, unknown>
+): boolean {
   // La prioridad (urgencia) la define quien asigna el trabajo — ni el responsable ni community
   // (que solo aprueba) pueden cambiarla, aunque si puedan editar otros campos del mismo PATCH.
   if ("prioridad" in cambios && !esSuperadmin(usuario) && !esLiderAudiovisual(usuario)) return false;
   // Marcar/quitar "prueba de edicion" (esDemo) es solo de superadmin — ni lider ni community
   // (que de otro modo editan todo lo demas via el shortcut de abajo) lo deciden.
   if ("esDemo" in cambios && !esSuperadmin(usuario)) return false;
+  // sinGuion/indicaciones las define quien asigna el trabajo — igual que prioridad, ni el
+  // responsable ni community las tocan.
+  if ("sinGuion" in cambios && !esSuperadmin(usuario) && !esLiderAudiovisual(usuario)) return false;
+  if ("indicaciones" in cambios && !esSuperadmin(usuario) && !esLiderAudiovisual(usuario)) return false;
+  // El checklist lo arma quien asigna el trabajo (agregar/redactar/borrar items) — igual que
+  // puedeAsignarEntregables. El responsable (o cualquier otro rol de abajo) solo puede marcar/
+  // desmarcar `hecho` de items que ya existian, nunca tocar la lista en si.
+  if ("checklist" in cambios && !esSuperadmin(usuario) && !esLiderAudiovisual(usuario)) {
+    if (!checklistEsSoloToggle(actual.checklist, cambios.checklist)) return false;
+  }
   if (esSuperadmin(usuario) || esGestorRequisiciones(usuario)) return true;
   const nuevoEstado = typeof cambios.estado === "string" ? cambios.estado : actual.estado;
   if (esLiderAudiovisual(usuario)) return nuevoEstado === actual.estado;
@@ -253,13 +309,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method === "PATCH") {
       const actualRes = await db().execute({
-        sql: "SELECT estado, responsable_id, tipo, archivos_diseno FROM entregables WHERE id = ?",
+        sql: "SELECT estado, responsable_id, tipo, archivos_diseno, checklist FROM entregables WHERE id = ?",
         args: [id],
       });
       const actual = actualRes.rows[0];
       if (!actual) throw new ErrorAuth(404, "Entregable no encontrado.");
       const body = cuerpoJson<Record<string, unknown>>(req);
-      if (!puedeActualizar(usuario, { estado: String(actual.estado), responsableId: String(actual.responsable_id) }, body)) {
+      const actualParaPermiso = {
+        estado: String(actual.estado),
+        responsableId: String(actual.responsable_id),
+        checklist: parseChecklist(actual.checklist) ?? [],
+      };
+      if (!puedeActualizar(usuario, actualParaPermiso, body)) {
         throw new ErrorAuth(403, "No tienes permiso para editar este entregable.");
       }
 
@@ -290,6 +351,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         } else if (campo === "guionPdf") {
           // Unico objeto JSON (no arreglo) entre las columnas JSON — valor falsy quita el PDF.
           campos.push("guion_pdf = ?");
+          args.push(valor ? JSON.stringify(valor) : null);
+        } else if (campo === "ultimaActividad") {
+          campos.push("ultima_actividad = ?");
           args.push(valor ? JSON.stringify(valor) : null);
         } else if (COLUMNAS_JSON[campo]) {
           campos.push(`${COLUMNAS_JSON[campo]} = ?`);

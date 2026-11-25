@@ -1,7 +1,7 @@
 import { esModoDemo } from "@/lib/modoDemo";
 import { apiFetch } from "@/lib/apiClient";
 import { DEMO_ENTREGABLES } from "@/data/demoData";
-import type { ArchivoDiseno, CategoriaContenido, Entregable, EstadoEntregable, MaterialApoyo, Prioridad } from "@/types";
+import type { ArchivoDiseno, CategoriaContenido, ChecklistItem, Entregable, EstadoEntregable, MaterialApoyo, Prioridad, UltimaActividadEntregable } from "@/types";
 
 let demoStore: Entregable[] = [...DEMO_ENTREGABLES];
 const demoComentarios: Record<string, ComentarioEntregable[]> = {};
@@ -93,6 +93,26 @@ export async function marcarDemo(id: string, esDemo: boolean): Promise<void> {
   await actualizarEntregable(id, { esDemo });
 }
 
+/** Solo superadmin/lider pueden cambiar esto (el backend lo vuelve a validar, ver
+ * puedeActualizar() en api/db/entregables.ts) — apaga los bloques de guion para este entregable. */
+export async function marcarSinGuion(id: string, sinGuion: boolean): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, sinGuion } : e));
+    return;
+  }
+  await actualizarEntregable(id, { sinGuion });
+}
+
+/** Como debe quedar este entregable (estilo/encuadre/referencias) — solo superadmin/lider la
+ * escriben (el backend lo vuelve a validar, ver puedeActualizar() en api/db/entregables.ts). */
+export async function actualizarIndicaciones(id: string, indicaciones: string | null): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, indicaciones: indicaciones ?? undefined } : e));
+    return;
+  }
+  await actualizarEntregable(id, { indicaciones } as Partial<Entregable>);
+}
+
 /** Lista completa de materiales de apoyo (footage crudo, brief, fotos de referencia...) — se
  * manda la lista entera, igual que `assets` en Marcas, no un solo archivo. */
 export async function actualizarMaterialesApoyo(id: string, materialesApoyo: MaterialApoyo[]): Promise<void> {
@@ -120,6 +140,18 @@ export async function actualizarArchivosDiseno(id: string, archivosDiseno: Archi
     return;
   }
   await actualizarEntregable(id, { archivosDiseno } as Partial<Entregable>);
+}
+
+/** Lista completa del checklist — se manda entera, igual que materialesApoyo/archivosDiseno.
+ * Agregar/redactar/borrar items es solo de superadmin/lider (ver puedeAsignarEntregables); el
+ * responsable solo marca/desmarca `hecho` de items existentes (el backend lo vuelve a validar,
+ * ver puedeActualizar() en api/db/entregables.ts). */
+export async function actualizarChecklist(id: string, checklist: ChecklistItem[]): Promise<void> {
+  if (esModoDemo) {
+    demoStore = demoStore.map((e) => (e.id === id ? { ...e, checklist } : e));
+    return;
+  }
+  await actualizarEntregable(id, { checklist } as Partial<Entregable>);
 }
 
 export async function renombrarEntregable(id: string, nombre: string): Promise<void> {
@@ -190,7 +222,10 @@ export async function crearEntregableHistorico(
 
 /** Solo la PRIMERA subida fija `fechaEnviado`: si luego hay correcciones, la entrega original
  * sigue contando con su fecha (no se vuelve "tarde" por la revision de community). */
-export async function enviarARevision(id: string, urlRevision: string, orientacionVideo?: "vertical" | "horizontal"): Promise<void> {
+export async function enviarARevision(
+  id: string, urlRevision: string, orientacionVideo?: "vertical" | "horizontal",
+  ultimaActividad?: UltimaActividadEntregable
+): Promise<void> {
   const yaEnviado = esModoDemo
     ? Boolean(demoStore.find((e) => e.id === id)?.fechaEnviado)
     : Boolean((await apiFetch<Entregable>(`/api/db/entregables?id=${encodeURIComponent(id)}`)).fechaEnviado);
@@ -198,6 +233,7 @@ export async function enviarARevision(id: string, urlRevision: string, orientaci
     urlRevision, estado: "en_revision",
     ...(yaEnviado ? {} : { fechaEnviado: new Date().toISOString() }),
     ...(orientacionVideo ? { orientacionVideo } : {}),
+    ...(ultimaActividad ? { ultimaActividad } : {}),
   });
 }
 
@@ -252,7 +288,8 @@ export async function marcarFotosParaBorrar(id: string, fotosParaBorrar: string[
 }
 
 export async function guardarFotos(
-  id: string, fotos: string[], opciones: { comoHistorico: boolean; carpetaFotosUrl?: string }
+  id: string, fotos: string[],
+  opciones: { comoHistorico: boolean; carpetaFotosUrl?: string; ultimaActividad?: UltimaActividadEntregable }
 ): Promise<void> {
   const campoCover = opciones.comoHistorico ? "urlFinal" : "urlRevision";
   if (esModoDemo) {
@@ -262,6 +299,7 @@ export async function guardarFotos(
             ...e, fotos, [campoCover]: fotos[0],
             ...(opciones.carpetaFotosUrl ? { carpetaFotosUrl: opciones.carpetaFotosUrl } : {}),
             ...(opciones.comoHistorico ? {} : { estado: "en_revision" as EstadoEntregable }),
+            ...(opciones.comoHistorico || !opciones.ultimaActividad ? {} : { ultimaActividad: opciones.ultimaActividad }),
           }
         : e
     );
@@ -271,6 +309,7 @@ export async function guardarFotos(
     fotos, [campoCover]: fotos[0],
     ...(opciones.carpetaFotosUrl ? { carpetaFotosUrl: opciones.carpetaFotosUrl } : {}),
     ...(opciones.comoHistorico ? {} : { estado: "en_revision" as EstadoEntregable }),
+    ...(opciones.comoHistorico || !opciones.ultimaActividad ? {} : { ultimaActividad: opciones.ultimaActividad }),
   } as Partial<Entregable>);
 }
 

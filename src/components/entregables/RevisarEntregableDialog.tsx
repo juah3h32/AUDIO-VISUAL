@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   ArrowLeftCircle,
   ArrowRightCircle,
@@ -15,15 +17,18 @@ import {
   Globe,
   Image as ImageIcon,
   Link2,
+  ListChecks,
   Loader2,
   MessageSquarePlus,
   Monitor,
+  NotebookPen,
   Pencil,
   Plus,
   RotateCcw,
   ScrollText,
   SendHorizontal,
   Smartphone,
+  Sparkles,
   Trash2,
   Upload,
   X,
@@ -33,8 +38,10 @@ import { useUploadQueue } from "@/context/UploadQueueContext";
 import { puedeAprobarEntregables, puedeAsignarEntregables, puedeSubirVideos, esGestorRequisiciones, gestorTienePermiso } from "@/lib/roles";
 import {
   useActualizarArchivosDiseno,
+  useActualizarChecklist,
   useActualizarDialogoTexto,
   useActualizarGuionPdf,
+  useActualizarIndicaciones,
   useActualizarMaterialesApoyo,
   useActualizarPrioridad,
   useAdjuntarMaterialHistorico,
@@ -53,12 +60,14 @@ import {
   useMarcarDemo,
   useMarcarFotosParaBorrar,
   useMarcarEntregado,
+  useMarcarSinGuion,
   useReasignarResponsableEntregable,
   useRenombrarEntregable,
   useSolicitarCorrecciones,
   useVincularGuionEntregable,
 } from "@/hooks/useEntregables";
 import { useGuiones } from "@/hooks/useGuiones";
+import { useMarcas } from "@/hooks/useMarcas";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useUsuarios } from "@/hooks/useCatalogos";
 import { VistaPreviaGuion } from "@/components/guiones/VistaPreviaGuion";
@@ -85,8 +94,11 @@ import {
   etiquetaEstadoEntregable,
   CATEGORIA_CONTENIDO_LABELS,
   DISENO_SUBTIPO_LABELS,
+  MATERIAL_APOYO_TIPO_LABELS,
   PRIORIDAD_LABELS,
   PRIORIDAD_BADGE,
+  ULTIMA_ACTIVIDAD_BADGE,
+  ULTIMA_ACTIVIDAD_LABELS,
 } from "@/lib/labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,7 +108,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { ArchivoDiseno, ArchivoDisenoSubtipo, Entregable, Prioridad } from "@/types";
+import type { ArchivoDiseno, ArchivoDisenoSubtipo, Entregable, Prioridad, TipoMaterialApoyo, TipoUltimaActividad, UltimaActividadEntregable } from "@/types";
 
 const SIN_PROYECTO_VALOR = "sin-proyecto";
 
@@ -120,6 +132,19 @@ function comentarioAplicaAFoto(momento: string | undefined, numero: number): boo
   if (!momento) return false;
   const numeros = momento.match(/\d+/g)?.map(Number) ?? [];
   return numeros.includes(numero);
+}
+
+/** Clasifica la subida que esta por pasar, comparando contra el estado/fechaEnviado de ANTES
+ * del cambio (por eso recibe `entregable`, no el valor ya actualizado) — mismo criterio que ya
+ * se usaba para el texto de la notificacion ("agrego" vs "actualizo"), pero persistido en
+ * `ultimaActividad` para que se vea en el Kanban sin depender de la notificacion. */
+function calcularUltimaActividad(entregable: Entregable, actorId: string): UltimaActividadEntregable {
+  const tipo: TipoUltimaActividad = !entregable.fechaEnviado
+    ? "nuevo"
+    : entregable.estado === "correcciones"
+      ? "correccion"
+      : "actualizacion";
+  return { tipo, porId: actorId, en: new Date().toISOString() };
 }
 
 const MENSAJE_ERROR_PLAYER: Record<MotivoErrorDrive, string> = {
@@ -148,11 +173,18 @@ export function RevisarEntregableDialog({
   const { data: usuarios = [] } = useUsuarios();
   const { data: proyectos = [] } = useProyectos();
   const { data: guiones = [] } = useGuiones();
+  const { data: marcas = [] } = useMarcas();
   const asignarProyecto = useAsignarProyectoEntregable();
   const reasignarResponsable = useReasignarResponsableEntregable();
   const vincularGuion = useVincularGuionEntregable();
   const [mostrandoGuion, setMostrandoGuion] = useState(false);
   const [guionCopiado, setGuionCopiado] = useState(false);
+  const marcarSinGuion = useMarcarSinGuion();
+  // Indicaciones de como debe quedar el entregable (estilo/encuadre/referencias) — distinto del
+  // guion/dialogo de arriba, ver comentario en `Entregable.indicaciones`, types/index.ts.
+  const actualizarIndicaciones = useActualizarIndicaciones();
+  const [editandoIndicaciones, setEditandoIndicaciones] = useState(false);
+  const [indicacionesBorrador, setIndicacionesBorrador] = useState("");
   // Dialogo pegado directo (sin pasar por el modulo Guiones) — para cuando a quien sube el video
   // se lo entregan ya hecho o lo genera con IA y no hay (ni va a haber) un Guion formal.
   const actualizarDialogo = useActualizarDialogoTexto();
@@ -166,6 +198,9 @@ export function RevisarEntregableDialog({
   const actualizarPrioridad = useActualizarPrioridad();
   const marcarDemo = useMarcarDemo();
   const [subiendoApoyo, setSubiendoApoyo] = useState(false);
+  // Con que etiqueta se agrega el PROXIMO material de apoyo (subido, pegado como link, o logo de
+  // marca) — ver MATERIAL_APOYO_TIPO_LABELS. El responsable ve la lista ya agrupada por esto.
+  const [tipoApoyoSeleccionado, setTipoApoyoSeleccionado] = useState<TipoMaterialApoyo>("material");
   const inputApoyoRef = useRef<HTMLInputElement>(null);
   // Guion en PDF — separado de Material de apoyo (que puede traer cualquier cosa): un solo
   // boton "Ver PDF" dedicado a los dialogos, sin mezclar.
@@ -176,6 +211,10 @@ export function RevisarEntregableDialog({
   const [pegandoLinkApoyo, setPegandoLinkApoyo] = useState(false);
   const [linkApoyoBorrador, setLinkApoyoBorrador] = useState("");
   const [errorLinkApoyo, setErrorLinkApoyo] = useState<string | null>(null);
+  // Checklist: items los arma superadmin/lider (ver puedeAsignarEntregables), el responsable
+  // solo los marca/desmarca — ver onToggleItemChecklist mas abajo.
+  const actualizarChecklist = useActualizarChecklist();
+  const [nuevoItemChecklist, setNuevoItemChecklist] = useState("");
   const [comentario, setComentario] = useState("");
   const [momento, setMomento] = useState("");
   const [subiendo, setSubiendo] = useState(false);
@@ -473,6 +512,7 @@ export function RevisarEntregableDialog({
           id: entregable.id,
           urlRevision: subido.previewUrl,
           ...(esImagenUnica ? {} : { orientacionVideo: orientacionAEnviar }),
+          ultimaActividad: calcularUltimaActividad(entregable, usuario.id),
         });
         // Quien sube ya corrigio lo que se le pidio — las observaciones pendientes quedan
         // marcadas "corregido" para que el aprobador vea de una cuales ya se atendieron al
@@ -534,7 +574,11 @@ export function RevisarEntregableDialog({
       // archivo final YA ES el material — sin esto, alguien cargaba los tres archivos finales
       // y el entregable se quedaba "Pendiente" para siempre, porque el estado nunca se movia.
       if (!entregable.urlRevision && !entregable.urlFinal && !completandoHistorico) {
-        await enviarARevision.mutateAsync({ id: entregable.id, urlRevision: subido.previewUrl });
+        await enviarARevision.mutateAsync({
+          id: entregable.id,
+          urlRevision: subido.previewUrl,
+          ultimaActividad: calcularUltimaActividad(entregable, usuario.id),
+        });
         notificarRevisores(`${nombreResponsable} agrego el diseño de "${entregable.nombre}".`);
       }
       marcarLista(tareaId);
@@ -660,6 +704,7 @@ export function RevisarEntregableDialog({
           comoHistorico: completandoHistorico,
           // Una vez que el entregable ya tiene carpeta conocida, no hace falta pisarla cada vez.
           carpetaFotosUrl: entregable.carpetaFotosUrl ?? carpetaUrl,
+          ...(completandoHistorico ? {} : { ultimaActividad: calcularUltimaActividad(entregable, usuario.id) }),
         });
         if (!completandoHistorico) {
           if (galeriaFotos.length > 0) {
@@ -750,7 +795,11 @@ export function RevisarEntregableDialog({
     setErrorSubida(null);
     setSubiendo(true);
     try {
-      await enviarARevision.mutateAsync({ id: entregable.id, urlRevision: entregable.urlPaginaWeb });
+      await enviarARevision.mutateAsync({
+        id: entregable.id,
+        urlRevision: entregable.urlPaginaWeb,
+        ultimaActividad: calcularUltimaActividad(entregable, usuario.id),
+      });
       if (yaHabiaEnvio) {
         try {
           await marcarComentariosCorregidos.mutateAsync();
@@ -939,6 +988,11 @@ export function RevisarEntregableDialog({
     setEditandoDialogo(false);
   };
 
+  const onGuardarIndicaciones = async () => {
+    await actualizarIndicaciones.mutateAsync({ id: entregable.id, indicaciones: indicacionesBorrador.trim() || null });
+    setEditandoIndicaciones(false);
+  };
+
   const onSubirMaterialApoyo = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -952,7 +1006,7 @@ export function RevisarEntregableDialog({
       });
       const nuevaLista = [
         ...(entregable.materialesApoyo ?? []),
-        { id: subido.id, nombre: file.name, url: subido.viewUrl, fileId: subido.id },
+        { id: subido.id, nombre: file.name, url: subido.viewUrl, fileId: subido.id, tipo: tipoApoyoSeleccionado },
       ];
       await actualizarMateriales.mutateAsync({ id: entregable.id, materialesApoyo: nuevaLista });
     } catch (err) {
@@ -965,6 +1019,39 @@ export function RevisarEntregableDialog({
   const onEliminarMaterialApoyo = (materialId: string) => {
     const nuevaLista = (entregable.materialesApoyo ?? []).filter((m) => m.id !== materialId);
     actualizarMateriales.mutate({ id: entregable.id, materialesApoyo: nuevaLista });
+  };
+
+  // Reusa un logo que ya esta en Marcas (nombre/url/fileId) como material de apoyo, sin subirlo
+  // de nuevo — ver `logosDisponibles` mas arriba. Cualquier marca del catalogo, no solo la de
+  // este entregable (la mayoria de entregables no trae marca asignada todavia).
+  const onUsarLogoMarca = (assetId: string) => {
+    const logo = logosDisponibles.find((l) => l.asset.id === assetId)?.asset;
+    if (!logo || (entregable.materialesApoyo ?? []).some((m) => m.id === logo.id)) return;
+    const nuevaLista = [
+      ...(entregable.materialesApoyo ?? []),
+      { id: logo.id, nombre: logo.nombre, url: logo.url, fileId: logo.fileId, tipo: "logo" as const },
+    ];
+    actualizarMateriales.mutate({ id: entregable.id, materialesApoyo: nuevaLista });
+  };
+
+  const onAgregarItemChecklist = () => {
+    const texto = nuevoItemChecklist.trim();
+    if (!texto) return;
+    const nuevaLista = [...(entregable.checklist ?? []), { id: crypto.randomUUID(), texto, hecho: false }];
+    actualizarChecklist.mutate({ id: entregable.id, checklist: nuevaLista });
+    setNuevoItemChecklist("");
+  };
+
+  const onEliminarItemChecklist = (itemId: string) => {
+    const nuevaLista = (entregable.checklist ?? []).filter((i) => i.id !== itemId);
+    actualizarChecklist.mutate({ id: entregable.id, checklist: nuevaLista });
+  };
+
+  // Unico control que el responsable (sin ser lider/superadmin) tiene permiso de tocar — el
+  // backend vuelve a validar que solo cambie `hecho`, ver checklistEsSoloToggle en api/db/entregables.ts.
+  const onToggleItemChecklist = (itemId: string) => {
+    const nuevaLista = (entregable.checklist ?? []).map((i) => (i.id === itemId ? { ...i, hecho: !i.hecho } : i));
+    actualizarChecklist.mutate({ id: entregable.id, checklist: nuevaLista });
   };
 
   const onSubirGuionPdf = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -1017,6 +1104,7 @@ export function RevisarEntregableDialog({
         url: link,
         fileId: fileId ?? undefined,
         esCarpeta: Boolean(carpetaId),
+        tipo: tipoApoyoSeleccionado,
       },
     ];
     await actualizarMateriales.mutateAsync({ id: entregable.id, materialesApoyo: nuevaLista });
@@ -1149,6 +1237,12 @@ export function RevisarEntregableDialog({
     (g) => g.estado === "aprobado" && g.proyectoId === entregable.proyectoId
   );
   const guionVinculado = entregable.guionId ? guiones.find((g) => g.id === entregable.guionId) : undefined;
+  // Logos ya guardados en Marcas (de CUALQUIER marca del catalogo, no solo la de este
+  // entregable — la mayoria de entregables no trae marca asignada) — para poder usarlos como
+  // material de apoyo sin tener que volver a subirlos (ver onUsarLogoMarca).
+  const logosDisponibles = marcas.flatMap((marca) =>
+    marca.assets.filter((a) => a.tipo === "logo").map((asset) => ({ marcaNombre: marca.nombre, asset }))
+  );
   // La version alterna solo aplica a video (un diseño grafico o una foto no tienen
   // "orientacion") y solo tiene sentido ofrecerla cuando ya existe la principal — primero se sube esa.
   const puedeAgregarAlt =
@@ -1852,6 +1946,61 @@ export function RevisarEntregableDialog({
         esFoto && layoutLado && "lg:self-start lg:max-h-[68vh] lg:overflow-y-auto lg:pr-1 scrollbar-thin"
       )}
     >
+      {/* Como debe quedar este entregable (estilo/encuadre/referencias) — lo primero que ve el
+          responsable al abrir el entregable. Solo superadmin/lider la escriben; se oculta para
+          todos los demas si esta vacia (nada que mostrar). */}
+      {(entregable.indicaciones || puedeAsignarEntregables(usuario)) && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Label className="flex items-center gap-1.5">
+              <NotebookPen className="h-3.5 w-3.5" /> Indicaciones
+            </Label>
+            {!editandoIndicaciones && puedeAsignarEntregables(usuario) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIndicacionesBorrador(entregable.indicaciones ?? "");
+                  setEditandoIndicaciones(true);
+                }}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground"
+              >
+                {entregable.indicaciones ? "Editar" : "Agregar"}
+              </button>
+            )}
+          </div>
+          {editandoIndicaciones ? (
+            <div className="space-y-2">
+              <Textarea
+                value={indicacionesBorrador}
+                onChange={(e) => setIndicacionesBorrador(e.target.value)}
+                rows={4}
+                placeholder="Como debe quedar este entregable: estilo, encuadre, referencias..."
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setEditandoIndicaciones(false)}
+                  disabled={actualizarIndicaciones.isPending}
+                >
+                  Cancelar
+                </Button>
+                <Button type="button" className="flex-1" onClick={onGuardarIndicaciones} disabled={actualizarIndicaciones.isPending}>
+                  {actualizarIndicaciones.isPending ? "Guardando..." : "Guardar"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            entregable.indicaciones && (
+              <p className="whitespace-pre-wrap rounded-md border border-border bg-bg-secondary/40 p-3 text-sm">
+                {entregable.indicaciones}
+              </p>
+            )
+          )}
+        </div>
+      )}
       {puedeVincularGuion && (guionVinculado || guionesAprobadosDelProyecto.length > 0) && (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
@@ -1917,12 +2066,30 @@ export function RevisarEntregableDialog({
           )}
         </div>
       )}
+      {/* Marca manual de superadmin/lider: este entregable no lleva guion — apaga los bloques de
+          abajo (dialogo pegado y PDF) para no mostrarle al responsable botones vacios de algo
+          que nunca va a existir en este video. Solo se ofrece mientras no haya guion cargado
+          (si ya hay uno, quitarlo primero tiene mas sentido que "marcar sin guion" encima). */}
+      {puedeAsignarEntregables(usuario) && !guionVinculado && !entregable.dialogoTexto && !entregable.guionPdf && (
+        <div className="flex items-center justify-between gap-2 rounded-md border border-dashed border-border px-2.5 py-1.5 text-xs text-muted-foreground">
+          <span>{entregable.sinGuion ? 'Marcado como "sin guion".' : "Este entregable no lleva guion?"}</span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => marcarSinGuion.mutate({ id: entregable.id, sinGuion: !entregable.sinGuion })}
+            disabled={marcarSinGuion.isPending}
+          >
+            {entregable.sinGuion ? "Deshacer" : "Marcar sin guion"}
+          </Button>
+        </div>
+      )}
       {/* Dialogo pegado directo — para cuando no hay (ni va a haber) un Guion formal en la
           pestaña Guiones: a veces lo entregan ya hecho, otras lo generan con IA. Independiente
           del bloque de arriba (que vincula un Guion ya aprobado); solo se ofrece mientras no haya
           uno vinculado, para no mostrar dos fuentes de dialogo a la vez. Solo superadmin/lider
           pueden PEGAR o EDITAR — cualquiera con acceso al dialogo puede ver/copiar uno ya pegado. */}
-      {puedeVincularGuion && !guionVinculado && (entregable.dialogoTexto || puedeAsignarEntregables(usuario)) && (
+      {!entregable.sinGuion && puedeVincularGuion && !guionVinculado && (entregable.dialogoTexto || puedeAsignarEntregables(usuario)) && (
         <div className="space-y-2">
           {!editandoDialogo && !entregable.dialogoTexto && puedeAsignarEntregables(usuario) && (
             <Button
@@ -2019,7 +2186,7 @@ export function RevisarEntregableDialog({
           boton para subirlo y otro para verlo, nada mas. Visible si ya hay PDF, o si puede
           subirlo. No aplica a diseño grafico ni a cambios en pagina web (`esImagenUnica`) — ahi
           no hay dialogo/guion que grabar, es una imagen o un cambio en vivo. */}
-      {!esImagenUnica && (puedeAsignarEntregables(usuario) || entregable.guionPdf) && (
+      {!entregable.sinGuion && !esImagenUnica && (puedeAsignarEntregables(usuario) || entregable.guionPdf) && (
         <div className="space-y-2">
           <Label className="flex items-center gap-1.5">
             <FileText className="h-3.5 w-3.5" /> Guion (PDF)
@@ -2082,56 +2249,84 @@ export function RevisarEntregableDialog({
           <Label className="flex items-center gap-1.5">
             <Download className="h-3.5 w-3.5" /> Material de apoyo
           </Label>
-          {(entregable.materialesApoyo ?? []).map((m) => (
-            <div key={m.id} className="flex items-center justify-between gap-2 rounded-md bg-bg-secondary px-2.5 py-1.5 text-xs">
-              <span className="truncate">{m.nombre}</span>
-              <div className="flex shrink-0 items-center gap-1">
-                {m.esCarpeta ? (
-                  <a
-                    href={m.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
-                    title={`Abrir ${m.nombre} en Drive`}
-                  >
-                    <ExternalLink className="h-3 w-3" /> Abrir en Drive
-                  </a>
-                ) : (
-                  <>
-                    <a
-                      href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
-                      title={`Ver ${m.nombre}`}
-                    >
-                      <ExternalLink className="h-3 w-3" /> Ver
-                    </a>
-                    <a
-                      href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}&download=1&nombre=${encodeURIComponent(m.nombre)}`}
-                      className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
-                      title={`Descargar ${m.nombre}`}
-                    >
-                      <Download className="h-3 w-3" /> Descargar
-                    </a>
-                  </>
-                )}
-                {puedeAsignarEntregables(usuario) && (
-                  <button
-                    type="button"
-                    onClick={() => onEliminarMaterialApoyo(m.id)}
-                    className="p-1 text-muted-foreground hover:text-destructive"
-                    title="Quitar"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
+          {/* Agrupado por tipo (logo/material/referencia/otro) en vez de una lista plana sin
+              orden — sin `tipo` (material historico) cae en "material". */}
+          {(Object.keys(MATERIAL_APOYO_TIPO_LABELS) as TipoMaterialApoyo[]).map((tipo) => {
+            const items = (entregable.materialesApoyo ?? []).filter((m) => (m.tipo ?? "material") === tipo);
+            if (items.length === 0) return null;
+            return (
+              <div key={tipo} className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase text-muted-foreground">
+                  {MATERIAL_APOYO_TIPO_LABELS[tipo]}
+                </p>
+                {items.map((m) => (
+                  <div key={m.id} className="flex items-center justify-between gap-2 rounded-md bg-bg-secondary px-2.5 py-1.5 text-xs">
+                    <span className="truncate">{m.nombre}</span>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {m.esCarpeta ? (
+                        <a
+                          href={m.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                          title={`Abrir ${m.nombre} en Drive`}
+                        >
+                          <ExternalLink className="h-3 w-3" /> Abrir en Drive
+                        </a>
+                      ) : (
+                        <>
+                          <a
+                            href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                            title={`Ver ${m.nombre}`}
+                          >
+                            <ExternalLink className="h-3 w-3" /> Ver
+                          </a>
+                          <a
+                            href={`/api/drive-video?id=${encodeURIComponent(m.fileId ?? "")}&download=1&nombre=${encodeURIComponent(m.nombre)}`}
+                            className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 font-medium hover:bg-bg-secondary"
+                            title={`Descargar ${m.nombre}`}
+                          >
+                            <Download className="h-3 w-3" /> Descargar
+                          </a>
+                        </>
+                      )}
+                      {puedeAsignarEntregables(usuario) && (
+                        <button
+                          type="button"
+                          onClick={() => onEliminarMaterialApoyo(m.id)}
+                          className="p-1 text-muted-foreground hover:text-destructive"
+                          title="Quitar"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
+            );
+          })}
           {puedeAsignarEntregables(usuario) && (
             <>
               <input ref={inputApoyoRef} type="file" className="hidden" onChange={onSubirMaterialApoyo} />
+              {/* Con que etiqueta se agrega lo siguiente — aplica a "Subir archivo" y "Pegar link",
+                  "Usar logo de marca" siempre etiqueta "Logo" sin importar esto. */}
+              <Select value={tipoApoyoSeleccionado} onValueChange={(v) => setTipoApoyoSeleccionado(v as TipoMaterialApoyo)}>
+                <SelectTrigger className="h-8 w-auto gap-1 border-none bg-transparent px-1.5 py-0 text-xs font-medium shadow-none hover:bg-bg-secondary">
+                  <span className="text-muted-foreground">Agregar como:</span>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(MATERIAL_APOYO_TIPO_LABELS) as TipoMaterialApoyo[]).map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      {MATERIAL_APOYO_TIPO_LABELS[tipo]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <div className="flex gap-1.5">
                 <Button
                   type="button"
@@ -2153,6 +2348,23 @@ export function RevisarEntregableDialog({
                 >
                   <Link2 className="h-3.5 w-3.5" /> Pegar link de Drive
                 </Button>
+                {logosDisponibles.length > 0 && (
+                  <Select value="" onValueChange={onUsarLogoMarca}>
+                    <SelectTrigger className="h-9 flex-1 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <SelectValue placeholder="Usar logo de marca" />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {logosDisponibles.map(({ marcaNombre, asset }) => (
+                        <SelectItem key={asset.id} value={asset.id}>
+                          {marcaNombre} — {asset.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               {pegandoLinkApoyo && (
                 <div className="space-y-1.5">
@@ -2191,6 +2403,61 @@ export function RevisarEntregableDialog({
                 </div>
               )}
             </>
+          )}
+        </div>
+      )}
+      {/* Subtareas: solo lider/superadmin agregan/borran items, el responsable (o cualquiera con
+          acceso al dialogo) solo los marca/desmarca — ver puedeAsignarEntregables/esResponsable. */}
+      {(puedeAsignarEntregables(usuario) || (entregable.checklist?.length ?? 0) > 0) && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5">
+            <ListChecks className="h-3.5 w-3.5" /> Tareas
+          </Label>
+          {(entregable.checklist ?? []).map((item) => (
+            <div key={item.id} className="flex items-center gap-2 rounded-md bg-bg-secondary px-2.5 py-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={item.hecho}
+                onChange={() => onToggleItemChecklist(item.id)}
+                disabled={actualizarChecklist.isPending}
+                className="h-4 w-4 shrink-0 rounded border-border"
+              />
+              <span className={cn("flex-1 truncate", item.hecho && "text-muted-foreground line-through")}>{item.texto}</span>
+              {puedeAsignarEntregables(usuario) && (
+                <button
+                  type="button"
+                  onClick={() => onEliminarItemChecklist(item.id)}
+                  className="shrink-0 p-1 text-muted-foreground hover:text-destructive"
+                  title="Quitar"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          {puedeAsignarEntregables(usuario) && (
+            <div className="flex gap-1.5">
+              <Input
+                value={nuevoItemChecklist}
+                onChange={(e) => setNuevoItemChecklist(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    onAgregarItemChecklist();
+                  }
+                }}
+                placeholder="Nueva tarea..."
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onAgregarItemChecklist}
+                disabled={actualizarChecklist.isPending || !nuevoItemChecklist.trim()}
+              >
+                <Plus className="h-3.5 w-3.5" /> Agregar
+              </Button>
+            </div>
           )}
         </div>
       )}
@@ -2473,6 +2740,16 @@ export function RevisarEntregableDialog({
             <Badge variant={ESTADO_ENTREGABLE_BADGE[entregable.estado]}>
               {etiquetaEstadoEntregable(entregable)}
             </Badge>
+            {entregable.ultimaActividad && (
+              <Badge variant={ULTIMA_ACTIVIDAD_BADGE[entregable.ultimaActividad.tipo]} className="gap-1">
+                {ULTIMA_ACTIVIDAD_LABELS[entregable.ultimaActividad.tipo]}
+                <span className="font-normal opacity-80">
+                  · {usuarios.find((u) => u.id === entregable.ultimaActividad!.porId)?.nombre ?? "Usuario eliminado"}
+                  {" · "}
+                  {formatDistanceToNow(new Date(entregable.ultimaActividad.en), { addSuffix: true, locale: es })}
+                </span>
+              </Badge>
+            )}
             {/* Solo superadmin/lider pueden CAMBIAR la prioridad (define el orden en que se debe
                 atender el trabajo, ver api/db/entregables.ts) — cualquiera mas solo la ve. */}
             {puedeAsignarEntregables(usuario) ? (
