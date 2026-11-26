@@ -35,6 +35,7 @@ const schema = z.object({
   responsableProduccionId: z.string().min(1, "Requerido"),
   transporte: z.string().optional(),
   observaciones: z.string().optional(),
+  modelos: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -77,6 +78,7 @@ export function EditarSalidaDialog({ salida }: { salida: SalidaGrabacion }) {
       responsableProduccionId: salida.responsableProduccionId,
       transporte: salida.transporte ?? "",
       observaciones: salida.observaciones ?? "",
+      modelos: salida.modelos ?? "",
     });
   }, [open, salida, reset]);
 
@@ -232,6 +234,11 @@ export function EditarSalidaDialog({ salida }: { salida: SalidaGrabacion }) {
                 </Select>
               )}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="e-modelos">Modelo(s) que salen en camara (opcional)</Label>
+            <Input id="e-modelos" {...register("modelos")} placeholder="Ej. Ana Garcia, Luis Prado" />
           </div>
 
           <div className="space-y-1.5">

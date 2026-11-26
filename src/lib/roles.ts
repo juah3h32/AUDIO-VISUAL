@@ -98,6 +98,18 @@ export function puedeAsignarEntregables(usuario: Usuario | null): boolean {
   return usuario.rol === "superadmin" || usuario.rol === "lider_audiovisual";
 }
 
+/** A diferencia de `puedeCrearProyectos` (que tambien gobierna proyectos/guiones), Marcas
+ * se abrio ademas a colaborador_audiovisual: son quienes mas usan el logo/manual de marca
+ * dia a dia para producir, y antes tenian que pedirselo al lider cada vez. */
+export function puedeGestionarMarcas(usuario: Usuario | null): boolean {
+  if (!usuario) return false;
+  return (
+    usuario.rol === "superadmin" ||
+    usuario.rol === "lider_audiovisual" ||
+    usuario.rol === "colaborador_audiovisual"
+  );
+}
+
 /** Solo quien produce video (colaborador, lider, superadmin) sube archivos. Community nunca sube. */
 export function puedeSubirVideos(usuario: Usuario | null): boolean {
   if (!usuario) return false;

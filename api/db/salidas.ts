@@ -28,6 +28,7 @@ function filaASalida(f: Record<string, unknown>) {
     transporte: f.transporte ? String(f.transporte) : undefined,
     estadoAutorizacion: String(f.estado_autorizacion),
     observaciones: f.observaciones ? String(f.observaciones) : undefined,
+    modelos: f.modelos ? String(f.modelos) : undefined,
     creadoEn: String(f.creado_en),
   };
 }
@@ -55,15 +56,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         sql: `INSERT INTO salidas (id, folio, nombre_jornada, proyectos_relacionados, tipo_actividad, planta, direccion,
                 contacto_planta, telefono_contacto, fecha, hora_salida, hora_estimada_llegada, hora_inicio_grabacion,
                 hora_estimada_finalizacion, hora_regreso, personal_asignado, responsable_produccion_id, equipo_requerido,
-                transporte, estado_autorizacion, observaciones, creado_en)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?, ?)`,
+                transporte, estado_autorizacion, observaciones, modelos, creado_en)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pendiente', ?, ?, ?)`,
         args: [
           id, folio, body.nombreJornada, JSON.stringify(body.proyectosRelacionados ?? []), body.tipoActividad,
           body.planta, body.direccion ?? null, body.contactoPlanta ?? null, body.telefonoContacto ?? null,
           body.fecha, body.horaSalida, body.horaEstimadaLlegada, body.horaInicioGrabacion ?? null,
           body.horaEstimadaFinalizacion ?? null, body.horaRegreso ?? null, JSON.stringify(body.personalAsignado ?? []),
           body.responsableProduccionId, JSON.stringify(body.equipoRequerido ?? []), body.transporte ?? null,
-          body.observaciones ?? null, ahora,
+          body.observaciones ?? null, body.modelos ?? null, ahora,
         ] as any[],
       });
       const fila = await db().execute({ sql: "SELECT * FROM salidas WHERE id = ?", args: [id] });
@@ -91,6 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         responsableProduccionId?: string;
         transporte?: string;
         observaciones?: string;
+        modelos?: string;
       }>(req);
 
       const MAPA_CAMPOS: Record<string, string> = {
@@ -107,11 +109,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         responsableProduccionId: "responsable_produccion_id",
         transporte: "transporte",
         observaciones: "observaciones",
+        modelos: "modelos",
       };
       const CAMPOS_JSON = new Set(["proyectosRelacionados", "personalAsignado"]);
 
       const campos: string[] = [];
-      const args: unknown[] = [];
+      const args: any[] = [];
       for (const [clave, columna] of Object.entries(MAPA_CAMPOS)) {
         const valor = (body as Record<string, unknown>)[clave];
         if (valor === undefined) continue;

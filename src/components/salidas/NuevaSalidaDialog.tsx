@@ -66,6 +66,7 @@ const schema = z.object({
   proyectoId: z.string().optional(),
   transporte: z.string().optional(),
   observaciones: z.string().optional(),
+  modelos: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -167,6 +168,7 @@ export function NuevaSalidaDialog() {
         equipoRequerido: [],
         transporte: values.transporte,
         observaciones: values.observaciones,
+        modelos: values.modelos,
       };
       // Secuencial (no Promise.all): cada una pide su propio folio consecutivo — mandarlas
       // todas a la vez no rompe el conteo (es transaccional), pero sí se ve raro si una falla
@@ -433,6 +435,11 @@ export function NuevaSalidaDialog() {
                 </Select>
               )}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="modelos">Modelo(s) que salen en camara (opcional)</Label>
+            <Input id="modelos" {...register("modelos")} placeholder="Ej. Ana Garcia, Luis Prado" />
           </div>
 
           <div className="space-y-1.5">

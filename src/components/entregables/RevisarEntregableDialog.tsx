@@ -217,6 +217,11 @@ export function RevisarEntregableDialog({
   const [nuevoItemChecklist, setNuevoItemChecklist] = useState("");
   const [comentario, setComentario] = useState("");
   const [momento, setMomento] = useState("");
+  // Reabrir un entregable ya aprobado (se les paso algo) — regresa a "correcciones" para que el
+  // responsable vuelva a ver la opcion de cargar (ver puedeEditarMaterial mas abajo, que excluye
+  // justo el estado "aprobado").
+  const [reabriendo, setReabriendo] = useState(false);
+  const [notaReabrir, setNotaReabrir] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [progreso, setProgreso] = useState(0);
   const [errorSubida, setErrorSubida] = useState<string | null>(null);
@@ -259,6 +264,8 @@ export function RevisarEntregableDialog({
     setEditandoNombre(false);
     setFotosComentando([]);
     setFotoAmpliadaIndex(null);
+    setReabriendo(false);
+    setNotaReabrir("");
   }, [entregable?.id, open]);
 
   useEffect(() => {
@@ -967,6 +974,19 @@ export function RevisarEntregableDialog({
   const onMarcarEntregado = async () => {
     await marcarEntregado.mutateAsync(entregable.id);
     notificarA(entregable.responsableId, `Tu ${sustantivoMaterial} "${entregable.nombre}" ya quedo entregado.`);
+  };
+
+  const onReabrir = async () => {
+    if (notaReabrir.trim()) {
+      await agregarComentario.mutateAsync({ autorId: usuario.id, autorNombre: usuario.nombre, texto: notaReabrir.trim() });
+    }
+    await solicitarCorrecciones.mutateAsync(entregable.id);
+    notificarA(
+      entregable.responsableId,
+      `Reabrieron tu ${sustantivoMaterial} "${entregable.nombre}" para corregir algo. Revisa las observaciones.`
+    );
+    setNotaReabrir("");
+    setReabriendo(false);
   };
 
   const onCopiarGuion = async () => {
@@ -2653,11 +2673,31 @@ export function RevisarEntregableDialog({
       )}
 
       {esAprobador && entregable.estado === "aprobado" && (
-        <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
-          <Button type="button" onClick={onMarcarEntregado} disabled={marcarEntregado.isPending}>
-            <CheckCircle2 className="h-4 w-4" />
-            {marcarEntregado.isPending ? "Marcando..." : "Marcar como entregado"}
-          </Button>
+        <div className="flex flex-col gap-2 border-t border-border pt-4">
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setReabriendo((v) => !v)}>
+              <RotateCcw className="h-4 w-4" /> Reabrir para corregir
+            </Button>
+            <Button type="button" onClick={onMarcarEntregado} disabled={marcarEntregado.isPending}>
+              <CheckCircle2 className="h-4 w-4" />
+              {marcarEntregado.isPending ? "Marcando..." : "Marcar como entregado"}
+            </Button>
+          </div>
+          {reabriendo && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                value={notaReabrir}
+                onChange={(e) => setNotaReabrir(e.target.value)}
+                placeholder="Que se les paso? (opcional)"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onReabrir();
+                }}
+              />
+              <Button type="button" onClick={onReabrir} disabled={solicitarCorrecciones.isPending}>
+                Confirmar reapertura
+              </Button>
+            </div>
+          )}
         </div>
       )}
 

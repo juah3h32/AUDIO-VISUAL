@@ -12,6 +12,7 @@ import {
   Trash2,
   Video,
   Footprints,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useAutorizarSalida, useEliminarSalida, useSalidas } from "@/hooks/useCatalogos";
 import { useUsuarios } from "@/hooks/useCatalogos";
@@ -35,6 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { NuevaSalidaDialog } from "@/components/salidas/NuevaSalidaDialog";
+import { RegistroGrabacionManual } from "@/components/salidas/RegistroGrabacionManual";
 import { EditarSalidaDialog } from "@/components/salidas/EditarSalidaDialog";
 import { LoadingState } from "@/components/ui/loading-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -138,6 +140,8 @@ export function SalidasPage() {
           </p>
         </CardContent>
       </Card>
+
+      {usuario?.rol === "superadmin" && <RegistroGrabacionManual usuarioId={usuario.id} />}
 
       {!isLoading && !isError && (
         <div className="flex flex-wrap items-center gap-2">
@@ -277,6 +281,13 @@ export function SalidasPage() {
                   <div className="flex min-w-0 items-center gap-1.5">
                     <Truck className="h-3 w-3 shrink-0 text-muted-foreground" />
                     <span className="truncate">{s.transporte}</span>
+                  </div>
+                )}
+
+                {s.modelos && (
+                  <div className="flex min-w-0 items-center gap-1.5" title={s.modelos}>
+                    <ImageIcon className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    <span className="truncate">Modelo: {s.modelos}</span>
                   </div>
                 )}
 

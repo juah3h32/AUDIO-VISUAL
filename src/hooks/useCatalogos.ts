@@ -22,7 +22,12 @@ import {
   type DecisionSalida,
 } from "@/services/catalogosService";
 import { crearInvitacion } from "@/services/invitacionesService";
-import type { Colaborador, Entregable, Invitacion, Planta, SalidaGrabacion, Usuario } from "@/types";
+import {
+  crearRegistroGrabacion,
+  eliminarRegistroGrabacion,
+  listarRegistrosGrabacion,
+} from "@/services/registrosGrabacionService";
+import type { Colaborador, Entregable, Invitacion, Planta, RegistroGrabacion, SalidaGrabacion, Usuario } from "@/types";
 
 /**
  * Un solo polling por coleccion para TODA la app, con conteo de referencias — reemplaza el
@@ -69,6 +74,31 @@ function abrirPolling<T>(qc: QueryClient, nombre: string, queryFn: () => Promise
 
 export const useSalidas = () => useQuery({ queryKey: ["salidas"], queryFn: listarSalidas });
 export const usePlantas = () => useQuery({ queryKey: ["plantas"], queryFn: listarPlantas });
+
+export const useRegistrosGrabacion = () =>
+  useQuery({ queryKey: ["registrosGrabacion"], queryFn: listarRegistrosGrabacion });
+
+export function useCrearRegistroGrabacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      data,
+      creadoPorId,
+    }: {
+      data: Omit<RegistroGrabacion, "id" | "creadoEn" | "creadoPorId">;
+      creadoPorId: string;
+    }) => crearRegistroGrabacion(data, creadoPorId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["registrosGrabacion"] }),
+  });
+}
+
+export function useEliminarRegistroGrabacion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => eliminarRegistroGrabacion(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["registrosGrabacion"] }),
+  });
+}
 
 export function useCrearPlanta() {
   const qc = useQueryClient();

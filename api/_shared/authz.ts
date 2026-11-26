@@ -98,3 +98,9 @@ export function puedeCrearProyectos(u: UsuarioFila): boolean {
 export function puedeAsignarEntregables(u: UsuarioFila): boolean {
   return esSuperadmin(u) || esLiderAudiovisual(u);
 }
+
+/** A diferencia de `puedeCrearProyectos` (que tambien gobierna proyectos/guiones), Marcas
+ * se abrio ademas a colaborador_audiovisual — ver mismo comentario en src/lib/roles.ts. */
+export function puedeGestionarMarcas(u: UsuarioFila): boolean {
+  return esSuperadmin(u) || esLiderAudiovisual(u) || u.rol === "colaborador_audiovisual";
+}

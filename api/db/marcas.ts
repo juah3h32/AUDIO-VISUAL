@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { db, parseJsonArray } from "../_shared/turso.js";
-import { requerirUsuario, puedeCrearProyectos } from "../_shared/authz.js";
+import { requerirUsuario, puedeGestionarMarcas } from "../_shared/authz.js";
 import { manejarApi, cuerpoJson } from "../_shared/http.js";
 import { ErrorAuth } from "../_shared/session.js";
 import { nuevoId } from "../_shared/ids.js";
@@ -60,8 +60,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // Crear/editar/borrar marca: mismo permiso que crear proyectos (superadmin/lider).
-    if (!puedeCrearProyectos(usuario)) {
+    // Crear/editar/borrar marca: superadmin/lider + colaborador_audiovisual (ver puedeGestionarMarcas).
+    if (!puedeGestionarMarcas(usuario)) {
       throw new ErrorAuth(403, "No tienes permiso para gestionar marcas.");
     }
 

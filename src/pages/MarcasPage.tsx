@@ -4,7 +4,7 @@ import { useMarcas, useEliminarMarca } from "@/hooks/useMarcas";
 import { useProyectos } from "@/hooks/useProyectos";
 import { useEntregables } from "@/hooks/useCatalogos";
 import { useAuth } from "@/context/AuthContext";
-import { puedeCrearProyectos } from "@/lib/roles";
+import { puedeGestionarMarcas } from "@/lib/roles";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DemoBadge } from "@/components/DemoBadge";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -23,7 +23,7 @@ export function MarcasPage() {
   const [editando, setEditando] = useState(false);
   const [aEliminar, setAEliminar] = useState<Marca | null>(null);
   const eliminar = useEliminarMarca();
-  const puedeGestionar = puedeCrearProyectos(usuario);
+  const puedeGestionar = puedeGestionarMarcas(usuario);
 
   const logoDe = (marca: Marca) => marca.assets.find((a) => a.tipo === "logo");
 
