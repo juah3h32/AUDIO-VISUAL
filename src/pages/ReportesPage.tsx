@@ -9,6 +9,7 @@ import { coloresDelEquipo, COLORES_PERSONA_MARCA } from "@/lib/avatar";
 import {
   aprobadosEnRango,
   asignadosEnRango,
+  correccionesEnRango,
   diasPromedioEntrega,
   donaEstados,
   PALETA_MARCA,
@@ -67,6 +68,7 @@ function useDatosReporte(periodo: PeriodoReporte, offset: number, oscuro: boolea
         equipo,
         filas,
         asignados: asignadosEnRango(entregables, r),
+        correcciones: correccionesEnRango(entregables, r),
         dias: diasPromedioEntrega(entregas),
         alDia: filas.filter((f) => (f.porcentaje ?? -1) >= 80).length,
         // Mis avances como lider (mis propios cambios web, diseño...).
@@ -117,6 +119,7 @@ function useDatosReporte(periodo: PeriodoReporte, offset: number, oscuro: boolea
         { label: "Promedio de entrega", dato: { valor: actual.dias, anterior: previo.dias, masEsMejor: false, sufijo: " dias" } },
         { label: "Colaboradores al dia", dato: { valor: actual.alDia, anterior: previo.alDia, masEsMejor: true } },
         { label: "Mis avances", dato: { valor: actual.miAvance, anterior: previo.miAvance, masEsMejor: true, sufijo: "%" } },
+        { label: "Correcciones hechas", dato: { valor: actual.correcciones, anterior: previo.correcciones, masEsMejor: false } },
       ],
       area: {
         nombre: "Area Audiovisual",

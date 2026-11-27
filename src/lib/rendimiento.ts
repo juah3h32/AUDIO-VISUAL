@@ -252,6 +252,16 @@ export function aprobadosEnRango(entregables: Entregable[], r: SemanaRango): num
   return sumarUnidades(entregables.filter((e) => e.fechaAprobado && enSemana(aFecha(e.fechaAprobado), r)));
 }
 
+/** Entregables cuya ULTIMA actividad fue una correccion subida dentro del rango — a diferencia de
+ * `enCorrecciones` (estado actual del entregable, agrupado por su fecha compromiso), esto cuenta
+ * el trabajo de corregir como tarea del periodo en que de verdad se hizo, aunque el entregable se
+ * haya enviado originalmente en otra semana. */
+export function correccionesEnRango(entregables: Entregable[], r: SemanaRango): number {
+  return sumarUnidades(
+    entregables.filter((e) => e.ultimaActividad?.tipo === "correccion" && enSemana(aFecha(e.ultimaActividad.en), r))
+  );
+}
+
 /** Colores semanticos de estado — iguales en la app y en el PDF. */
 export const COLOR_ESTADO_TAREA: Record<EstadoTareaSemana, string> = {
   a_tiempo: "#22C55E",

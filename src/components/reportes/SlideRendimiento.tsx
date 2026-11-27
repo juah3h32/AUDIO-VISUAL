@@ -458,7 +458,7 @@ export const SlideRendimiento = forwardRef<HTMLDivElement, { datos: DatosSlide; 
       {/* Lider + donas */}
       <div className="grid grid-cols-12 gap-4">
         <Seccion titulo="Gestion del lider" className="col-span-6">
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {datos.gestion.map((g) => (
               <div key={g.label}>
                 <p className="text-lg font-bold leading-tight">
